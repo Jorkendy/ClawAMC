@@ -1,0 +1,3 @@
+greennode-agentbase
+python-dotenv
+openai
