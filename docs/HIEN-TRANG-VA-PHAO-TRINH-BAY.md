@@ -35,7 +35,7 @@ Requester ──Form Airtable──► Airtable Base (nguồn sự thật duy nh
 | **AgentBase Custom framework (không phải LangChain/LangGraph)** | Logic của ta là orchestration tuần tự + gọi LLM một phát một — không cần agent-with-tools framework. Ít tầng = dễ debug trong 7 ngày. Vẫn đóng Docker deploy được lên AgentBase Runtime (output bắt buộc của hackathon). |
 | **Webhook (không polling Airtable)** | Polling 1 phút/lần = 1.440 calls/ngày, đốt sạch quota. Airtable Webhooks API push ping → agent chỉ gọi API khi có sự kiện thật. Polling chỉ còn ở Zalo getUpdates (bắt buộc, không có lựa chọn khác cho bot Zalo local). |
 
-**Repo:** `ClawAMC/` — main.py (~750 dòng), Dockerfile (python:3.13-slim), requirements (greennode-agentbase, openai, python-dotenv). Base Airtable: `app46fhZ5wAv9LSzC` (5 bảng: Projects, Items, Price History 48 dòng, Vendors 5, Users 4).
+**Repo:** `ClawAMC/` — ~800 dòng Python tách 12 module theo trách nhiệm (main.py routing, config, airtable_client, llm_client, analysis/proposal/rfq = 3 điểm AI, zalo_client/zalo_router, approval, reminders, pipeline), Dockerfile (python:3.13-slim), requirements (greennode-agentbase, openai, python-dotenv). Base Airtable: `app46fhZ5wAv9LSzC` (5 bảng: Projects, Items, Price History 48 dòng, Vendors 5, Users 4).
 
 ---
 
