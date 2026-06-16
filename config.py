@@ -16,12 +16,18 @@ LLM_API_KEY = os.environ.get("LLM_API_KEY", "")
 ZALO_TOKEN = os.environ.get("ZALO_BOT_TOKEN", "")
 ZALO_BASE = "https://bot-api.zapps.me/bot{token}/{method}"
 
-# Lead time toi thieu (ngay) tu kinh nghiem san xuat — dung de danh gia deadline
-LEAD_TIME_DAYS = {
-    "San xuat moi": 30,      # proposal 2-3d + design 5d + len mau 7-14d + sx 15-30d
-    "Mua san": 10,           # dat hang + khac logo + giao
-    "Gia tri cao >50tr": 60, # quy trinh PROC rieng + len mau phuc tap
-}
+# Field id "File proposal" (bang Projects) — dung cho Airtable Upload Attachment API
+PROPOSAL_FILE_FIELD_ID = "fldFlkZzbRIX9Um48"
+
+# Proposal duyet (Buoc 2 — D1: requester duyet tren Airtable)
+PROPOSAL_APPROVAL_DAYS = 3   # han requester duyet proposal (ngay)
+MAX_PROPOSAL_ROUNDS = 3      # so round sua toi da -> escalate Merch PIC
+
+# Timeline du kien toan trinh intake -> hang ve kho, theo critical path
+# (buoc 1+2+5+6+10+11+13+14). Don vi: NGAY LAM VIEC.
+# So lieu [GIA DINH] — can validate bang 10-15 project history.
+PIPELINE_WORKDAYS = {"min": 31, "avg": 53, "max": 68}
+WORKDAYS_TO_CALENDAR = 1.4  # 5 ngay lam viec ~ 7 ngay lich
 
 REQUIRED_FIELDS = {
     "Mục đích": "Mục đích sản xuất",

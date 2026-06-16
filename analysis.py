@@ -2,7 +2,7 @@
 from datetime import date, datetime
 
 from airtable_client import airtable, update_project
-from config import PROJECTS_TABLE, REQUIRED_FIELDS
+from config import PIPELINE_WORKDAYS, PROJECTS_TABLE, REQUIRED_FIELDS, WORKDAYS_TO_CALENDAR
 from llm_client import ask_llm_json
 
 ANALYSIS_PROMPT = """Bạn là chuyên gia sản xuất merchandise cho game với 10 năm kinh nghiệm tại VNGGames.
@@ -13,19 +13,46 @@ Phân tích đề bài sản xuất merch dưới đây và trả về DUY NHẤ
 
 THÔNG TIN BỔ TRỢ (đã tính sẵn, dùng nguyên — không tự tính lại ngày tháng):
 - Hôm nay: {today}
-- Số ngày từ hôm nay đến deadline cần hàng: {days_to_deadline}
-- Lead time tối thiểu theo loại merch (ngày): Sản xuất mới = 30, Mua sẵn = 10, Giá trị cao >50tr = 60
+- Số ngày (lịch) từ hôm nay đến deadline cần hàng: {days_to_deadline}
+- Đánh giá deadline (máy đã so với timeline sản xuất toàn trình): {deadline_status}
 - Các trường thông tin đang THIẾU (đã kiểm tra sẵn): {missing_fields}
 
 YÊU CẦU PHÂN TÍCH:
-1. "phan_loai": đề bài này thuộc nhóm nào trong ["Sản xuất mới", "Mua sẵn", "Giá trị cao >50tr"] — có thể nhiều nhóm. Suy luận từ mục đích/chủ đề/budget (vd: quà thiết kế riêng theo game → Sản xuất mới; có item điện tử/hàng có sẵn thị trường → thêm Mua sẵn). QUY TẮC CỨNG cho "Giá trị cao >50tr": chỉ gán khi có ít nhất 1 MÓN đơn giá vượt 50 triệu VND — ước lượng đơn giá trung bình = budget ÷ số lượng; quà "premium/cao cấp" thông thường (vài trăm nghìn đến vài triệu/món) KHÔNG thuộc nhóm này, trừ khi đề bài nêu rõ có giải thưởng/tượng/vật phẩm đặc biệt đắt tiền.
-2. "deadline_kha_thi": true/false — so days_to_deadline với lead time của nhóm phan_loai nặng nhất. Nếu thiếu deadline thì null.
-3. "ly_do_deadline": 1-2 câu giải thích (tiếng Việt).
-4. "tom_tat": 2-3 câu tóm tắt đề bài + nhận định chuyên môn (gợi ý hướng item phù hợp audience).
-5. "muc_do_uu_tien": "cao" | "trung bình" | "thấp" — dựa trên deadline gấp và budget lớn.
-6. "mail_bo_sung": nếu missing_fields không rỗng HOẶC deadline không khả thi → soạn email tiếng Việt ngắn gọn, chuyên nghiệp gửi requester: chào theo tên, nêu rõ từng thông tin thiếu cần bổ sung (giải thích vì sao cần), nếu deadline không khả thi thì đề xuất 2 hướng (lùi deadline theo lead time / đổi sang nhóm item nhanh hơn). Kết thúc bằng chữ ký "Merch Agent — VNGGames". Nếu đủ thông tin và deadline ổn → null.
+1. "tom_tat": 2-3 câu tóm tắt đề bài + nhận định chuyên môn (gợi ý hướng item phù hợp target audience).
+2. "muc_do_uu_tien": "cao" | "trung bình" | "thấp" — dựa trên độ gấp của deadline và quy mô budget.
+3. "ly_do_deadline": 1-2 câu (tiếng Việt) giải thích đánh giá deadline ở trên (vì sao gấp / không khả thi / ổn). KHÔNG tự tính lại số ngày — dùng đúng đánh giá máy đã đưa.
+4. "mail_bo_sung": nếu missing_fields không rỗng HOẶC deadline "gấp"/"không khả thi" → soạn email tiếng Việt ngắn gọn, chuyên nghiệp gửi requester: chào theo tên, nêu rõ từng thông tin thiếu cần bổ sung (giải thích vì sao cần); nếu deadline gấp/không khả thi thì cảnh báo và đề xuất hướng (lùi deadline / ưu tiên hàng có sẵn cho nhanh). Kết thúc bằng chữ ký "Merch Agent — VNGGames". Nếu đủ thông tin và deadline ổn → null.
 
-JSON schema: {{"phan_loai": [...], "deadline_kha_thi": bool|null, "ly_do_deadline": str, "tom_tat": str, "muc_do_uu_tien": str, "mail_bo_sung": str|null}}"""
+JSON schema: {{"tom_tat": str, "muc_do_uu_tien": str, "ly_do_deadline": str, "mail_bo_sung": str|null}}"""
+
+
+def _requester_account(fields: dict):
+    """Tra 'Tai khoan Airtable' (collaborator) cua Requester -> de interface filter current-user.
+    Tra ve {'id': usr...} de ghi vao field Collaborator, hoac None neu chua co."""
+    reqs = fields.get("Requester") or []
+    if not reqs:
+        return None
+    try:
+        user = airtable("GET", f"Users/{reqs[0]}").get("fields", {})
+        acct = user.get("Tài khoản Airtable")
+        if acct and acct.get("id"):
+            return {"id": acct["id"]}
+    except Exception:  # noqa: BLE001
+        pass
+    return None
+
+
+def assess_deadline(days_to_deadline) -> str:
+    """May danh gia deadline so voi timeline san xuat toan trinh (critical path)."""
+    if not isinstance(days_to_deadline, int):
+        return "chưa có"
+    min_cal = round(PIPELINE_WORKDAYS["min"] * WORKDAYS_TO_CALENDAR)
+    avg_cal = round(PIPELINE_WORKDAYS["avg"] * WORKDAYS_TO_CALENDAR)
+    if days_to_deadline < min_cal:
+        return "không khả thi"
+    if days_to_deadline < avg_cal:
+        return "gấp"
+    return "ổn"
 
 
 def build_brief(fields: dict) -> str:
@@ -66,22 +93,28 @@ def analyze_one(record: dict) -> dict:
     if fields.get("Deadline cần hàng"):
         d = datetime.strptime(fields["Deadline cần hàng"], "%Y-%m-%d").date()
         days_to_deadline = (d - date.today()).days
+    deadline_status = assess_deadline(days_to_deadline)
 
     prompt = ANALYSIS_PROMPT.format(
         brief=build_brief(fields),
         today=date.today().isoformat(),
         days_to_deadline=days_to_deadline,
+        deadline_status=deadline_status,
         missing_fields=missing or "(không thiếu gì)",
     )
     analysis = ask_llm_json(prompt, max_tokens=1500)
 
-    ok = not missing and analysis.get("deadline_kha_thi") is not False
-    new_status = "Chờ duyệt items" if ok else "Thiếu thông tin"
+    # Buoc 1 CHI canh bao deadline — status chi phu thuoc thieu thong tin
+    new_status = "Chờ duyệt items" if not missing else "Thiếu thông tin"
 
+    deadline_label = {
+        "ổn": "✅ ổn", "gấp": "⚠️ gấp/rủi ro",
+        "không khả thi": "⚠️ KHÔNG khả thi", "chưa có": "chưa có",
+    }[deadline_status]
     note_parts = [
         f"[AI {date.today():%d/%m}] {analysis['tom_tat']}",
-        f"Phân loại: {', '.join(analysis['phan_loai'])} | Ưu tiên: {analysis['muc_do_uu_tien']}",
-        f"Deadline: {'✅ khả thi' if analysis.get('deadline_kha_thi') else '⚠️ ' + ('KHÔNG khả thi' if analysis.get('deadline_kha_thi') is False else 'chưa có')} — {analysis['ly_do_deadline']}",
+        f"Ưu tiên: {analysis['muc_do_uu_tien']}",
+        f"Deadline: {deadline_label} — {analysis['ly_do_deadline']}",
     ]
     if missing:
         note_parts.append(f"Thiếu thông tin: {', '.join(missing)}")
@@ -91,13 +124,16 @@ def analyze_one(record: dict) -> dict:
     update_fields = {
         "Phân tích AI": "\n".join(note_parts),
         "Status": new_status,
-        "Phân loại merch": analysis["phan_loai"],
     }
+    acct = _requester_account(fields)
+    if acct:
+        update_fields["Requester (account)"] = acct
     update_project(record["id"], update_fields)
 
     return {
         "project_code": code,
         "new_status": new_status,
         "missing": missing,
+        "deadline_status": deadline_status,
         "analysis": analysis,
     }

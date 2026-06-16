@@ -30,7 +30,7 @@ from airtable_client import fetch_projects
 from analysis import analyze_one
 from approval import request_approval_for
 from config import ZALO_TOKEN
-from pipeline import analyze_new_async
+from pipeline import first_send, handle_proposal_decisions, on_webhook
 from proposal import propose_items_for
 from reminders import check_reminders, reminder_scheduler
 from rfq import send_rfq_for
@@ -44,7 +44,7 @@ app = GreenNodeAgentBaseApp()
 def handler(payload: dict, context: RequestContext) -> dict:
     # Airtable webhook ping (khong co "action", co "webhook"/"base") -> xu ly nen, tra 200 ngay
     if "webhook" in payload and "base" in payload:
-        threading.Thread(target=analyze_new_async, daemon=True).start()
+        threading.Thread(target=on_webhook, daemon=True).start()
         return {"status": "accepted", "trigger": "airtable_webhook"}
 
     action = payload.get("action", "analyze_new")
@@ -67,6 +67,18 @@ def handler(payload: dict, context: RequestContext) -> dict:
         if not records:
             return {"status": "error", "message": f"Khong tim thay project {code}"}
         return {"status": "success", "results": [propose_items_for(records[0])]}
+
+    if action == "send_proposal":  # full: propose + render HTML + upload + Status "Cho duyet items"
+        code = payload.get("project_code", "")
+        records = fetch_projects(f"{{Mã project}} = '{code}'")
+        if not records:
+            return {"status": "error", "message": f"Khong tim thay project {code}"}
+        first_send(records[0]["id"])
+        return {"status": "success", "project_code": code}
+
+    if action == "handle_proposal_decisions":  # quet "Duyet proposal?" -> chot / sua
+        handle_proposal_decisions()
+        return {"status": "success"}
 
     if action == "check_reminders":
         return check_reminders()
