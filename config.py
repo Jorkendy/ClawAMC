@@ -6,8 +6,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # --- Config ---
-AIRTABLE_BASE_ID = "app46fhZ5wAv9LSzC"
-PROJECTS_TABLE = "Projects"
+AIRTABLE_BASE_ID = os.environ.get("AIRTABLE_BASE_ID", "app46fhZ5wAv9LSzC")
+PROJECTS_TABLE = os.environ.get("AIRTABLE_PROJECTS_TABLE", "Projects")
 AIRTABLE_TOKEN = os.environ.get("AIRTABLE_TOKEN", "")
 LLM_BASE_URL = os.environ.get("LLM_BASE_URL", "https://llm.vinhpham.com.vn/v1")
 LLM_MODEL = os.environ.get("LLM_MODEL", "")
@@ -21,8 +21,8 @@ CF_ACCESS_CLIENT_SECRET = os.environ.get("CF_ACCESS_CLIENT_SECRET", "")
 # Tat "thinking" cua model (Qwen) — chi bat khi backend LiteLLM route toi model ho tro.
 LLM_DISABLE_THINKING = os.environ.get("LLM_DISABLE_THINKING", "").lower() in ("1", "true", "yes")
 
-# Field id "File proposal" (bang Projects) — dung cho Airtable Upload Attachment API
-PROPOSAL_FILE_FIELD_ID = "fldFlkZzbRIX9Um48"
+# Field id "File proposal" (bang Projects) — dung cho Airtable Upload Attachment API (base-specific)
+PROPOSAL_FILE_FIELD_ID = os.environ.get("PROPOSAL_FILE_FIELD_ID", "fldFlkZzbRIX9Um48")
 
 # Proposal duyet (Buoc 2 — D1: requester duyet tren Airtable)
 PROPOSAL_APPROVAL_DAYS = 3   # han requester duyet proposal (ngay)
