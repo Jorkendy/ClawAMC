@@ -27,6 +27,7 @@ CLARIFY_STATUS = "Chờ làm rõ yêu cầu"  # con yeu cau dac biet chua dap un
 CLARIFY_FIELD = "Trao đổi yêu cầu"     # cau hoi AI hoi requester (requester doc o record view)
 CLARIFY_ROUND_FIELD = "Số vòng làm rõ"  # dem rieng, KHONG dung chung Số round proposal
 CLARIFY_MAIL_FLAG = "Gửi mail làm rõ"   # co bat moi vong -> Automation gui mail requester roi tu untick
+CLARIFY_ANSWER_FIELD = "Trả lời làm rõ"  # requester tra loi cau hoi lam ro (KHAC 'Feedback proposal' — luc nay chua co proposal)
 
 
 def _run_guarded(lock: threading.Lock, again: threading.Event, work) -> None:
@@ -67,6 +68,7 @@ def _publish_proposal(record_id: str, result: dict, html: str, *, reset_round: b
         "Gửi phản hồi": False,
         "Feedback proposal": None,
         CLARIFY_FIELD: None,  # da giai quyet yeu cau dac biet -> xoa cau hoi
+        CLARIFY_ANSWER_FIELD: None,  # don cau tra loi lam ro
         CLARIFY_MAIL_FLAG: False,  # don co (truong hop con sot)
     }
     if reset_round:
@@ -99,7 +101,7 @@ def _enter_clarify(record_id: str, result: dict) -> None:
         CLARIFY_ROUND_FIELD: rounds,
         CLARIFY_MAIL_FLAG: True,  # bat co -> Automation gui mail requester (tu untick sau khi gui)
         "Gửi phản hồi": False,
-        "Feedback proposal": None,
+        CLARIFY_ANSWER_FIELD: None,  # xoa cau tra loi cu -> vong sau nhap moi
     })
     append_note(record_id, f"[AI] Vòng làm rõ {rounds} — yêu cầu đặc biệt chưa thỏa, đã hỏi requester.",
                 field=HISTORY_FIELD)
@@ -187,15 +189,16 @@ def _scan_decisions() -> None:
                 update_project(r["id"], {"Gửi phản hồi": False, "Duyệt proposal?": None})
                 print(f"[proposal] {code} đã chốt/đã chuyển PIC -> bỏ qua phản hồi")
                 continue
-            feedback = (f.get("Feedback proposal") or "").strip()
-            # dang cho lam ro yeu cau dac biet -> phan hoi la cau tra loi lam ro (chua co proposal)
+            # dang cho lam ro yeu cau dac biet -> doc 'Tra loi lam ro' (chua co proposal nen KHONG dung Feedback proposal)
             if f.get("Status") == CLARIFY_STATUS:
-                if not feedback:
+                answer = (f.get(CLARIFY_ANSWER_FIELD) or "").strip()
+                if not answer:
                     update_project(r["id"], {"Gửi phản hồi": False})
                     print(f"[proposal] {code} tick Gửi nhưng chưa trả lời làm rõ -> bỏ qua")
                     continue
-                _reevaluate_clarify(r["id"], code, feedback)
+                _reevaluate_clarify(r["id"], code, answer)
                 continue
+            feedback = (f.get("Feedback proposal") or "").strip()
             decision = f.get("Duyệt proposal?")
             if decision == "Duyệt":
                 _approve_proposal(r["id"], code)
