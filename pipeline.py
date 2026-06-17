@@ -12,7 +12,8 @@ from datetime import date, timedelta
 from airtable_client import (airtable, append_note, fetch_items_of,
                              fetch_projects, update_items, update_project)
 from analysis import analyze_one
-from config import MAX_PROPOSAL_ROUNDS, PROJECTS_TABLE, PROPOSAL_APPROVAL_DAYS
+from config import (MAX_CLARIFY_ROUNDS, MAX_PROPOSAL_ROUNDS, PROJECTS_TABLE,
+                    PROPOSAL_APPROVAL_DAYS)
 from proposal import propose_items_for
 from proposal_render import build_proposal_html, upload_proposal
 
@@ -22,6 +23,9 @@ _decide_lock = threading.Lock()
 _decide_again = threading.Event()
 
 HISTORY_FIELD = "Lịch sử chỉnh sửa"  # log tung round feedback / duyet / escalate
+CLARIFY_STATUS = "Chờ làm rõ yêu cầu"  # con yeu cau dac biet chua dap ung
+CLARIFY_FIELD = "Trao đổi yêu cầu"     # cau hoi AI hoi requester (requester doc o record view)
+CLARIFY_ROUND_FIELD = "Số vòng làm rõ"  # dem rieng, KHONG dung chung Số round proposal
 
 
 def _run_guarded(lock: threading.Lock, again: threading.Event, work) -> None:
@@ -39,31 +43,73 @@ def _run_guarded(lock: threading.Lock, again: threading.Event, work) -> None:
         lock.release()
 
 
-def _make_proposal(record_id: str, feedback: str | None = None) -> tuple[dict, str]:
-    """Sinh proposal (ghi Items + Phan tich) + render HTML. CHUA upload. Tra (result, html)."""
+def _make_proposal(record_id: str, feedback: str | None = None,
+                   clarify: str | None = None) -> tuple[dict, str | None]:
+    """Sinh proposal + render HTML. CHUA upload. Tra (result, html).
+    Neu con yeu cau dac biet chua dap ung -> result['blocked']=True, html=None (chua co proposal)."""
     rec = airtable("GET", f"{PROJECTS_TABLE}/{record_id}")
-    result = propose_items_for(rec, feedback=feedback)
+    result = propose_items_for(rec, feedback=feedback, clarify=clarify)
+    if result.get("blocked"):
+        return result, None
     html = build_proposal_html(rec["fields"], result["proposal"], result["total"])
     return result, html
 
 
-def first_send(record_id: str) -> None:
-    """Lan dau: propose -> set Status/han/round -> upload file CUOI CUNG (de trigger mail).
-
-    Upload de cuoi de khi Automation bat theo field 'File proposal', moi field khac da san sang.
-    """
-    result, html = _make_proposal(record_id)
+def _publish_proposal(record_id: str, result: dict, html: str, *, reset_round: bool) -> None:
+    """Chot 1 ban proposal: set Status 'Cho duyet items' + don sach co phan hoi/clarify -> upload CUOI (trigger mail)."""
     deadline = (date.today() + timedelta(days=PROPOSAL_APPROVAL_DAYS)).isoformat()
-    update_project(record_id, {
+    fields = {
         "Status": "Chờ duyệt items",
         "Deadline phê duyệt": deadline,
-        "Số round proposal": 0,
         "File proposal": [],  # clear truoc khi upload -> luon chi 1 file (ban moi nhat)
-    })
+        "Duyệt proposal?": None,
+        "Gửi phản hồi": False,
+        "Feedback proposal": None,
+        CLARIFY_FIELD: None,  # da giai quyet yeu cau dac biet -> xoa cau hoi
+    }
+    if reset_round:
+        fields["Số round proposal"] = 0
+    update_project(record_id, fields)
     upload_proposal(record_id, html, result["project_code"])  # upload CUOI -> trigger Automation gui mail
     print(f"[proposal] {result['project_code']} sent: "
           f"{result['n_catalogue']} catalogue + {result['n_creative']} creative, "
           f"{result['total']:,}đ / {result['budget']:,}đ -> Chờ duyệt items")
+
+
+def _enter_clarify(record_id: str, result: dict) -> None:
+    """Con yeu cau dac biet chua dap ung -> dem vong lam ro, hoi requester; qua MAX -> escalate PIC."""
+    rec = airtable("GET", f"{PROJECTS_TABLE}/{record_id}")
+    f = rec["fields"]
+    code = f.get("Mã project", record_id)
+    rounds = int(f.get(CLARIFY_ROUND_FIELD) or 0) + 1
+    if rounds > MAX_CLARIFY_ROUNDS:
+        update_project(record_id, {
+            CLARIFY_ROUND_FIELD: rounds, "Cần PIC xử lý": True,
+            "Gửi phản hồi": False, "Feedback proposal": None,
+        })
+        append_note(record_id, f"[AI] Yêu cầu đặc biệt làm rõ {MAX_CLARIFY_ROUNDS} vòng vẫn chưa thỏa "
+                               f"— chuyển Merch PIC xử lý.", field=HISTORY_FIELD)
+        print(f"[proposal] {code} vượt {MAX_CLARIFY_ROUNDS} vòng làm rõ -> Cần PIC xử lý")
+        return
+    update_project(record_id, {
+        "Status": CLARIFY_STATUS,
+        CLARIFY_FIELD: result["clarify_message"],
+        CLARIFY_ROUND_FIELD: rounds,
+        "Gửi phản hồi": False,
+        "Feedback proposal": None,
+    })
+    append_note(record_id, f"[AI] Vòng làm rõ {rounds} — yêu cầu đặc biệt chưa thỏa, đã hỏi requester.",
+                field=HISTORY_FIELD)
+    print(f"[proposal] {code} có yêu cầu đặc biệt chưa thỏa -> Chờ làm rõ yêu cầu (vòng {rounds})")
+
+
+def first_send(record_id: str) -> None:
+    """Lan dau: propose -> (neu con yeu cau dac biet chua thoa: hoi requester) -> publish + upload."""
+    result, html = _make_proposal(record_id)
+    if result.get("blocked"):
+        _enter_clarify(record_id, result)
+        return
+    _publish_proposal(record_id, result, html, reset_round=True)
 
 
 def _scan_new() -> None:
@@ -105,17 +151,26 @@ def _revise_or_escalate(record_id: str, code: str, fields: dict) -> None:
                                f"— chuyển Merch PIC xử lý. Feedback gần nhất: {feedback}", field=HISTORY_FIELD)
         print(f"[proposal] {code} vượt {MAX_PROPOSAL_ROUNDS} round -> Cần PIC xử lý")
         return
-    append_note(record_id, f"[AI] Round {rounds} — sửa proposal theo feedback: {feedback}", field=HISTORY_FIELD)
     result, html = _make_proposal(record_id, feedback=feedback)
-    update_project(record_id, {
-        "Số round proposal": rounds,
-        "Duyệt proposal?": None,
-        "Feedback proposal": None,
-        "Gửi phản hồi": False,
-        "File proposal": [],  # clear ban cu -> chi giu ban moi nhat
-    })
-    upload_proposal(record_id, html, result["project_code"])  # upload CUOI -> trigger mail
+    if result.get("blocked"):  # feedback lam yeu cau dac biet thanh chua thoa -> hoi lai
+        _enter_clarify(record_id, result)
+        return
+    append_note(record_id, f"[AI] Round {rounds} — sửa proposal theo feedback: {feedback}", field=HISTORY_FIELD)
+    update_project(record_id, {"Số round proposal": rounds})
+    _publish_proposal(record_id, result, html, reset_round=False)
     print(f"[proposal] {code} CẦN SỬA -> round {rounds} đã gửi lại")
+
+
+def _reevaluate_clarify(record_id: str, code: str, answer: str) -> None:
+    """Requester tra loi cau hoi lam ro -> cham lai yeu cau dac biet; thoa thi gui proposal."""
+    result, html = _make_proposal(record_id, clarify=answer)
+    if result.get("blocked"):
+        _enter_clarify(record_id, result)  # van chua thoa -> hoi tiep (hoac escalate neu qua vong)
+        return
+    append_note(record_id, f"[AI] Đã làm rõ yêu cầu đặc biệt theo trả lời requester: {answer}",
+                field=HISTORY_FIELD)
+    _publish_proposal(record_id, result, html, reset_round=True)
+    print(f"[proposal] {code} đã thỏa yêu cầu đặc biệt -> gửi proposal")
 
 
 def _scan_decisions() -> None:
@@ -129,8 +184,16 @@ def _scan_decisions() -> None:
                 update_project(r["id"], {"Gửi phản hồi": False, "Duyệt proposal?": None})
                 print(f"[proposal] {code} đã chốt/đã chuyển PIC -> bỏ qua phản hồi")
                 continue
-            decision = f.get("Duyệt proposal?")
             feedback = (f.get("Feedback proposal") or "").strip()
+            # dang cho lam ro yeu cau dac biet -> phan hoi la cau tra loi lam ro (chua co proposal)
+            if f.get("Status") == CLARIFY_STATUS:
+                if not feedback:
+                    update_project(r["id"], {"Gửi phản hồi": False})
+                    print(f"[proposal] {code} tick Gửi nhưng chưa trả lời làm rõ -> bỏ qua")
+                    continue
+                _reevaluate_clarify(r["id"], code, feedback)
+                continue
+            decision = f.get("Duyệt proposal?")
             if decision == "Duyệt":
                 _approve_proposal(r["id"], code)
             elif decision == "Cần sửa" and feedback:

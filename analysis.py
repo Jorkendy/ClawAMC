@@ -46,6 +46,7 @@ def build_brief(fields: dict) -> str:
         "Mục đích": "Mục đích", "Chủ đề": "Chủ đề", "Định vị": "Định vị",
         "Target audience": "Target audience", "Số lượng (bộ/suất)": "Số lượng",
         "Deadline cần hàng": "Deadline cần hàng", "Budget (VND)": "Budget (VND)",
+        "Yêu cầu đặc biệt": "Yêu cầu đặc biệt (ràng buộc)",
     }
     for field, label in label_map.items():
         val = fields.get(field)

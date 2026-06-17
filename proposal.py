@@ -47,7 +47,7 @@ PROPOSAL_PROMPT = """Bạn là chuyên gia merchandise game 10 năm kinh nghiệ
 
 CATALOGUE SẢN PHẨM CÓ SẴN (giá cố định — nguồn giá DUY NHẤT; KHÔNG được sửa giá, KHÔNG bịa sản phẩm ngoài danh sách):
 {catalogue}
-
+{special_req_block}
 YÊU CẦU:
 1. Đề xuất 4-6 items phù hợp chủ đề / định vị / target audience.
 2. Tỉ lệ định hướng ~80% từ CATALOGUE + ~20% CREATIVE (item tự sáng tạo, chỉ thêm nếu có ý tưởng hay). Ví dụ 5 món → ~4 catalogue + 1 creative. Đây là gợi ý mềm — ưu tiên hợp đề bài hơn là ép đúng tỉ lệ.
@@ -57,8 +57,14 @@ YÊU CẦU:
 6. Tổng chi phí (đơn giá × số lượng, bỏ qua item giá null) phải ≤ budget. Lưu ý MOQ (Số lượng tối thiểu) của item catalogue — số lượng đề xuất nên ≥ MOQ; nếu nhỏ hơn thì ghi cảnh báo vào "can_cu_gia".
 7. "loai": loại item; nếu khớp một trong [{item_types}] thì ghi ĐÚNG tên đó, không thì để chuỗi rỗng.
 8. "nhan_xet": 2-3 câu về chiến lược bộ quà + lưu ý MOQ/lead time nếu liên quan. KHÔNG nêu con số tổng chi phí / số tiền còn dư trong nhan_xet — hệ thống tự tính và hiển thị riêng (model cộng tiền hay sai).
+9. YÊU CẦU ĐẶC BIỆT của requester (nếu có ở khối phía trên) là RÀNG BUỘC BẮT BUỘC. Với MỖI yêu cầu, tự chấm "dap_ung":
+   - "met": đáp ứng được bằng item trong proposal (món có sẵn trong catalogue phù hợp, HOẶC creative khả thi rõ ràng và nằm trong budget).
+   - "unmet": KHÔNG / CHƯA chắc đáp ứng — gồm: món custom NGOÀI catalogue (vd gấu bông, figure đặc thù) mà bạn KHÔNG chắc sản xuất được / chưa rõ giá / chưa rõ MOQ; vượt budget; mâu thuẫn brief. KHI NGHI NGỜ → để "unmet" (TUYỆT ĐỐI không tự nhận làm được).
+   - "loai": "item-bat-buoc" (đòi 1 món cụ thể) | "design-co-san" (requester đưa link design sẵn) | "khac".
+   - Với "design-co-san": tạo 1 item creative tương ứng và điền "design_link" của item đó = link requester cung cấp (trích từ nội dung yêu cầu); item này dùng design có sẵn, KHÔNG thiết kế mới.
+10. Nếu có BẤT KỲ yêu cầu "unmet" → điền "cau_hoi_lam_ro": lời nhắn tiếng Việt ngắn gọn, lịch sự cho requester — nêu rõ TỪNG yêu cầu chưa đáp ứng + vì sao, rồi gợi ý 3 lựa chọn: (a) bỏ/nới yêu cầu đó, (b) tăng budget, (c) chấp nhận phương án thay thế. Nếu TẤT CẢ "met" (hoặc không có yêu cầu đặc biệt) → "cau_hoi_lam_ro"=null.
 
-JSON schema: {{"items": [{{"ten": str, "nguon": "catalogue"|"creative", "loai": str, "chat_lieu": str, "kich_thuoc": str, "so_luong": int, "don_gia": int|null, "can_cu_gia": str, "item_key": bool}}], "tong_du_kien": int, "nhan_xet": str}}"""
+JSON schema: {{"items": [{{"ten": str, "nguon": "catalogue"|"creative", "loai": str, "chat_lieu": str, "kich_thuoc": str, "so_luong": int, "don_gia": int|null, "can_cu_gia": str, "item_key": bool, "design_link": str|null}}], "tong_du_kien": int, "nhan_xet": str, "yeu_cau_dac_biet": [{{"noi_dung": str, "dap_ung": "met"|"unmet", "ly_do": str, "loai": str}}], "cau_hoi_lam_ro": str|null}}"""
 
 PHAN_LOAI_ITEMS = {"Sản xuất mới", "Mua sẵn", "Giá trị cao >50tr"}
 
@@ -83,10 +89,20 @@ def proposal_total(proposal: dict) -> int:
                for it in proposal.get("items", []))
 
 
-def propose_items_for(record: dict, feedback: str | None = None) -> dict:
+def _special_req_block(special: str) -> str:
+    if not special:
+        return "\n(Không có yêu cầu đặc biệt — để \"yeu_cau_dac_biet\" = [] và \"cau_hoi_lam_ro\"=null.)\n"
+    return ("\nYÊU CẦU ĐẶC BIỆT CỦA REQUESTER (ràng buộc BẮT BUỘC — phải thỏa hết, "
+            "nếu không chắc thì đánh dấu \"unmet\" và hỏi lại, KHÔNG tự bịa là làm được):\n"
+            f"{special}\n")
+
+
+def propose_items_for(record: dict, feedback: str | None = None,
+                      clarify: str | None = None) -> dict:
     fields = record["fields"]
     code = fields.get("Mã project", record["id"])
     budget = fields.get("Budget (VND)") or 0
+    special = (fields.get("Yêu cầu đặc biệt") or "").strip()
     catalogue_txt, by_name = catalogue_data()
 
     # Xoa item de xuat cu (neu co) -> tao lai sach, tranh nhan doi khi revise
@@ -97,11 +113,15 @@ def propose_items_for(record: dict, feedback: str | None = None) -> dict:
     base_prompt = PROPOSAL_PROMPT.format(
         brief=build_brief(fields),
         catalogue=catalogue_txt,
+        special_req_block=_special_req_block(special),
         item_types=", ".join(ITEM_TYPES),
     )
     if feedback:
         base_prompt += (f"\n\nFEEDBACK CỦA REQUESTER VỀ PROPOSAL TRƯỚC "
                         f"(điều chỉnh lại đúng theo ý này):\n{feedback}")
+    if clarify:
+        base_prompt += (f"\n\nREQUESTER ĐÃ TRẢ LỜI LÀM RÕ YÊU CẦU ĐẶC BIỆT "
+                        f"(chấm lại 'dap_ung' dựa trên câu trả lời này + brief mới nhất):\n{clarify}")
     proposal = ask_llm_json(base_prompt, max_tokens=2500)
     _enforce_catalogue_price(proposal, by_name)
 
@@ -114,11 +134,23 @@ def propose_items_for(record: dict, feedback: str | None = None) -> dict:
             f"VƯỢT budget {budget:,}đ — KHÔNG chấp nhận được):\n{json.dumps(proposal, ensure_ascii=False)}\n\n"
             "Điều chỉnh lại để tổng (đơn giá × số lượng) ≤ budget: giảm số lượng item đắt, "
             "thay item đắt bằng item catalogue rẻ hơn, hoặc bỏ bớt item — nhưng vẫn giữ ít nhất 1 item key "
-            "và 4 items tối thiểu. Vẫn tuân thủ mọi quy tắc về giá (giá catalogue cố định, creative giá null). "
+            "và 4 items tối thiểu, và GIỮ các item thỏa yêu cầu đặc biệt. "
+            "Vẫn tuân thủ mọi quy tắc về giá (giá catalogue cố định, creative giá null). "
             "Trả về JSON cùng schema."
         )
         proposal = ask_llm_json(fix_prompt, max_tokens=2500)
         _enforce_catalogue_price(proposal, by_name)
+
+    # Cong chan: con yeu cau dac biet chua dap ung -> KHONG chot proposal, hoi lai requester
+    unmet = [r for r in (proposal.get("yeu_cau_dac_biet") or [])
+             if r.get("dap_ung") == "unmet"]
+    if unmet:
+        msg = proposal.get("cau_hoi_lam_ro") or (
+            "Một số yêu cầu đặc biệt chưa thể đáp ứng:\n"
+            + "\n".join(f"- {r.get('noi_dung', '')}: {r.get('ly_do', '')}" for r in unmet)
+            + "\n\nBạn muốn: (a) bỏ/nới yêu cầu, (b) tăng budget, hay (c) chấp nhận phương án thay thế?")
+        return {"project_code": code, "blocked": True, "unmet": unmet,
+                "clarify_message": msg, "proposal": proposal}
 
     item_records = []
     phan_loai_merch = set()
@@ -139,6 +171,9 @@ def propose_items_for(record: dict, feedback: str | None = None) -> dict:
             f["Loại"] = it["loai"]
         if it.get("don_gia"):
             f["Đơn giá dự kiến (VND)"] = it["don_gia"]
+        if it.get("design_link"):
+            f["Design có sẵn (link)"] = it["design_link"]
+            f["Ghi chú AI"] += " | Dùng design requester cung cấp, không thiết kế mới"
         item_records.append({"fields": f})
 
         phan_loai_merch.add(loai_item)
@@ -154,6 +189,6 @@ def propose_items_for(record: dict, feedback: str | None = None) -> dict:
     # Proposal da the hien qua Items + File proposal.
     update_project(record["id"], {"Phân loại merch": sorted(phan_loai_merch)})
 
-    return {"project_code": code, "items_created": len(item_records),
+    return {"project_code": code, "blocked": False, "items_created": len(item_records),
             "total": total, "budget": budget, "revisions": revisions,
             "n_catalogue": n_cat, "n_creative": n_cre, "proposal": proposal}
