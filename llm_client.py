@@ -8,7 +8,7 @@ import json
 from openai import OpenAI
 
 from config import (CF_ACCESS_CLIENT_ID, CF_ACCESS_CLIENT_SECRET, LLM_API_KEY,
-                    LLM_BASE_URL, LLM_DISABLE_THINKING, LLM_MODEL)
+                    LLM_BASE_URL, LLM_MODEL, LLM_REASONING_EFFORT)
 
 # User-Agent cua OpenAI SDK ("OpenAI/Python") bi Cloudflare "Block AI bots" chan (403).
 # Ghi de UA trung tinh de qua WAF. (Fix chinh nen dat o Cloudflare: skip bot rule cho
@@ -29,8 +29,8 @@ def ask_llm_json(prompt: str, max_tokens: int = 1500) -> dict:
         max_tokens=max_tokens,
         temperature=0.2,
     )
-    if LLM_DISABLE_THINKING:
-        kwargs["extra_body"] = {"chat_template_kwargs": {"enable_thinking": False}}
+    if LLM_REASONING_EFFORT:
+        kwargs["reasoning_effort"] = LLM_REASONING_EFFORT
     resp = llm.chat.completions.create(**kwargs)
     raw = resp.choices[0].message.content.strip()
     if raw.startswith("```"):

@@ -18,8 +18,9 @@ LLM_API_KEY = os.environ.get("LLM_API_KEY", "")
 CF_ACCESS_CLIENT_ID = os.environ.get("CF_ACCESS_CLIENT_ID", "")
 CF_ACCESS_CLIENT_SECRET = os.environ.get("CF_ACCESS_CLIENT_SECRET", "")
 
-# Tat "thinking" cua model (Qwen) — chi bat khi backend LiteLLM route toi model ho tro.
-LLM_DISABLE_THINKING = os.environ.get("LLM_DISABLE_THINKING", "").lower() in ("1", "true", "yes")
+# reasoning_effort gui LLM. "disable" = tat thinking (Gemini/Claude reasoning models) de
+# khong dot het max_tokens vao reasoning lam JSON bi cat. De trong neu model khong ho tro.
+LLM_REASONING_EFFORT = os.environ.get("LLM_REASONING_EFFORT", "disable")
 
 # Field id "File proposal" (bang Projects) — dung cho Airtable Upload Attachment API (base-specific)
 PROPOSAL_FILE_FIELD_ID = os.environ.get("PROPOSAL_FILE_FIELD_ID", "fldFlkZzbRIX9Um48")
