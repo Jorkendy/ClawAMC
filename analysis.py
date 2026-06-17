@@ -103,13 +103,16 @@ def analyze_one(record: dict) -> dict:
     ]
     if missing:
         note_parts.append(f"Thiếu thông tin: {', '.join(missing)}")
-    if analysis.get("mail_bo_sung"):
-        note_parts.append("--- DRAFT MAIL GỬI REQUESTER ---\n" + analysis["mail_bo_sung"])
 
     update_fields = {
         "Phân tích AI": "\n".join(note_parts),
         "Status": new_status,
     }
+    # Mail bo sung (thieu thong tin / deadline gap) -> ghi field rieng + bat co
+    # de Automation gui requester (tu untick sau khi gui), khong nhet vao "Phan tich AI".
+    if analysis.get("mail_bo_sung"):
+        update_fields["Mail bổ sung"] = analysis["mail_bo_sung"]
+        update_fields["Gửi mail bổ sung"] = True
     update_project(record["id"], update_fields)
 
     return {
