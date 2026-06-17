@@ -121,6 +121,11 @@ def _scan_decisions() -> None:
         f = r["fields"]
         code = f.get("Mã project", r["id"])
         try:
+            # da chot / da chuyen PIC -> bo qua phan hoi (tranh mo lai proposal da duyet / re-escalate)
+            if f.get("Status") == "Đã duyệt items" or f.get("Cần PIC xử lý"):
+                update_project(r["id"], {"Gửi phản hồi": False, "Duyệt proposal?": None})
+                print(f"[proposal] {code} đã chốt/đã chuyển PIC -> bỏ qua phản hồi")
+                continue
             decision = f.get("Duyệt proposal?")
             feedback = (f.get("Feedback proposal") or "").strip()
             if decision == "Duyệt":

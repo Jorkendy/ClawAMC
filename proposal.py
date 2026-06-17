@@ -5,7 +5,6 @@ từ bảng Catalogue (code ép, chống bịa giá); item creative don_gia=null
 tin số model tự cộng) + vòng tự sửa budget. Phân loại merch (project) suy ra từ items đã chọn.
 """
 import json
-from datetime import date
 
 from airtable_client import airtable, fetch_all, fetch_items_of, update_project
 from analysis import build_brief
@@ -151,15 +150,9 @@ def propose_items_for(record: dict, feedback: str | None = None) -> dict:
     total = proposal_total(proposal)
     n_cat = sum(1 for it in proposal["items"] if it.get("nguon") == "catalogue")
     n_cre = len(proposal["items"]) - n_cat
-    old_note = fields.get("Phân tích AI", "")
-    summary = (f"[AI {date.today():%d/%m}] PROPOSAL: {len(item_records)} items "
-               f"({n_cat} catalogue + {n_cre} creative), tổng dự kiến {total:,}đ / budget {budget:,}đ"
-               + (f" (đã tự điều chỉnh {revisions} lần để vào budget)" if revisions else "")
-               + f".\n{proposal.get('nhan_xet', '')}")
-    update_project(record["id"], {
-        "Phân tích AI": f"{old_note}\n\n{summary}".strip(),
-        "Phân loại merch": sorted(phan_loai_merch),
-    })
+    # KHONG nhet summary vao "Phan tich AI" (de field do = phan tich de bai cua AI #1).
+    # Proposal da the hien qua Items + File proposal.
+    update_project(record["id"], {"Phân loại merch": sorted(phan_loai_merch)})
 
     return {"project_code": code, "items_created": len(item_records),
             "total": total, "budget": budget, "revisions": revisions,
