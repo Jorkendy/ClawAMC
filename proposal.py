@@ -57,11 +57,11 @@ YÊU CẦU:
 6. Tổng chi phí (đơn giá × số lượng, bỏ qua item giá null) phải ≤ budget. Lưu ý MOQ (Số lượng tối thiểu) của item catalogue — số lượng đề xuất nên ≥ MOQ; nếu nhỏ hơn thì ghi cảnh báo vào "can_cu_gia".
 7. "loai": loại item; nếu khớp một trong [{item_types}] thì ghi ĐÚNG tên đó, không thì để chuỗi rỗng.
 8. "nhan_xet": 2-3 câu về chiến lược bộ quà + lưu ý MOQ/lead time nếu liên quan. KHÔNG nêu con số tổng chi phí / số tiền còn dư trong nhan_xet — hệ thống tự tính và hiển thị riêng (model cộng tiền hay sai).
-9. YÊU CẦU ĐẶC BIỆT của requester (nếu có ở khối phía trên) là RÀNG BUỘC BẮT BUỘC. Với MỖI yêu cầu, tự chấm "dap_ung":
-   - "met": đáp ứng được bằng item trong proposal (món có sẵn trong catalogue phù hợp, HOẶC creative khả thi rõ ràng và nằm trong budget).
-   - "unmet": KHÔNG / CHƯA chắc đáp ứng — gồm: món custom NGOÀI catalogue (vd gấu bông, figure đặc thù) mà bạn KHÔNG chắc sản xuất được / chưa rõ giá / chưa rõ MOQ; vượt budget; mâu thuẫn brief. KHI NGHI NGỜ → để "unmet" (TUYỆT ĐỐI không tự nhận làm được).
+9. YÊU CẦU ĐẶC BIỆT của requester (nếu có ở khối phía trên) là RÀNG BUỘC BẮT BUỘC. Với MỖI yêu cầu, xác định "loai" rồi tự chấm "dap_ung":
    - "loai": "item-bat-buoc" (đòi 1 món cụ thể) | "design-co-san" (requester đưa link design sẵn) | "khac".
-   - Với "design-co-san": tạo 1 item creative tương ứng và điền "design_link" của item đó = link requester cung cấp (trích từ nội dung yêu cầu); item này dùng design có sẵn, KHÔNG thiết kế mới.
+   - "design-co-san" → LUÔN "met": tạo 1 item creative tương ứng, điền "design_link" của item đó = link requester cung cấp (trích từ nội dung yêu cầu); item dùng design có sẵn, KHÔNG thiết kế mới; "don_gia"=null (hỏi vendor sau như mọi item creative) — KHÔNG đánh "unmet" chỉ vì chưa có giá.
+   - "met" (các loại khác): đáp ứng được bằng item trong proposal (món có sẵn trong catalogue phù hợp, HOẶC creative khả thi rõ ràng và nằm trong budget).
+   - "unmet": món custom requester ĐÒI (item-bat-buoc) NGOÀI catalogue (vd gấu bông, figure đặc thù) mà bạn KHÔNG chắc sản xuất được / chưa rõ giá / chưa rõ MOQ; vượt budget; mâu thuẫn brief. KHI NGHI NGỜ → để "unmet" (TUYỆT ĐỐI không tự nhận làm được). Lưu ý: "design-co-san" KHÔNG thuộc nhóm này.
 10. Nếu có BẤT KỲ yêu cầu "unmet" → điền "cau_hoi_lam_ro": lời nhắn tiếng Việt ngắn gọn, lịch sự cho requester — nêu rõ TỪNG yêu cầu chưa đáp ứng + vì sao, rồi gợi ý 3 lựa chọn: (a) bỏ/nới yêu cầu đó, (b) tăng budget, (c) chấp nhận phương án thay thế. Nếu TẤT CẢ "met" (hoặc không có yêu cầu đặc biệt) → "cau_hoi_lam_ro"=null. ĐỪNG hỏi chung chung kiểu "còn yêu cầu nào khác không" — chỉ hỏi đúng cái đang unmet.
 11. "yeu_cau_dac_biet_chot": chỉ điền khi có CÂU TRẢ LỜI LÀM RÕ ở dưới — ghi lại nội dung yêu cầu đặc biệt SAU khi đã áp dụng câu trả lời (vd requester bỏ gấu bông và không còn ràng buộc nào → ""; nếu đổi sang món khác → mô tả món mới). Đây là bản chốt để lưu, dùng cho các lần sau. Nếu KHÔNG có câu trả lời làm rõ → null.
 
