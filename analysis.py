@@ -26,22 +26,6 @@ YÊU CẦU PHÂN TÍCH:
 JSON schema: {{"tom_tat": str, "muc_do_uu_tien": str, "ly_do_deadline": str, "mail_bo_sung": str|null}}"""
 
 
-def _requester_account(fields: dict):
-    """Tra 'Tai khoan Airtable' (collaborator) cua Requester -> de interface filter current-user.
-    Tra ve {'id': usr...} de ghi vao field Collaborator, hoac None neu chua co."""
-    reqs = fields.get("Requester") or []
-    if not reqs:
-        return None
-    try:
-        user = airtable("GET", f"Users/{reqs[0]}").get("fields", {})
-        acct = user.get("Tài khoản Airtable")
-        if acct and acct.get("id"):
-            return {"id": acct["id"]}
-    except Exception:  # noqa: BLE001
-        pass
-    return None
-
-
 def assess_deadline(days_to_deadline) -> str:
     """May danh gia deadline so voi timeline san xuat toan trinh (critical path)."""
     if not isinstance(days_to_deadline, int):
@@ -125,9 +109,6 @@ def analyze_one(record: dict) -> dict:
         "Phân tích AI": "\n".join(note_parts),
         "Status": new_status,
     }
-    acct = _requester_account(fields)
-    if acct:
-        update_fields["Requester (account)"] = acct
     update_project(record["id"], update_fields)
 
     return {
