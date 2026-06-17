@@ -16,7 +16,25 @@ from config import MAX_PROPOSAL_ROUNDS, PROJECTS_TABLE, PROPOSAL_APPROVAL_DAYS
 from proposal import propose_items_for
 from proposal_render import build_proposal_html, upload_proposal
 
-_ANALYZE_LOCK = threading.Lock()
+_analyze_lock = threading.Lock()
+_analyze_again = threading.Event()
+_decide_lock = threading.Lock()
+_decide_again = threading.Event()
+
+
+def _run_guarded(lock: threading.Lock, again: threading.Event, work) -> None:
+    """Chay `work` tuan tu (1 luong/luc). Co ping moi luc dang chay -> danh dau `again`
+    de chay lai sau khi xong (khong bo sot). Tranh race khi webhook ping don dap
+    (nhieu _revise/_approve song song -> nhan ban items)."""
+    again.set()
+    if not lock.acquire(blocking=False):
+        return  # da co luong chay; no se thay `again` va chay lai
+    try:
+        while again.is_set():
+            again.clear()
+            work()
+    finally:
+        lock.release()
 
 
 def _make_proposal(record_id: str, feedback: str | None = None) -> tuple[dict, str]:
@@ -46,22 +64,21 @@ def first_send(record_id: str) -> None:
           f"{result['total']:,}đ / {result['budget']:,}đ -> Chờ duyệt items")
 
 
+def _scan_new() -> None:
+    records = fetch_projects("OR({Status} = 'Mới tiếp nhận', {Status} = BLANK())")
+    for r in records:
+        try:
+            result = analyze_one(r)
+            print(f"[webhook] analyzed {result['project_code']} -> {result['new_status']}")
+            if result["new_status"] == "Chờ duyệt items":
+                first_send(r["id"])
+        except Exception as e:  # noqa: BLE001
+            print(f"[webhook] pipeline error: {e}")
+
+
 def analyze_new_async() -> None:
-    """Buoc 1->2: quet record moi -> phan tich -> (du thong tin) gui proposal."""
-    if not _ANALYZE_LOCK.acquire(blocking=False):
-        return  # dang co lan quet khac chay
-    try:
-        records = fetch_projects("OR({Status} = 'Mới tiếp nhận', {Status} = BLANK())")
-        for r in records:
-            try:
-                result = analyze_one(r)
-                print(f"[webhook] analyzed {result['project_code']} -> {result['new_status']}")
-                if result["new_status"] == "Chờ duyệt items":
-                    first_send(r["id"])
-            except Exception as e:  # noqa: BLE001
-                print(f"[webhook] pipeline error: {e}")
-    finally:
-        _ANALYZE_LOCK.release()
+    """Buoc 1->2: quet record moi -> phan tich -> (du thong tin) gui proposal. Tuan tu."""
+    _run_guarded(_analyze_lock, _analyze_again, _scan_new)
 
 
 def _approve_proposal(record_id: str, code: str) -> None:
@@ -98,12 +115,7 @@ def _revise_or_escalate(record_id: str, code: str, fields: dict) -> None:
     print(f"[proposal] {code} CẦN SỬA -> round {rounds} đã gửi lại")
 
 
-def handle_proposal_decisions() -> None:
-    """Buoc 2 D1: quet project requester da tick 'Gui phan hoi' -> xu ly theo Duyet proposal? roi bo tick.
-
-    Trigger theo 'Gui phan hoi' (khong phai 'Duyet proposal?') de requester nhap 2 field theo
-    thu tu nao cung duoc; tick la buoc cuoi -> luc do feedback chac chan da co.
-    """
+def _scan_decisions() -> None:
     records = fetch_projects("{Gửi phản hồi} = TRUE()")
     for r in records:
         f = r["fields"]
@@ -122,6 +134,15 @@ def handle_proposal_decisions() -> None:
                 print(f"[proposal] {code} tick Gửi nhưng thiếu decision/feedback -> bỏ qua (không tốn round)")
         except Exception as e:  # noqa: BLE001
             print(f"[proposal] decision error {code}: {e}")
+
+
+def handle_proposal_decisions() -> None:
+    """Buoc 2 D1: quet project tick 'Gui phan hoi' -> xu ly theo Duyet proposal? roi bo tick.
+
+    Tuan tu (serialize): webhook ping don dap (ke ca do agent tu ghi lai Projects) khong
+    gay chay song song -> tranh nhan ban items / dem round sai.
+    """
+    _run_guarded(_decide_lock, _decide_again, _scan_decisions)
 
 
 def on_webhook() -> None:
