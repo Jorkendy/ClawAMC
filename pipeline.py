@@ -26,6 +26,7 @@ HISTORY_FIELD = "Lịch sử chỉnh sửa"  # log tung round feedback / duyet /
 CLARIFY_STATUS = "Chờ làm rõ yêu cầu"  # con yeu cau dac biet chua dap ung
 CLARIFY_FIELD = "Trao đổi yêu cầu"     # cau hoi AI hoi requester (requester doc o record view)
 CLARIFY_ROUND_FIELD = "Số vòng làm rõ"  # dem rieng, KHONG dung chung Số round proposal
+CLARIFY_MAIL_FLAG = "Gửi mail làm rõ"   # co bat moi vong -> Automation gui mail requester roi tu untick
 
 
 def _run_guarded(lock: threading.Lock, again: threading.Event, work) -> None:
@@ -66,6 +67,7 @@ def _publish_proposal(record_id: str, result: dict, html: str, *, reset_round: b
         "Gửi phản hồi": False,
         "Feedback proposal": None,
         CLARIFY_FIELD: None,  # da giai quyet yeu cau dac biet -> xoa cau hoi
+        CLARIFY_MAIL_FLAG: False,  # don co (truong hop con sot)
     }
     if reset_round:
         fields["Số round proposal"] = 0
@@ -95,6 +97,7 @@ def _enter_clarify(record_id: str, result: dict) -> None:
         "Status": CLARIFY_STATUS,
         CLARIFY_FIELD: result["clarify_message"],
         CLARIFY_ROUND_FIELD: rounds,
+        CLARIFY_MAIL_FLAG: True,  # bat co -> Automation gui mail requester (tu untick sau khi gui)
         "Gửi phản hồi": False,
         "Feedback proposal": None,
     })
