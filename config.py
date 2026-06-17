@@ -9,12 +9,17 @@ load_dotenv()
 AIRTABLE_BASE_ID = "app46fhZ5wAv9LSzC"
 PROJECTS_TABLE = "Projects"
 AIRTABLE_TOKEN = os.environ.get("AIRTABLE_TOKEN", "")
-LLM_BASE_URL = os.environ.get("LLM_BASE_URL", "https://maas-llm-aiplatform-hcm.api.vngcloud.vn/v1")
-LLM_MODEL = os.environ.get("LLM_MODEL", "qwen/qwen3-5-27b")
+LLM_BASE_URL = os.environ.get("LLM_BASE_URL", "https://llm.vinhpham.com.vn/v1")
+LLM_MODEL = os.environ.get("LLM_MODEL", "")
 LLM_API_KEY = os.environ.get("LLM_API_KEY", "")
 
-ZALO_TOKEN = os.environ.get("ZALO_BOT_TOKEN", "")
-ZALO_BASE = "https://bot-api.zapps.me/bot{token}/{method}"
+# Cloudflare Access service token — neu LLM endpoint dat sau Cloudflare Access (OTP).
+# Tao tai Zero Trust > Access > Service Auth > Service Tokens; gan policy cho phep token nay.
+CF_ACCESS_CLIENT_ID = os.environ.get("CF_ACCESS_CLIENT_ID", "")
+CF_ACCESS_CLIENT_SECRET = os.environ.get("CF_ACCESS_CLIENT_SECRET", "")
+
+# Tat "thinking" cua model (Qwen) — chi bat khi backend LiteLLM route toi model ho tro.
+LLM_DISABLE_THINKING = os.environ.get("LLM_DISABLE_THINKING", "").lower() in ("1", "true", "yes")
 
 # Field id "File proposal" (bang Projects) — dung cho Airtable Upload Attachment API
 PROPOSAL_FILE_FIELD_ID = "fldFlkZzbRIX9Um48"

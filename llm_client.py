@@ -1,21 +1,37 @@
-"""GreenNode LLM (OpenAI-compatible) — moi cuoc goi LLM deu di qua ask_llm_json."""
+"""LLM client (OpenAI-compatible) — moi cuoc goi LLM deu di qua ask_llm_json.
+
+Backend: LiteLLM self-host (llm.vinhpham.com.vn). Neu endpoint dat sau Cloudflare
+Access thi gui kem 2 header service token (CF-Access-Client-Id / CF-Access-Client-Secret).
+"""
 import json
 
 from openai import OpenAI
 
-from config import LLM_API_KEY, LLM_BASE_URL, LLM_MODEL
+from config import (CF_ACCESS_CLIENT_ID, CF_ACCESS_CLIENT_SECRET, LLM_API_KEY,
+                    LLM_BASE_URL, LLM_DISABLE_THINKING, LLM_MODEL)
 
-llm = OpenAI(api_key=LLM_API_KEY, base_url=LLM_BASE_URL)
+# User-Agent cua OpenAI SDK ("OpenAI/Python") bi Cloudflare "Block AI bots" chan (403).
+# Ghi de UA trung tinh de qua WAF. (Fix chinh nen dat o Cloudflare: skip bot rule cho
+# request co service token hop le — xem docs.)
+_headers = {"User-Agent": "merch-agent/1.0"}
+if CF_ACCESS_CLIENT_ID and CF_ACCESS_CLIENT_SECRET:
+    _headers["CF-Access-Client-Id"] = CF_ACCESS_CLIENT_ID
+    _headers["CF-Access-Client-Secret"] = CF_ACCESS_CLIENT_SECRET
+
+llm = OpenAI(api_key=LLM_API_KEY, base_url=LLM_BASE_URL,
+             default_headers=_headers or None)
 
 
 def ask_llm_json(prompt: str, max_tokens: int = 1500) -> dict:
-    resp = llm.chat.completions.create(
+    kwargs = dict(
         model=LLM_MODEL,
         messages=[{"role": "user", "content": prompt}],
         max_tokens=max_tokens,
         temperature=0.2,
-        extra_body={"chat_template_kwargs": {"enable_thinking": False}},
     )
+    if LLM_DISABLE_THINKING:
+        kwargs["extra_body"] = {"chat_template_kwargs": {"enable_thinking": False}}
+    resp = llm.chat.completions.create(**kwargs)
     raw = resp.choices[0].message.content.strip()
     if raw.startswith("```"):
         raw = raw.split("```")[1].removeprefix("json").strip()

@@ -45,12 +45,6 @@ def append_note(record_id: str, note: str) -> None:
     update_project(record_id, {"Phân tích AI": f"{old}\n\n{note}".strip()})
 
 
-def users_map() -> dict:
-    rows = fetch_all("Users", ["Tên", "Zalo ID", "Vai trò"])
-    return {r["id"]: {"name": r["fields"].get("Tên", "?"),
-                      "zalo": r["fields"].get("Zalo ID", "")} for r in rows}
-
-
 def fetch_items_of(record_id: str) -> list[dict]:
     rows = fetch_all("Items", ["Tên item", "Project", "Số lượng",
                                "Đơn giá dự kiến (VND)", "Status"])

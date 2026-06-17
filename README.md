@@ -1,51 +1,56 @@
 # merch-agent
 
-Agent tự động hóa quy trình sản xuất merchandise VNGGames — chạy trên GreenNode AgentBase.
-
-(README gốc của bộ skill agentbase được giữ tại `AGENTBASE-SKILLS-README.md`)
+Agent tự động hóa quy trình sản xuất merchandise VNGGames — HTTP server (FastAPI), self-host.
 
 ## Kiến trúc
 
 ```
-Airtable (Merch Automation MVP)  ←→  merch-agent (AgentBase Custom)  ←→  GreenNode LLM (Qwen 3.5 27B)
-       form intake / tracking              POST /invocations                phân tích đề bài
-                                                 │
-                                          Zalo Bot (phiếu duyệt reply-lệnh)
-                                          Gmail (mail loop vendor) — ngày 5
+Airtable (Merch Automation MVP)  ←→  merch-agent (FastAPI)  ←→  LiteLLM self-host
+   form intake / duyệt proposal       POST /invocations          (gemini / claude / groq)
+   (webhook tự kích agent)            GET  /health               qua Cloudflare Access
 ```
 
-## Actions hiện có
+Luồng: requester submit form → Airtable webhook ping `/invocations` → agent **phân tích đề bài** (AI #1: đủ/thiếu thông tin + đánh giá deadline) → **đề xuất sản phẩm** từ Catalogue (AI #2: 80% catalogue + 20% creative, render HTML, upload Airtable) → requester duyệt/feedback ngay trên Airtable → agent sửa (tối đa 3 round) hoặc chốt; quá hạn → escalate Merch PIC.
+
+## Actions (JSON body của `POST /invocations`)
 
 | Payload | Mô tả |
 |---|---|
-| `{"action": "analyze_new"}` | Quét mọi project status "Mới tiếp nhận", phân tích từng cái |
-| `{"action": "analyze_project", "project_code": "MERCH-001"}` | Phân tích 1 project cụ thể |
+| `{"webhook": "...", "base": "..."}` | Airtable webhook ping → chạy cả intake + xử lý duyệt (chạy nền, trả 200 ngay) |
+| `{"action": "analyze_new"}` | Quét project status "Mới tiếp nhận" → phân tích |
+| `{"action": "analyze_project", "project_code": "MERCH-001"}` | Phân tích 1 project |
+| `{"action": "propose_items", "project_code": "..."}` | Sinh proposal items |
+| `{"action": "send_proposal", "project_code": "..."}` | Propose + render HTML + upload + Status "Chờ duyệt items" |
+| `{"action": "handle_proposal_decisions"}` | Xử lý requester duyệt/sửa (quét "Gửi phản hồi") |
 
-Mỗi lần phân tích: chấm đủ/thiếu 7 thông tin bắt buộc → đánh giá deadline theo lead time (Sản xuất mới 30d / Mua sẵn 10d / Giá trị cao 60d) → phân loại 3 nhóm merch → ghi field "Phân tích AI" + đổi Status → thiếu thông tin thì kèm draft mail gửi requester.
+## Env vars (`.env`)
+
+Xem `.env.example`. Cần:
+- `LLM_BASE_URL` — LiteLLM, vd `https://llm.vinhpham.com.vn/v1`
+- `LLM_MODEL` — alias trong LiteLLM (`gemini-flash`, `gemini-pro`, `claude-sonnet`, `groq-oss`)
+- `LLM_API_KEY` — virtual key riêng cho app này
+- `CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET` — Cloudflare Access service token (nếu LLM endpoint sau Cloudflare Access)
+- `AIRTABLE_TOKEN` — PAT (scope `data.records:read/write` + `webhook:manage`)
+- `LLM_DISABLE_THINKING` — chỉ bật (`true`) khi backend là model Qwen hỗ trợ
+
+> Cloudflare có thể chặn User-Agent "OpenAI/Python" (rule Block AI bots) → `llm_client.py` đã override User-Agent. Fix gọn hơn: thêm WAF skip rule cho request có service token hợp lệ.
 
 ## Chạy local
 
 ```bash
 source venv/bin/activate
-python3 main.py   # server tại http://127.0.0.1:8080
-
-# test
-curl -X POST http://127.0.0.1:8080/invocations \
-  -H "Content-Type: application/json" \
-  -d '{"action": "analyze_project", "project_code": "MERCH-002"}'
+pip install -r requirements.txt
+python3 main.py            # server http://127.0.0.1:8080
 
 curl http://127.0.0.1:8080/health
+curl -X POST http://127.0.0.1:8080/invocations \
+  -H "Content-Type: application/json" -d '{"action": "analyze_new"}'
 ```
 
-## Env vars (.env)
+## Deploy (Coolify)
 
-Xem `.env.example`. Cần: `LLM_API_KEY` (GreenNode AIP — tạo qua `/agentbase-llm`), `LLM_BASE_URL`, `LLM_MODEL`, `AIRTABLE_TOKEN` (PAT tạo tại https://airtable.com/create/tokens, scope `data.records:read` + `data.records:write` trên base Merch Automation MVP).
-
-## Deploy
-
-Dùng `/agentbase-deploy` (build Docker → push Container Registry → tạo Runtime).
-
-## Test scripts khác
-
-- `zalo_bot_test/test_zalo_bot.py` — go/no-go Zalo Bot Platform
-- `zalo_bot_test/test_zalo_approve_text.py` — flow phiếu duyệt reply-lệnh qua Zalo
+Repo có `Dockerfile` → Coolify deploy thẳng:
+1. New Resource → nguồn GitHub repo này → build type **Dockerfile**.
+2. Expose port **8080**, healthcheck `GET /health`.
+3. Set env vars (mục trên) trong Coolify UI — KHÔNG commit `.env`.
+4. Đăng ký Airtable webhook trỏ vào `https://<domain-coolify>/invocations` (watch bảng Projects).
