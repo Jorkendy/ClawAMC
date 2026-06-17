@@ -27,6 +27,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a2e;
 .meta div{background:#fff;padding:14px 20px}
 .meta b{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:#8a8f99;margin-bottom:3px}
 .intro{padding:20px 32px;font-size:15px;color:#3a3f4b;background:#fffaf6;border-left:4px solid #ff6a00;margin:0}
+.warn{padding:14px 32px;font-size:14px;font-weight:600;color:#b45309;background:#fff4e5;border-left:4px solid #f59e0b;margin:0}
 .sec{padding:8px 32px 4px;font-size:12px;text-transform:uppercase;letter-spacing:.8px;color:#8a8f99;font-weight:700;margin-top:8px}
 .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;padding:16px 32px}
 .card{border:1px solid #e6e8ec;border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
@@ -90,6 +91,9 @@ def build_proposal_html(fields: dict, proposal: dict, total: int, images: dict |
     sum_class = "over" if over else "ok"
     sum_note = ("VƯỢT budget" if over else f"còn dư {_money(remain)}") if budget else "chưa có budget"
 
+    warn_txt = (fields.get("Cảnh báo deadline") or "").strip()
+    warn_html = f'<div class="warn">{warn_txt}</div>' if warn_txt else ""
+
     return f"""<!doctype html><html lang="vi"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Proposal {code}</title><style>{_CSS}</style></head><body><div class="wrap">
@@ -98,6 +102,7 @@ def build_proposal_html(fields: dict, proposal: dict, total: int, images: dict |
 <div class="sub">Bộ quà tặng đề xuất · {date.today():%d/%m/%Y}</div></div>
 <div class="meta">{meta}<div><b>Budget</b>{_money(budget)}</div>
 <div><b>Số lượng/bộ</b>{fields.get("Số lượng (bộ/suất)", "—")}</div></div>
+{warn_html}
 <p class="intro">{proposal.get("nhan_xet", "")}</p>
 <div class="sec">Danh sách items đề xuất</div>
 <div class="grid">{"".join(cards)}</div>

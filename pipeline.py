@@ -57,7 +57,8 @@ def _mark_ai_error(record_id: str, stage: str, err: Exception) -> None:
     """AI/LLM trả về không hợp lệ -> đừng để record kẹt im lặng: tick Cần PIC xử lý,
     clear 'Gửi phản hồi' (chống retry loop mỗi webhook ping), ghi log cho PIC."""
     try:
-        update_project(record_id, {"Cần PIC xử lý": True, "Gửi phản hồi": False})
+        update_project(record_id, {"Cần PIC xử lý": True, "Gửi phản hồi": False,
+                                   "Lý do cần PIC": f"Lỗi AI ({stage}): {err}"})
         append_note(record_id, f"[AI] Lỗi xử lý ({stage}): {err} — cần PIC kiểm tra.",
                     field=HISTORY_FIELD)
     except Exception as e:  # noqa: BLE001
@@ -109,6 +110,7 @@ def _enter_clarify(record_id: str, result: dict) -> None:
         update_project(record_id, {
             CLARIFY_ROUND_FIELD: rounds, "Cần PIC xử lý": True,
             "Gửi phản hồi": False, "Feedback proposal": None,
+            "Lý do cần PIC": f"Yêu cầu đặc biệt làm rõ {MAX_CLARIFY_ROUNDS} vòng vẫn chưa thỏa.",
         })
         append_note(record_id, f"[AI] Yêu cầu đặc biệt làm rõ {MAX_CLARIFY_ROUNDS} vòng vẫn chưa thỏa "
                                f"— chuyển Merch PIC xử lý.", field=HISTORY_FIELD)
@@ -132,6 +134,8 @@ def _escalate_over_budget(record_id: str, result: dict) -> None:
     code = result.get("project_code", record_id)
     update_project(record_id, {
         "Cần PIC xử lý": True, "Gửi phản hồi": False, "Duyệt proposal?": None,
+        "Lý do cần PIC": f"Proposal vẫn vượt budget sau tự điều chỉnh: "
+                         f"{result['total']:,}đ / {result['budget']:,}đ.",
     })
     append_note(record_id,
                 f"[AI] Proposal vẫn vượt budget sau khi tự điều chỉnh "
@@ -198,7 +202,9 @@ def _revise_or_escalate(record_id: str, code: str, fields: dict) -> None:
     feedback = fields.get("Feedback proposal", "") or ""
     rounds = int(fields.get("Số round proposal") or 0) + 1
     if rounds > MAX_PROPOSAL_ROUNDS:
-        update_project(record_id, {"Cần PIC xử lý": True, "Duyệt proposal?": None, "Gửi phản hồi": False})
+        update_project(record_id, {"Cần PIC xử lý": True, "Duyệt proposal?": None, "Gửi phản hồi": False,
+                                   "Lý do cần PIC": f"Sửa proposal {MAX_PROPOSAL_ROUNDS} round vẫn chưa "
+                                                    f"duyệt. Feedback gần nhất: {feedback}"})
         append_note(record_id, f"[AI] Proposal đã sửa {MAX_PROPOSAL_ROUNDS} round vẫn chưa duyệt "
                                f"— chuyển Merch PIC xử lý. Feedback gần nhất: {feedback}", field=HISTORY_FIELD)
         print(f"[proposal] {code} vượt {MAX_PROPOSAL_ROUNDS} round -> Cần PIC xử lý")

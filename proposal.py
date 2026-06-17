@@ -7,7 +7,7 @@ tin số model tự cộng) + vòng tự sửa budget. Phân loại merch (proje
 import json
 
 from airtable_client import airtable, fetch_all, fetch_items_of, update_project
-from analysis import build_brief
+from analysis import build_brief, deadline_status_of
 from llm_client import ask_llm_json
 
 # Loai item — dung de map sang field "Loai" (singleSelect) cua bang Items khi khop
@@ -104,6 +104,7 @@ def propose_items_for(record: dict, feedback: str | None = None,
     code = fields.get("Mã project", record["id"])
     budget = fields.get("Budget (VND)") or 0
     special = (fields.get("Yêu cầu đặc biệt") or "").strip()
+    deadline_status = deadline_status_of(fields)
     catalogue_txt, by_name = catalogue_data()
 
     # Xoa item de xuat cu (neu co) -> tao lai sach, tranh nhan doi khi revise
@@ -129,6 +130,14 @@ def propose_items_for(record: dict, feedback: str | None = None,
             "COI yêu cầu đó đã được điều chỉnh theo câu trả lời, chấm 'met' và TIẾP TỤC ra proposal bình thường. "
             "Chỉ để 'unmet' nếu SAU câu trả lời VẪN còn ràng buộc thực sự chưa thỏa. "
             "Nhớ điền 'yeu_cau_dac_biet_chot' = yêu cầu sau điều chỉnh.")
+    if deadline_status == "không khả thi":
+        base_prompt += (
+            "\n\nLƯU Ý — DEADLINE KHÔNG KHẢ THI (quá gấp so với timeline sản xuất): "
+            "CHỈ đề xuất item từ CATALOGUE (hàng có sẵn, lead-time ngắn nhất); TUYỆT ĐỐI KHÔNG thêm item creative. "
+            "Item key chọn từ catalogue (món nổi bật nhất). "
+            "Trong 'nhan_xet' giải thích: vì deadline không khả thi nên chỉ đề xuất hàng có sẵn để rút ngắn thời gian, "
+            "chưa kèm item creative (cần thêm thời gian thiết kế/sản xuất); và cảnh báo dù chỉ dùng hàng có sẵn "
+            "vẫn rủi ro không kịp deadline.")
     proposal = ask_llm_json(base_prompt, max_tokens=2500)
     _enforce_catalogue_price(proposal, by_name)
 

@@ -39,6 +39,14 @@ def assess_deadline(days_to_deadline) -> str:
     return "ổn"
 
 
+def deadline_status_of(fields: dict) -> str:
+    """deadline_status tu field 'Deadline can hang' — dung chung Buoc 1 (analyze) + Buoc 2 (proposal)."""
+    if not fields.get("Deadline cần hàng"):
+        return "chưa có"
+    d = datetime.strptime(fields["Deadline cần hàng"], "%Y-%m-%d").date()
+    return assess_deadline((d - date.today()).days)
+
+
 def build_brief(fields: dict) -> str:
     lines = []
     label_map = {
@@ -108,11 +116,20 @@ def analyze_one(record: dict) -> dict:
         "Phân tích AI": "\n".join(note_parts),
         "Status": new_status,
     }
-    # Mail bo sung (thieu thong tin / deadline gap) -> ghi field rieng + bat co
-    # de Automation gui requester (tu untick sau khi gui), khong nhet vao "Phan tich AI".
-    if analysis.get("mail_bo_sung"):
-        update_fields["Mail bổ sung"] = analysis["mail_bo_sung"]
-        update_fields["Gửi mail bổ sung"] = True
+    if missing:
+        # Fallback thieu field (form da required nen hiem khi xay ra) -> mail bo sung rieng:
+        # ghi field rieng + bat co de Automation gui requester (tu untick sau khi gui).
+        if analysis.get("mail_bo_sung"):
+            update_fields["Mail bổ sung"] = analysis["mail_bo_sung"]
+            update_fields["Gửi mail bổ sung"] = True
+    else:
+        # Du field: deadline gap/khong kha thi -> canh bao GOP vao mail proposal (banner + body),
+        # KHONG gui mail rieng (tranh requester nhan 2 mail). Rong -> clear (re-analyze sau khi sua deadline).
+        if deadline_status in ("gấp", "không khả thi"):
+            label = "KHÔNG khả thi" if deadline_status == "không khả thi" else "gấp/rủi ro"
+            update_fields["Cảnh báo deadline"] = f"⚠️ Deadline {label}: {analysis['ly_do_deadline']}"
+        else:
+            update_fields["Cảnh báo deadline"] = ""
     update_project(record["id"], update_fields)
 
     return {
