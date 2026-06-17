@@ -1,10 +1,14 @@
 """Auto-chain tu webhook Airtable (Buoc 1 + Buoc 2 D1).
 
 Buoc 1: form submit -> phan tich (analyze_one).
-Buoc 2: du thong tin -> proposal + render HTML + upload -> Status "Cho duyet items"
-        -> requester set "Duyet proposal?" tren Airtable:
-           Duyet   -> chot items (Status "Da duyet items")
-           Can sua -> doc Feedback -> chay lai AI #2 -> upload lai -> +1 round (>3 -> Can PIC xu ly)
+Buoc 2: du thong tin -> propose (AI #2). Hai nhanh:
+  a) Con yeu cau dac biet chua dap ung -> Status "Cho lam ro yeu cau", hoi requester
+     (mail qua Automation). Requester tra loi o "Tra loi lam ro" -> cham lai;
+     qua MAX_CLARIFY_ROUNDS -> Can PIC xu ly.
+  b) Du dieu kien -> proposal + render HTML + upload -> Status "Cho duyet items"
+     -> requester set "Duyet proposal?" tren Airtable:
+        Duyet   -> chot items (Status "Da duyet items")
+        Can sua -> doc Feedback -> chay lai AI #2 -> upload lai -> +1 round (>3 -> Can PIC xu ly)
 """
 import threading
 from datetime import date, timedelta
