@@ -152,6 +152,17 @@ def first_send(record_id: str) -> None:
     _publish_proposal(record_id, result, html, reset_round=True)
 
 
+def _reanalyze(record_id: str) -> None:
+    """Record 'Thieu thong tin' -> requester bo sung roi tick Gui phan hoi -> chay lai Buoc 1;
+    neu da du thong tin -> tiep tuc Buoc 2 (propose)."""
+    rec = airtable("GET", f"{PROJECTS_TABLE}/{record_id}")
+    result = analyze_one(rec)
+    update_project(record_id, {"Gửi phản hồi": False})
+    print(f"[webhook] re-analyzed {result['project_code']} -> {result['new_status']}")
+    if result["new_status"] == "Chờ duyệt items":
+        first_send(record_id)
+
+
 def _scan_new() -> None:
     records = fetch_projects("OR({Status} = 'Mới tiếp nhận', {Status} = BLANK())")
     for r in records:
@@ -239,6 +250,10 @@ def _scan_decisions() -> None:
                     print(f"[proposal] {code} tick Gửi nhưng chưa trả lời làm rõ -> bỏ qua")
                     continue
                 _reevaluate_clarify(r["id"], code, answer)
+                continue
+            # record thieu thong tin -> requester bo sung roi tick Gui -> chay lai Buoc 1
+            if f.get("Status") == "Thiếu thông tin":
+                _reanalyze(r["id"])
                 continue
             feedback = (f.get("Feedback proposal") or "").strip()
             decision = f.get("Duyệt proposal?")
