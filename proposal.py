@@ -62,9 +62,10 @@ YÊU CẦU:
    - "unmet": KHÔNG / CHƯA chắc đáp ứng — gồm: món custom NGOÀI catalogue (vd gấu bông, figure đặc thù) mà bạn KHÔNG chắc sản xuất được / chưa rõ giá / chưa rõ MOQ; vượt budget; mâu thuẫn brief. KHI NGHI NGỜ → để "unmet" (TUYỆT ĐỐI không tự nhận làm được).
    - "loai": "item-bat-buoc" (đòi 1 món cụ thể) | "design-co-san" (requester đưa link design sẵn) | "khac".
    - Với "design-co-san": tạo 1 item creative tương ứng và điền "design_link" của item đó = link requester cung cấp (trích từ nội dung yêu cầu); item này dùng design có sẵn, KHÔNG thiết kế mới.
-10. Nếu có BẤT KỲ yêu cầu "unmet" → điền "cau_hoi_lam_ro": lời nhắn tiếng Việt ngắn gọn, lịch sự cho requester — nêu rõ TỪNG yêu cầu chưa đáp ứng + vì sao, rồi gợi ý 3 lựa chọn: (a) bỏ/nới yêu cầu đó, (b) tăng budget, (c) chấp nhận phương án thay thế. Nếu TẤT CẢ "met" (hoặc không có yêu cầu đặc biệt) → "cau_hoi_lam_ro"=null.
+10. Nếu có BẤT KỲ yêu cầu "unmet" → điền "cau_hoi_lam_ro": lời nhắn tiếng Việt ngắn gọn, lịch sự cho requester — nêu rõ TỪNG yêu cầu chưa đáp ứng + vì sao, rồi gợi ý 3 lựa chọn: (a) bỏ/nới yêu cầu đó, (b) tăng budget, (c) chấp nhận phương án thay thế. Nếu TẤT CẢ "met" (hoặc không có yêu cầu đặc biệt) → "cau_hoi_lam_ro"=null. ĐỪNG hỏi chung chung kiểu "còn yêu cầu nào khác không" — chỉ hỏi đúng cái đang unmet.
+11. "yeu_cau_dac_biet_chot": chỉ điền khi có CÂU TRẢ LỜI LÀM RÕ ở dưới — ghi lại nội dung yêu cầu đặc biệt SAU khi đã áp dụng câu trả lời (vd requester bỏ gấu bông và không còn ràng buộc nào → ""; nếu đổi sang món khác → mô tả món mới). Đây là bản chốt để lưu, dùng cho các lần sau. Nếu KHÔNG có câu trả lời làm rõ → null.
 
-JSON schema: {{"items": [{{"ten": str, "nguon": "catalogue"|"creative", "loai": str, "chat_lieu": str, "kich_thuoc": str, "so_luong": int, "don_gia": int|null, "can_cu_gia": str, "item_key": bool, "design_link": str|null}}], "tong_du_kien": int, "nhan_xet": str, "yeu_cau_dac_biet": [{{"noi_dung": str, "dap_ung": "met"|"unmet", "ly_do": str, "loai": str}}], "cau_hoi_lam_ro": str|null}}"""
+JSON schema: {{"items": [{{"ten": str, "nguon": "catalogue"|"creative", "loai": str, "chat_lieu": str, "kich_thuoc": str, "so_luong": int, "don_gia": int|null, "can_cu_gia": str, "item_key": bool, "design_link": str|null}}], "tong_du_kien": int, "nhan_xet": str, "yeu_cau_dac_biet": [{{"noi_dung": str, "dap_ung": "met"|"unmet", "ly_do": str, "loai": str}}], "cau_hoi_lam_ro": str|null, "yeu_cau_dac_biet_chot": str|null}}"""
 
 PHAN_LOAI_ITEMS = {"Sản xuất mới", "Mua sẵn", "Giá trị cao >50tr"}
 
@@ -120,8 +121,14 @@ def propose_items_for(record: dict, feedback: str | None = None,
         base_prompt += (f"\n\nFEEDBACK CỦA REQUESTER VỀ PROPOSAL TRƯỚC "
                         f"(điều chỉnh lại đúng theo ý này):\n{feedback}")
     if clarify:
-        base_prompt += (f"\n\nREQUESTER ĐÃ TRẢ LỜI LÀM RÕ YÊU CẦU ĐẶC BIỆT "
-                        f"(chấm lại 'dap_ung' dựa trên câu trả lời này + brief mới nhất):\n{clarify}")
+        base_prompt += (
+            "\n\nREQUESTER ĐÃ TRẢ LỜI LÀM RÕ YÊU CẦU ĐẶC BIỆT:\n"
+            f"{clarify}\n"
+            "Câu trả lời này là MỚI NHẤT và CÓ THẨM QUYỀN, được ƯU TIÊN HƠN nội dung 'Yêu cầu đặc biệt' gốc "
+            "nếu mâu thuẫn. Nếu nó bỏ/nới/đổi một yêu cầu (vd 'bỏ X', 'thay X bằng Y', 'tăng budget') → "
+            "COI yêu cầu đó đã được điều chỉnh theo câu trả lời, chấm 'met' và TIẾP TỤC ra proposal bình thường. "
+            "Chỉ để 'unmet' nếu SAU câu trả lời VẪN còn ràng buộc thực sự chưa thỏa. "
+            "Nhớ điền 'yeu_cau_dac_biet_chot' = yêu cầu sau điều chỉnh.")
     proposal = ask_llm_json(base_prompt, max_tokens=2500)
     _enforce_catalogue_price(proposal, by_name)
 
@@ -187,7 +194,14 @@ def propose_items_for(record: dict, feedback: str | None = None,
     n_cre = len(proposal["items"]) - n_cat
     # KHONG nhet summary vao "Phan tich AI" (de field do = phan tich de bai cua AI #1).
     # Proposal da the hien qua Items + File proposal.
-    update_project(record["id"], {"Phân loại merch": sorted(phan_loai_merch)})
+    proj_updates = {"Phân loại merch": sorted(phan_loai_merch)}
+    # Clarify resolve -> luu yeu cau da chot vao "Yeu cau dac biet" (de lan sau revise khong block lai
+    # vi doc lai field cu mau thuan voi cau tra loi).
+    if clarify:
+        chot = proposal.get("yeu_cau_dac_biet_chot")
+        proj_updates["Yêu cầu đặc biệt"] = (
+            chot if chot is not None else f"{special}\n[Điều chỉnh theo trả lời] {clarify}")
+    update_project(record["id"], proj_updates)
 
     return {"project_code": code, "blocked": False, "items_created": len(item_records),
             "total": total, "budget": budget, "revisions": revisions,
