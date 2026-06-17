@@ -1,0 +1,1393 @@
+{
+  "Users": [
+    {
+      "id": "recAlLjBSTkQTcVLr",
+      "fields": {
+        "Email": "phamtrungvinh263@gmail.com",
+        "Vai trò": "Merch PIC",
+        "Tên": "Vinh Phạm",
+        "Phòng ban / Game phụ trách": "Merch Team - VNGGames",
+        "Projects": [
+          "recG9QwdpB6cokZSs"
+        ],
+        "Quản lý trực tiếp": "Nhiên Phạm",
+        "Tài khoản Airtable": {
+          "id": "usrIzowlvfgV4UdwE",
+          "email": "phamtrungvinh263@gmail.com",
+          "name": "Vinh Phạm"
+        }
+      }
+    },
+    {
+      "id": "recCQYPa6iGS0ZFkU",
+      "fields": {
+        "Email": "tumyle.ueh@gmail.com",
+        "Vai trò": "Head",
+        "Tên": "Nhiên Phạm",
+        "Phòng ban / Game phụ trách": "Head of Publishing Services"
+      }
+    },
+    {
+      "id": "recCqoVa1vWc69wmX",
+      "fields": {
+        "Email": "vinhpt2@vng.com.vn",
+        "Vai trò": "Requester",
+        "Tên": "Long Phạm",
+        "Phòng ban / Game phụ trách": "Marketing - Võ Lâm Chi Mộng [037]",
+        "Quản lý trực tiếp": "Nhiên Phạm"
+      }
+    },
+    {
+      "id": "rect6lpTVQzcNGcR4",
+      "fields": {
+        "Email": "myltt@vng.com.vn",
+        "Vai trò": "Approver",
+        "Tên": "My Lê",
+        "Phòng ban / Game phụ trách": "Marketing Lead - GS2",
+        "Quản lý trực tiếp": "Nhiên Phạm"
+      }
+    }
+  ],
+  "Vendors": [
+    {
+      "id": "recD0JaaRF51bwbnh",
+      "fields": {
+        "Tên vendor": "In Ấn Quà Tặng Sao Việt",
+        "Rating (1-5)": 3.9,
+        "Price History": [
+          "reckj1c4X1xUdCvfl",
+          "rectczeG33H0ktBGk",
+          "recymDKEoBJ7DfRHv",
+          "recBJciZfvsEmOhRU",
+          "recoRVobezmwlLJFS",
+          "rec6FVww2qXdeLyp5",
+          "rec8EDaQAPPnJJgJI",
+          "recV5ZbIbrUEkFawi",
+          "recHlgoj0QjicfgtN",
+          "rectkKifqCFxxMnYc",
+          "rec9E4A95u2KBLMAp",
+          "recGYe7tSP59GRuSR",
+          "rec6eM6OTQszrJByv",
+          "recZr43tg53X6t78p",
+          "rec1OyGzcxj5cdJVQ",
+          "reczFToiydP9Qfmhq"
+        ],
+        "Email": "saoviet.demo@gmail.com",
+        "Ghi chú": "Giá tốt nhất mảng ly, bình nước, móc khóa, sticker, standee. Chất lượng ổn với item đơn giản, item phức tạp cần duyệt mẫu kỹ.",
+        "Lead time lên mẫu": "3-5 ngày",
+        "Lead time sản xuất": "10-15 ngày",
+        "Chuyên môn": [
+          "In ấn quà tặng",
+          "Phụ kiện",
+          "Standee & POSM"
+        ],
+        "Zalo ID": "74d10c9bebd802865bc9"
+      }
+    },
+    {
+      "id": "recJRulM7Z7rzKzRv",
+      "fields": {
+        "Tên vendor": "Mascot & Figure Creative House",
+        "Rating (1-5)": 4.5,
+        "Price History": [
+          "rec76xJdTimwcBBhw",
+          "recQ7I9cbqu68W9FU",
+          "recb1fzufMdhkGs5O",
+          "recimRhzXl2HmqZN1",
+          "rec0D3L3jPuwqD3BU",
+          "rec7vVU5TJA0IqgVp",
+          "reckPXTQi3XqpNdqn",
+          "rec3hv2StyuzznhZE",
+          "recGZL29h0JI55ttV"
+        ],
+        "Email": "mfch.demo@gmail.com",
+        "Ghi chú": "Chuyên gấu bông custom, figure PVC, tượng resin cao cấp. MOQ cao, lead time dài — phải đặt sớm. Đã làm bộ figure cho 2 game lớn năm 2025.",
+        "Lead time lên mẫu": "14-21 ngày",
+        "Lead time sản xuất": "30-45 ngày",
+        "Chuyên môn": [
+          "Gấu bông & Figure"
+        ],
+        "Zalo ID": "74d10c9bebd802865bc9"
+      }
+    },
+    {
+      "id": "recZDdbxYgsHOjObR",
+      "fields": {
+        "Tên vendor": "TechGift Distribution",
+        "Rating (1-5)": 4.2,
+        "Price History": [
+          "recnz283QTENgZDSZ",
+          "reczHWRSErpoe0zSs",
+          "recJ1eWJ4Q0AvyZXH"
+        ],
+        "Email": "techgift.demo@gmail.com",
+        "Ghi chú": "Phân phối hàng điện tử có sẵn: tai nghe, loa bluetooth, sạc dự phòng. Có dịch vụ in/khắc logo lên sản phẩm có sẵn (thêm 5-7 ngày).",
+        "Lead time lên mẫu": "Có sẵn mẫu",
+        "Lead time sản xuất": "5-7 ngày giao hàng",
+        "Chuyên môn": [
+          "Hàng điện tử có sẵn"
+        ]
+      }
+    },
+    {
+      "id": "recd30J2YIxegBvze",
+      "fields": {
+        "Tên vendor": "Quà Tặng Phương Nam",
+        "Rating (1-5)": 2.8,
+        "Price History": [
+          "rec9Awddevu5fRBFn",
+          "rech8M0ZaBb2BKxzF",
+          "recS1FO9PGyz1wTw3"
+        ],
+        "Email": "phuongnam.demo@gmail.com",
+        "Ghi chú": "⚠️ Từng trễ deadline 2 lần trong năm 2025 (đơn áo thun tháng 3 trễ 5 ngày, đơn ly tháng 9 trễ 8 ngày). Giá rẻ nhưng rủi ro cao với đơn gấp.",
+        "Lead time lên mẫu": "5-7 ngày",
+        "Lead time sản xuất": "15-25 ngày",
+        "Chuyên môn": [
+          "In ấn quà tặng",
+          "May mặc",
+          "Phụ kiện"
+        ]
+      }
+    },
+    {
+      "id": "rechs7h4NPjVbYzCE",
+      "fields": {
+        "Tên vendor": "Xưởng May Tân Phú",
+        "Rating (1-5)": 4.8,
+        "Price History": [
+          "rec02JZQVVueyJglz",
+          "recc8pVw3sgmpIkcR",
+          "recK2YpBNoywDq6Zy",
+          "rec5OgWcMyhQGD8km",
+          "recf7spPze4HFRq8l",
+          "recSJA54Q44KQNtqk",
+          "recWDTRjdblZvhicq",
+          "recVxelnwZjc5MmII",
+          "recHjEatJheAigQWS",
+          "rec2KqRdddxstnOE6",
+          "recmtbLLjptCcy14W",
+          "rec0kCSmd3zkDa1vD",
+          "recB3WCTnHzXLGgbc",
+          "recp7UhdK7Atc3ASE",
+          "recZ3xQQc80dEMhcK",
+          "recXOGhYjeGbgPzr7",
+          "recDZxVNhVFMzpGDk"
+        ],
+        "Email": "vendor.demo.merch@gmail.com",
+        "Ghi chú": "Vendor ruột mảng may mặc (áo thun, hoodie, mũ, túi tote). Chất lượng in/thêu ổn định, giao đúng hẹn. ⚠️ Email demo — thay bằng Gmail đóng vai vendor khi test.",
+        "Lead time lên mẫu": "5-7 ngày",
+        "Lead time sản xuất": "15-20 ngày",
+        "Chuyên môn": [
+          "May mặc"
+        ],
+        "Zalo ID": "74d10c9bebd802865bc9"
+      }
+    }
+  ],
+  "Projects": [
+    {
+      "id": "recG9QwdpB6cokZSs",
+      "fields": {
+        "Status": "Đã duyệt items",
+        "Deadline phê duyệt": "2026-06-19",
+        "Mục đích": "Quà tri ân game thủ và vật phẩm thương hiệu cho sự kiện offline ra mắt phiên bản mới, tăng gắn kết cộng đồng võ hiệp",
+        "Phân loại merch": [
+          "Mua sẵn",
+          "Sản xuất mới"
+        ],
+        "Requester (account)": {
+          "id": "usrIzowlvfgV4UdwE",
+          "email": "phamtrungvinh263@gmail.com",
+          "name": "Vinh Phạm"
+        },
+        "Items": [
+          "recMICTPSq8R53GNl",
+          "rec1iqrcbbFtvjXil",
+          "recFKypVpmJ1IP0PS",
+          "recjQM11SpomAmy40",
+          "recehmHDyDfr671xN"
+        ],
+        "File proposal": [
+          {
+            "id": "att8j179nVvJL3PnV",
+            "url": "https://v5.airtableusercontent.com/v3/u/54/54/1781683200000/EYnbdYHFFsWSmCXJIRHGDQ/r3UfJFec_1NyG9NBuSljz0s14UMQ3rr6R2dq08vDfdjHMNvXb6_obvFL7uxbUBv7vdg5SSP7HQ3syDTQ2lv49ptcZecNuUju6Oq-vI-O-UR6tlBUklSPv2cP_MZy49VKnyX5XzR5R2O4ULD_9hT7MJzW-YxyJT82HCRS3ICgouY/8DIzmgQ03Bkc3LbKaT4lGXZTrzgXVU4L_HkbCrpNUCA",
+            "filename": "proposal_MERCH-001.html",
+            "size": 6000,
+            "type": "text/html"
+          }
+        ],
+        "Email requester": [
+          "phamtrungvinh263@gmail.com"
+        ],
+        "Chủ đề": "Võ hiệp huyền ảo, môn phái giang hồ, tông màu mực tàu – vàng kim",
+        "Target audience": "Game thủ 18–35 tuổi yêu thích võ hiệp, chơi mobile MMO nhập vai",
+        "Mã project": "MERCH-001",
+        "Phân tích AI": "[AI 16/06] Dự án MERCH-001 nhằm sản xuất 500 đơn vị quà tri ân cho game thủ VIP và sự kiện offline của Võ Lâm Chi Mộng 2026 với chủ đề võ hiệp huyền ảo, tông màu mực tàu – vàng kim. Với target audience là game thủ 18-35 tuổi, các item như áo dài cách tân, bình trà cao cấp hoặc bộ dụng cụ thư pháp sẽ phù hợp để tăng gắn kết cộng đồng và thể hiện đẳng cấp thương hiệu.\nƯu tiên: cao\nDeadline: ✅ ổn — Mặc dù timeline 132 ngày được đánh giá là ổn cho quy trình sản xuất toàn trình, nhưng đây là sự kiện ra mắt phiên bản mới quan trọng nên cần ưu tiên cao để đảm bảo chất lượng và tiến độ giao hàng đúng hạn.\n\n[AI 16/06] PROPOSAL: 5 items (4 catalogue + 1 creative), tổng dự kiến 172,500,000đ / budget 300,000,000đ.\nBộ quà tập trung vào trải nghiệm cao cấp với Hoodie và Ly giữ nhiệt làm vật dụng chính, phù hợp định vị VIP và tông màu mực tàu - vàng kim. Item key là tượng resin tự thiết kế để tạo dấu ấn độc quyền cho phiên bản 2026, thay thế cho Figure PVC có MOQ và phí khuôn cao hơn. Cần lưu ý lead time của tượng resin (sản xuất nước ngoài) có thể kéo dài 45-60 ngày, cần đặt mẫu sớm để đảm bảo deadline 2026-10-26.",
+        "Requester": [
+          "recAlLjBSTkQTcVLr"
+        ],
+        "Số round proposal": 0,
+        "Định vị": "Quà tri ân cho game thủ VIP/minh chủ + vật phẩm phát tại sự kiện offline",
+        "Game": "Võ Lâm Chi Mộng [037]",
+        "Budget (VND)": 300000000,
+        "Tên project": "Sự kiện ra mắt phiên bản mới Võ Lâm Chi Mộng 2026",
+        "Deadline cần hàng": "2026-10-26",
+        "Số lượng (bộ/suất)": 500
+      }
+    }
+  ],
+  "Items": [
+    {
+      "id": "rec1iqrcbbFtvjXil",
+      "fields": {
+        "Tên item": "Ly giữ nhiệt inox 500ml",
+        "Project": [
+          "recG9QwdpB6cokZSs"
+        ],
+        "Chất liệu": "Inox 304 2 lớp",
+        "Loại": "Ly giữ nhiệt",
+        "Ghi chú AI": "[AI] Giá catalogue",
+        "Status": "Đã duyệt",
+        "Đơn giá dự kiến (VND)": 120000,
+        "Phân loại": "Mua sẵn",
+        "Kích thước": "500ml",
+        "Số lượng": 500
+      }
+    },
+    {
+      "id": "recFKypVpmJ1IP0PS",
+      "fields": {
+        "Tên item": "Móc khóa acrylic in UV",
+        "Project": [
+          "recG9QwdpB6cokZSs"
+        ],
+        "Chất liệu": "Acrylic 3mm",
+        "Loại": "Móc khóa",
+        "Ghi chú AI": "[AI] Giá catalogue",
+        "Status": "Đã duyệt",
+        "Đơn giá dự kiến (VND)": 18000,
+        "Phân loại": "Mua sẵn",
+        "Kích thước": "Cắt CNC theo hình",
+        "Số lượng": 500
+      }
+    },
+    {
+      "id": "recMICTPSq8R53GNl",
+      "fields": {
+        "Tên item": "Áo hoodie nỉ bông",
+        "Project": [
+          "recG9QwdpB6cokZSs"
+        ],
+        "Chất liệu": "Nỉ bông 320gsm",
+        "Loại": "Hoodie",
+        "Ghi chú AI": "[AI] Giá catalogue",
+        "Status": "Đã duyệt",
+        "Đơn giá dự kiến (VND)": 185000,
+        "Phân loại": "Mua sẵn",
+        "Kích thước": "Size S-XXL",
+        "Số lượng": 500
+      }
+    },
+    {
+      "id": "recehmHDyDfr671xN",
+      "fields": {
+        "Tên item": "⭐ Tượng resin nhân vật chủ lực phiên bản 2026",
+        "Project": [
+          "recG9QwdpB6cokZSs"
+        ],
+        "Chất liệu": "Resin cao cấp, sơn tay chi tiết",
+        "Loại": "Tượng resin",
+        "Ghi chú AI": "[AI] Item sáng tạo — chưa có giá, cần hỏi vendor",
+        "Status": "Đã duyệt",
+        "Phân loại": "Sản xuất mới",
+        "Kích thước": "Cao 15-18cm",
+        "Số lượng": 500
+      }
+    },
+    {
+      "id": "recjQM11SpomAmy40",
+      "fields": {
+        "Tên item": "Sticker set die-cut (10 cái)",
+        "Project": [
+          "recG9QwdpB6cokZSs"
+        ],
+        "Chất liệu": "PVC chống nước",
+        "Loại": "Sticker set",
+        "Ghi chú AI": "[AI] Giá catalogue",
+        "Status": "Đã duyệt",
+        "Đơn giá dự kiến (VND)": 22000,
+        "Phân loại": "Mua sẵn",
+        "Kích thước": "Bộ 10 cái",
+        "Số lượng": 500
+      }
+    }
+  ],
+  "Price History": [
+    {
+      "id": "rec02JZQVVueyJglz",
+      "fields": {
+        "Năm": "2025",
+        "Vendor": [
+          "rechs7h4NPjVbYzCE"
+        ],
+        "Kích thước": "S-XL",
+        "Loại": "Áo thun",
+        "Số lượng đặt": 100,
+        "Chất liệu": "Cotton 100% 220gsm",
+        "Item": "Áo thun cotton 100% 220gsm in lụa",
+        "Đơn giá (VND)": 105000,
+        "MOQ": 50,
+        "Game/Project gốc": "PUBG Mobile - event 4/2025"
+      }
+    },
+    {
+      "id": "rec0D3L3jPuwqD3BU",
+      "fields": {
+        "Năm": "2024",
+        "Vendor": [
+          "recJRulM7Z7rzKzRv"
+        ],
+        "Kích thước": "40cm",
+        "Loại": "Gấu bông",
+        "Số lượng đặt": 300,
+        "Chất liệu": "Vải nhung co giãn, bông PP",
+        "Item": "Gấu bông custom 40cm",
+        "Đơn giá (VND)": 245000,
+        "MOQ": 200,
+        "Game/Project gốc": "CookieRun - 2024"
+      }
+    },
+    {
+      "id": "rec0kCSmd3zkDa1vD",
+      "fields": {
+        "Năm": "2025",
+        "Vendor": [
+          "rechs7h4NPjVbYzCE"
+        ],
+        "Kích thước": "Freesize",
+        "Loại": "Mũ lưỡi trai",
+        "Số lượng đặt": 100,
+        "Chất liệu": "Kaki cotton, thêu nổi 3D",
+        "Item": "Mũ lưỡi trai kaki thêu nổi",
+        "Đơn giá (VND)": 58000,
+        "MOQ": 50,
+        "Game/Project gốc": "Valorant - quà fan 2025"
+      }
+    },
+    {
+      "id": "rec1OyGzcxj5cdJVQ",
+      "fields": {
+        "Năm": "2025",
+        "Vendor": [
+          "recD0JaaRF51bwbnh"
+        ],
+        "Kích thước": "60x160cm",
+        "Loại": "Standee",
+        "Số lượng đặt": 50,
+        "Chất liệu": "PP cán format, chân sắt chữ X",
+        "Item": "Standee PP cán format chân sắt 1m6",
+        "Đơn giá (VND)": 185000,
+        "MOQ": 10,
+        "Game/Project gốc": "VLCM - chuỗi PGD 2025"
+      }
+    },
+    {
+      "id": "rec2KqRdddxstnOE6",
+      "fields": {
+        "Năm": "2025",
+        "Vendor": [
+          "rechs7h4NPjVbYzCE"
+        ],
+        "Kích thước": "M-XXL",
+        "Loại": "Áo khoác gió",
+        "Số lượng đặt": 300,
+        "Chất liệu": "Vải gió 2 lớp chống thấm nhẹ",
+        "Item": "Áo khoác gió 2 lớp thêu logo",
+        "Đơn giá (VND)": 168000,
+        "MOQ": 100,
+        "Game/Project gốc": "PUBG Mobile - team event"
+      }
+    },
+    {
+      "id": "rec3hv2StyuzznhZE",
+      "fields": {
+        "Năm": "2025",
+        "Vendor": [
+          "recJRulM7Z7rzKzRv"
+        ],
+        "Kích thước": "18cm",
+        "Loại": "Figure PVC",
+        "Số lượng đặt": 500,
+        "Chất liệu": "PVC sơn tay, base acrylic",
+        "Item": "Figure PVC 18cm custom character",
+        "Đơn giá (VND)": 580000,
+        "MOQ": 100,
+        "Game/Project gốc": "PUBG Mobile - collector set"
+      }
+    },
+    {
+      "id": "rec5OgWcMyhQGD8km",
+      "fields": {
+        "Năm": "2025",
+        "Vendor": [
+          "rechs7h4NPjVbYzCE"
+        ],
+        "Kích thước": "S-XL",
+        "Loại": "Áo thun",
+        "Số lượng đặt": 1000,
+        "Chất liệu": "Cotton 100% 220gsm",
+        "Item": "Áo thun cotton 100% 220gsm in lụa",
+        "Đơn giá (VND)": 72000,
+        "MOQ": 50,
+        "Game/Project gốc": "PUBG Mobile - anniversary 2025"
+      }
+    },
+    {
+      "id": "rec6FVww2qXdeLyp5",
+      "fields": {
+        "Năm": "2025",
+        "Vendor": [
+          "recD0JaaRF51bwbnh"
+        ],
+        "Kích thước": "600ml",
+        "Loại": "Bình nước",
+        "Số lượng đặt": 500,
+        "Chất liệu": "Nhựa tritan BPA-free",
+        "Item": "Bình nước tritan 600ml in logo",
+        "Đơn giá (VND)": 60000,
+        "MOQ": 100,
+        "Game/Project gốc": "PUBG Mobile - event 2025"
+      }
+    },
+    {
+      "id": "rec6eM6OTQszrJByv",
+      "fields": {
+        "Năm": "2025",
+        "Vendor": [
+          "recD0JaaRF51bwbnh"
+        ],
+        "Kích thước": "Sheet 10x14cm",
+        "Loại": "Sticker set",
+        "Số lượng đặt": 1000,
+        "Chất liệu": "Decal sữa chống nước, cán màng",
+        "Item": "Sticker set decal sữa 6 con/sheet",
+        "Đơn giá (VND)": 8500,
+        "MOQ": 500,
+        "Game/Project gốc": "Nikki VN - launch 2025"
+      }
+    },
+    {
+      "id": "rec76xJdTimwcBBhw",
+      "fields": {
+        "Năm": "2025",
+        "Vendor": [
+          "recJRulM7Z7rzKzRv"
+        ],
+        "Kích thước": "25cm",
+        "Loại": "Gấu bông",
+        "Số lượng đặt": 300,
+        "Chất liệu": "Vải nhung co giãn, bông PP",
+        "Item": "Gấu bông custom theo character 25cm",
+        "Đơn giá (VND)": 152000,
+        "MOQ": 300,
+        "Game/Project gốc": "Nikki VN - launch 2025",
+        "Ghi chú": "Phí thiết kế + lên mẫu 3D: 5tr/character (tính riêng lần đầu)"
+      }
+    },
+    {
+      "id": "rec7vVU5TJA0IqgVp",
+      "fields": {
+        "Năm": "2025",
+        "Vendor": [
+          "recJRulM7Z7rzKzRv"
+        ],
+        "Kích thước": "18cm",
+        "Loại": "Figure PVC",
+        "Số lượng đặt": 100,
+        "Chất liệu": "PVC sơn tay, base acrylic",
+        "Item": "Figure PVC 18cm custom character",
+        "Đơn giá (VND)": 880000,
+        "MOQ": 100,
+        "Game/Project gốc": "VLCM - tượng nhân vật 2025",
+        "Ghi chú": "Phí khuôn + master: 25tr/character. Lead time mẫu 21 ngày"
+      }
+    },
+    {
+      "id": "rec8EDaQAPPnJJgJI",
+      "fields": {
+        "Năm": "2025",
+        "Vendor": [
+          "recD0JaaRF51bwbnh"
+        ],
+        "Kích thước": "600ml",
+        "Loại": "Bình nước",
+        "Số lượng đặt": 1000,
+        "Chất liệu": "Nhựa tritan BPA-free",
+        "Item": "Bình nước tritan 600ml in logo",
+        "Đơn giá (VND)": 54000,
+        "MOQ": 100,
+        "Game/Project gốc": "Gameverse 2025"
+      }
+    },
+    {
+      "id": "rec9Awddevu5fRBFn",
+      "fields": {
+        "Năm": "2025",
+        "Vendor": [
+          "recd30J2YIxegBvze"
+        ],
+        "Kích thước": "S-XL",
+        "Loại": "Áo thun",
+        "Số lượng đặt": 500,
+        "Chất liệu": "CVC 65/35",
+        "Item": "Áo thun CVC 65/35 in lụa",
+        "Đơn giá (VND)": 65000,
+        "MOQ": 100,
+        "Game/Project gốc": "Roblox - minigame 2025",
+        "Ghi chú": "CVC rẻ hơn cotton ~20%, form cứng hơn, phù hợp quà phát đại trà"
+      }
+    },
+    {
+      "id": "rec9E4A95u2KBLMAp",
+      "fields": {
+        "Năm": "2025",
+        "Vendor": [
+          "recD0JaaRF51bwbnh"
+        ],
+        "Kích thước": "4.5cm",
+        "Loại": "Móc khóa",
+        "Số lượng đặt": 500,
+        "Chất liệu": "Hợp kim kẽm mạ niền/vàng",
+        "Item": "Móc khóa kim loại hợp kim mạ",
+        "Đơn giá (VND)": 30000,
+        "MOQ": 300,
+        "Game/Project gốc": "Valorant - VCT 2025",
+        "Ghi chú": "Khuôn mới tính riêng ~8tr/khuôn nếu thiết kế mới hoàn toàn"
+      }
+    },
+    {
+      "id": "recB3WCTnHzXLGgbc",
+      "fields": {
+        "Năm": "2025",
+        "Vendor": [
+          "rechs7h4NPjVbYzCE"
+        ],
+        "Kích thước": "Freesize",
+        "Loại": "Mũ lưỡi trai",
+        "Số lượng đặt": 500,
+        "Chất liệu": "Kaki cotton, thêu nổi 3D",
+        "Item": "Mũ lưỡi trai kaki thêu nổi",
+        "Đơn giá (VND)": 45000,
+        "MOQ": 50,
+        "Game/Project gốc": "PUBG Mobile - 7th anniversary"
+      }
+    },
+    {
+      "id": "recBJciZfvsEmOhRU",
+      "fields": {
+        "Năm": "2025",
+        "Vendor": [
+          "recD0JaaRF51bwbnh"
+        ],
+        "Kích thước": "500ml",
+        "Loại": "Ly giữ nhiệt",
+        "Số lượng đặt": 100,
+        "Chất liệu": "Inox 304, khắc laser tên riêng từng ly",
+        "Item": "Ly giữ nhiệt khắc laser cá nhân hóa",
+        "Đơn giá (VND)": 148000,
+        "MOQ": 50,
+        "Game/Project gốc": "VLCM - tri ân top nạp Q4/2025",
+        "Ghi chú": "Khắc cá nhân hóa +20% giá, cần danh sách tên trước 7 ngày"
+      }
+    },
+    {
+      "id": "recDZxVNhVFMzpGDk",
+      "fields": {
+        "Năm": "2025",
+        "Vendor": [
+          "rechs7h4NPjVbYzCE"
+        ],
+        "Kích thước": "35x40cm",
+        "Loại": "Túi tote",
+        "Số lượng đặt": 1000,
+        "Chất liệu": "Canvas 12oz",
+        "Item": "Túi tote canvas 12oz in lụa",
+        "Đơn giá (VND)": 35000,
+        "MOQ": 100,
+        "Game/Project gốc": "Gameverse 2025"
+      }
+    },
+    {
+      "id": "recGYe7tSP59GRuSR",
+      "fields": {
+        "Năm": "2025",
+        "Vendor": [
+          "recD0JaaRF51bwbnh"
+        ],
+        "Kích thước": "4.5cm",
+        "Loại": "Móc khóa",
+        "Số lượng đặt": 1000,
+        "Chất liệu": "Hợp kim kẽm mạ niền/vàng",
+        "Item": "Móc khóa kim loại hợp kim mạ",
+        "Đơn giá (VND)": 24000,
+        "MOQ": 300,
+        "Game/Project gốc": "PUBG Mobile - 7th anniversary"
+      }
+    },
+    {
+      "id": "recGZL29h0JI55ttV",
+      "fields": {
+        "Năm": "2025",
+        "Vendor": [
+          "recJRulM7Z7rzKzRv"
+        ],
+        "Kích thước": "40cm",
+        "Loại": "Tượng resin",
+        "Số lượng đặt": 5,
+        "Chất liệu": "Resin cao cấp sơn tay, hộp gỗ + COA",
+        "Item": "Tượng resin limited 40cm sơn tay",
+        "Đơn giá (VND)": 52000000,
+        "MOQ": 3,
+        "Game/Project gốc": "Valorant - giải đấu VCT 2025",
+        "Ghi chú": "⚠️ >50tr/món → quy trình PROC riêng, cần 3 báo giá cạnh tranh. Lead time 60 ngày"
+      }
+    },
+    {
+      "id": "recHjEatJheAigQWS",
+      "fields": {
+        "Năm": "2025",
+        "Vendor": [
+          "rechs7h4NPjVbYzCE"
+        ],
+        "Kích thước": "S-XL",
+        "Loại": "Hoodie",
+        "Số lượng đặt": 500,
+        "Chất liệu": "Nỉ bông 350gsm",
+        "Item": "Hoodie nỉ bông 350gsm thêu logo",
+        "Đơn giá (VND)": 185000,
+        "MOQ": 50,
+        "Game/Project gốc": "VLCM - Tết 2026"
+      }
+    },
+    {
+      "id": "recHlgoj0QjicfgtN",
+      "fields": {
+        "Năm": "2025",
+        "Vendor": [
+          "recD0JaaRF51bwbnh"
+        ],
+        "Kích thước": "5cm",
+        "Loại": "Móc khóa",
+        "Số lượng đặt": 1000,
+        "Chất liệu": "Mica 3mm in UV",
+        "Item": "Móc khóa mica in UV 2 mặt",
+        "Đơn giá (VND)": 9500,
+        "MOQ": 200,
+        "Game/Project gốc": "VLCM - event 2025"
+      }
+    },
+    {
+      "id": "recJ1eWJ4Q0AvyZXH",
+      "fields": {
+        "Năm": "2026",
+        "Vendor": [
+          "recZDdbxYgsHOjObR"
+        ],
+        "Loại": "Tai nghe bluetooth",
+        "Số lượng đặt": 200,
+        "Chất liệu": "Hàng sẵn thị trường + khắc laser",
+        "Item": "Tai nghe TWS có sẵn + khắc logo",
+        "Đơn giá (VND)": 355000,
+        "MOQ": 50,
+        "Game/Project gốc": "PUBG Mobile - Gameverse 2026",
+        "Ghi chú": "Đơn gần nhất (2026) — giá tham khảo tốt nhất cho hàng điện tử"
+      }
+    },
+    {
+      "id": "recK2YpBNoywDq6Zy",
+      "fields": {
+        "Năm": "2025",
+        "Vendor": [
+          "rechs7h4NPjVbYzCE"
+        ],
+        "Kích thước": "S-XL",
+        "Loại": "Áo thun",
+        "Số lượng đặt": 500,
+        "Chất liệu": "Cotton 100% 220gsm",
+        "Item": "Áo thun cotton 100% 220gsm in lụa",
+        "Đơn giá (VND)": 82000,
+        "MOQ": 50,
+        "Game/Project gốc": "VLCM - Tết 2026"
+      }
+    },
+    {
+      "id": "recQ7I9cbqu68W9FU",
+      "fields": {
+        "Năm": "2025",
+        "Vendor": [
+          "recJRulM7Z7rzKzRv"
+        ],
+        "Kích thước": "25cm",
+        "Loại": "Gấu bông",
+        "Số lượng đặt": 500,
+        "Chất liệu": "Vải nhung co giãn, bông PP",
+        "Item": "Gấu bông custom theo character 25cm",
+        "Đơn giá (VND)": 132000,
+        "MOQ": 300,
+        "Game/Project gốc": "CookieRun Kingdom event 2025"
+      }
+    },
+    {
+      "id": "recS1FO9PGyz1wTw3",
+      "fields": {
+        "Năm": "2024",
+        "Vendor": [
+          "recd30J2YIxegBvze"
+        ],
+        "Kích thước": "5cm",
+        "Loại": "Móc khóa",
+        "Số lượng đặt": 1000,
+        "Chất liệu": "Mica 3mm",
+        "Item": "Móc khóa mica in UV",
+        "Đơn giá (VND)": 8000,
+        "MOQ": 500,
+        "Game/Project gốc": "VLCM - 2024"
+      }
+    },
+    {
+      "id": "recSJA54Q44KQNtqk",
+      "fields": {
+        "Năm": "2025",
+        "Vendor": [
+          "rechs7h4NPjVbYzCE"
+        ],
+        "Kích thước": "S-XL",
+        "Loại": "Áo thun",
+        "Số lượng đặt": 300,
+        "Chất liệu": "Poly-cotton in chuyển nhiệt full body",
+        "Item": "Áo thun cotton in chuyển nhiệt toàn thân",
+        "Đơn giá (VND)": 115000,
+        "MOQ": 100,
+        "Game/Project gốc": "Nikki VN - event 2025",
+        "Ghi chú": "In chuyển nhiệt cho design phức tạp nhiều màu — đắt hơn in lụa ~40%"
+      }
+    },
+    {
+      "id": "recV5ZbIbrUEkFawi",
+      "fields": {
+        "Năm": "2025",
+        "Vendor": [
+          "recD0JaaRF51bwbnh"
+        ],
+        "Kích thước": "5cm",
+        "Loại": "Móc khóa",
+        "Số lượng đặt": 500,
+        "Chất liệu": "Mica 3mm in UV",
+        "Item": "Móc khóa mica in UV 2 mặt",
+        "Đơn giá (VND)": 13000,
+        "MOQ": 200,
+        "Game/Project gốc": "Nikki VN - launch 2025"
+      }
+    },
+    {
+      "id": "recVxelnwZjc5MmII",
+      "fields": {
+        "Năm": "2025",
+        "Vendor": [
+          "rechs7h4NPjVbYzCE"
+        ],
+        "Kích thước": "S-XL",
+        "Loại": "Hoodie",
+        "Số lượng đặt": 300,
+        "Chất liệu": "Nỉ bông 350gsm",
+        "Item": "Hoodie nỉ bông 350gsm thêu logo",
+        "Đơn giá (VND)": 205000,
+        "MOQ": 50,
+        "Game/Project gốc": "PUBG Mobile - winter 2025"
+      }
+    },
+    {
+      "id": "recWDTRjdblZvhicq",
+      "fields": {
+        "Năm": "2025",
+        "Vendor": [
+          "rechs7h4NPjVbYzCE"
+        ],
+        "Kích thước": "S-XL",
+        "Loại": "Hoodie",
+        "Số lượng đặt": 100,
+        "Chất liệu": "Nỉ bông 350gsm",
+        "Item": "Hoodie nỉ bông 350gsm thêu logo",
+        "Đơn giá (VND)": 235000,
+        "MOQ": 50,
+        "Game/Project gốc": "Valorant - quà KOL 2025"
+      }
+    },
+    {
+      "id": "recXOGhYjeGbgPzr7",
+      "fields": {
+        "Năm": "2025",
+        "Vendor": [
+          "rechs7h4NPjVbYzCE"
+        ],
+        "Kích thước": "35x40cm",
+        "Loại": "Túi tote",
+        "Số lượng đặt": 500,
+        "Chất liệu": "Canvas 12oz",
+        "Item": "Túi tote canvas 12oz in lụa",
+        "Đơn giá (VND)": 41000,
+        "MOQ": 100,
+        "Game/Project gốc": "Roblox - 2025"
+      }
+    },
+    {
+      "id": "recZ3xQQc80dEMhcK",
+      "fields": {
+        "Năm": "2025",
+        "Vendor": [
+          "rechs7h4NPjVbYzCE"
+        ],
+        "Kích thước": "35x40cm",
+        "Loại": "Túi tote",
+        "Số lượng đặt": 300,
+        "Chất liệu": "Canvas 12oz",
+        "Item": "Túi tote canvas 12oz in lụa",
+        "Đơn giá (VND)": 48000,
+        "MOQ": 100,
+        "Game/Project gốc": "Nikki VN - 2025"
+      }
+    },
+    {
+      "id": "recZr43tg53X6t78p",
+      "fields": {
+        "Năm": "2025",
+        "Vendor": [
+          "recD0JaaRF51bwbnh"
+        ],
+        "Kích thước": "Sheet 10x14cm",
+        "Loại": "Sticker set",
+        "Số lượng đặt": 2000,
+        "Chất liệu": "Decal sữa chống nước, cán màng",
+        "Item": "Sticker set decal sữa 6 con/sheet",
+        "Đơn giá (VND)": 7000,
+        "MOQ": 500,
+        "Game/Project gốc": "Gameverse 2025"
+      }
+    },
+    {
+      "id": "recb1fzufMdhkGs5O",
+      "fields": {
+        "Năm": "2025",
+        "Vendor": [
+          "recJRulM7Z7rzKzRv"
+        ],
+        "Kích thước": "25cm",
+        "Loại": "Gấu bông",
+        "Số lượng đặt": 1000,
+        "Chất liệu": "Vải nhung co giãn, bông PP",
+        "Item": "Gấu bông custom theo character 25cm",
+        "Đơn giá (VND)": 115000,
+        "MOQ": 300,
+        "Game/Project gốc": "PUBG Mobile - mascot 2025"
+      }
+    },
+    {
+      "id": "recc8pVw3sgmpIkcR",
+      "fields": {
+        "Năm": "2025",
+        "Vendor": [
+          "rechs7h4NPjVbYzCE"
+        ],
+        "Kích thước": "S-XL",
+        "Loại": "Áo thun",
+        "Số lượng đặt": 300,
+        "Chất liệu": "Cotton 100% 220gsm",
+        "Item": "Áo thun cotton 100% 220gsm in lụa",
+        "Đơn giá (VND)": 92000,
+        "MOQ": 50,
+        "Game/Project gốc": "Valorant - offline 6/2025"
+      }
+    },
+    {
+      "id": "recf7spPze4HFRq8l",
+      "fields": {
+        "Năm": "2024",
+        "Vendor": [
+          "rechs7h4NPjVbYzCE"
+        ],
+        "Kích thước": "S-XL",
+        "Loại": "Áo thun",
+        "Số lượng đặt": 500,
+        "Chất liệu": "Cotton 100% 220gsm",
+        "Item": "Áo thun cotton 100% 220gsm in lụa",
+        "Đơn giá (VND)": 75000,
+        "MOQ": 50,
+        "Game/Project gốc": "VLCM - Tết 2025",
+        "Ghi chú": "Giá 2024 — tăng ~9%/năm"
+      }
+    },
+    {
+      "id": "rech8M0ZaBb2BKxzF",
+      "fields": {
+        "Năm": "2024",
+        "Vendor": [
+          "recd30J2YIxegBvze"
+        ],
+        "Kích thước": "Freesize",
+        "Loại": "Mũ lưỡi trai",
+        "Số lượng đặt": 500,
+        "Chất liệu": "Kaki pha, thêu phẳng",
+        "Item": "Mũ lưỡi trai thêu phẳng",
+        "Đơn giá (VND)": 40000,
+        "MOQ": 100,
+        "Game/Project gốc": "VLCM - event 2024",
+        "Ghi chú": "Đơn này giao trễ 5 ngày"
+      }
+    },
+    {
+      "id": "recimRhzXl2HmqZN1",
+      "fields": {
+        "Năm": "2025",
+        "Vendor": [
+          "recJRulM7Z7rzKzRv"
+        ],
+        "Kích thước": "20cm",
+        "Loại": "Gấu bông",
+        "Số lượng đặt": 500,
+        "Chất liệu": "Vải nhung co giãn, bông PP",
+        "Item": "Gấu bông custom 20cm",
+        "Đơn giá (VND)": 108000,
+        "MOQ": 300,
+        "Game/Project gốc": "Nikki VN - Q4/2025"
+      }
+    },
+    {
+      "id": "reckPXTQi3XqpNdqn",
+      "fields": {
+        "Năm": "2025",
+        "Vendor": [
+          "recJRulM7Z7rzKzRv"
+        ],
+        "Kích thước": "18cm",
+        "Loại": "Figure PVC",
+        "Số lượng đặt": 300,
+        "Chất liệu": "PVC sơn tay, base acrylic",
+        "Item": "Figure PVC 18cm custom character",
+        "Đơn giá (VND)": 690000,
+        "MOQ": 100,
+        "Game/Project gốc": "Valorant - agent figure 2025"
+      }
+    },
+    {
+      "id": "reckj1c4X1xUdCvfl",
+      "fields": {
+        "Năm": "2025",
+        "Vendor": [
+          "recD0JaaRF51bwbnh"
+        ],
+        "Kích thước": "500ml",
+        "Loại": "Ly giữ nhiệt",
+        "Số lượng đặt": 100,
+        "Chất liệu": "Inox 304, in UV logo",
+        "Item": "Ly giữ nhiệt inox 304 500ml in logo",
+        "Đơn giá (VND)": 125000,
+        "MOQ": 50,
+        "Game/Project gốc": "VLCM - quà VIP 2025"
+      }
+    },
+    {
+      "id": "recmtbLLjptCcy14W",
+      "fields": {
+        "Năm": "2025",
+        "Vendor": [
+          "rechs7h4NPjVbYzCE"
+        ],
+        "Kích thước": "M-XXL",
+        "Loại": "Áo khoác gió",
+        "Số lượng đặt": 500,
+        "Chất liệu": "Vải gió 2 lớp chống thấm nhẹ",
+        "Item": "Áo khoác gió 2 lớp thêu logo",
+        "Đơn giá (VND)": 152000,
+        "MOQ": 100,
+        "Game/Project gốc": "VLCM - guild war 2025"
+      }
+    },
+    {
+      "id": "recnz283QTENgZDSZ",
+      "fields": {
+        "Năm": "2025",
+        "Vendor": [
+          "recZDdbxYgsHOjObR"
+        ],
+        "Loại": "Tai nghe bluetooth",
+        "Số lượng đặt": 100,
+        "Chất liệu": "Hàng sẵn thị trường + khắc laser",
+        "Item": "Tai nghe TWS có sẵn + khắc logo",
+        "Đơn giá (VND)": 380000,
+        "MOQ": 50,
+        "Game/Project gốc": "Valorant - quà KOL 2025"
+      }
+    },
+    {
+      "id": "recoRVobezmwlLJFS",
+      "fields": {
+        "Năm": "2025",
+        "Vendor": [
+          "recD0JaaRF51bwbnh"
+        ],
+        "Kích thước": "600ml",
+        "Loại": "Bình nước",
+        "Số lượng đặt": 300,
+        "Chất liệu": "Nhựa tritan BPA-free",
+        "Item": "Bình nước tritan 600ml in logo",
+        "Đơn giá (VND)": 68000,
+        "MOQ": 100,
+        "Game/Project gốc": "Roblox - summer 2025"
+      }
+    },
+    {
+      "id": "recp7UhdK7Atc3ASE",
+      "fields": {
+        "Năm": "2025",
+        "Vendor": [
+          "rechs7h4NPjVbYzCE"
+        ],
+        "Kích thước": "Freesize",
+        "Loại": "Mũ lưỡi trai",
+        "Số lượng đặt": 1000,
+        "Chất liệu": "Kaki cotton, thêu nổi 3D",
+        "Item": "Mũ lưỡi trai kaki thêu nổi",
+        "Đơn giá (VND)": 39000,
+        "MOQ": 50,
+        "Game/Project gốc": "Gameverse 2025"
+      }
+    },
+    {
+      "id": "rectczeG33H0ktBGk",
+      "fields": {
+        "Năm": "2025",
+        "Vendor": [
+          "recD0JaaRF51bwbnh"
+        ],
+        "Kích thước": "500ml",
+        "Loại": "Ly giữ nhiệt",
+        "Số lượng đặt": 300,
+        "Chất liệu": "Inox 304, in UV logo",
+        "Item": "Ly giữ nhiệt inox 304 500ml in logo",
+        "Đơn giá (VND)": 108000,
+        "MOQ": 50,
+        "Game/Project gốc": "Nikki VN - launch 2025"
+      }
+    },
+    {
+      "id": "rectkKifqCFxxMnYc",
+      "fields": {
+        "Năm": "2025",
+        "Vendor": [
+          "recD0JaaRF51bwbnh"
+        ],
+        "Kích thước": "5cm",
+        "Loại": "Móc khóa",
+        "Số lượng đặt": 2000,
+        "Chất liệu": "Mica 3mm in UV",
+        "Item": "Móc khóa mica in UV 2 mặt",
+        "Đơn giá (VND)": 7800,
+        "MOQ": 200,
+        "Game/Project gốc": "PUBG Mobile - Gameverse 2026"
+      }
+    },
+    {
+      "id": "recymDKEoBJ7DfRHv",
+      "fields": {
+        "Năm": "2025",
+        "Vendor": [
+          "recD0JaaRF51bwbnh"
+        ],
+        "Kích thước": "500ml",
+        "Loại": "Ly giữ nhiệt",
+        "Số lượng đặt": 500,
+        "Chất liệu": "Inox 304, in UV logo",
+        "Item": "Ly giữ nhiệt inox 304 500ml in logo",
+        "Đơn giá (VND)": 98000,
+        "MOQ": 50,
+        "Game/Project gốc": "PUBG Mobile - event 2025"
+      }
+    },
+    {
+      "id": "reczFToiydP9Qfmhq",
+      "fields": {
+        "Năm": "2025",
+        "Vendor": [
+          "recD0JaaRF51bwbnh"
+        ],
+        "Kích thước": "60x160cm",
+        "Loại": "Standee",
+        "Số lượng đặt": 100,
+        "Chất liệu": "PP cán format, chân sắt chữ X",
+        "Item": "Standee PP cán format chân sắt 1m6",
+        "Đơn giá (VND)": 165000,
+        "MOQ": 10,
+        "Game/Project gốc": "Gameverse 2025"
+      }
+    },
+    {
+      "id": "reczHWRSErpoe0zSs",
+      "fields": {
+        "Năm": "2025",
+        "Vendor": [
+          "recZDdbxYgsHOjObR"
+        ],
+        "Loại": "Tai nghe bluetooth",
+        "Số lượng đặt": 300,
+        "Chất liệu": "Hàng sẵn thị trường + khắc laser",
+        "Item": "Tai nghe TWS có sẵn + khắc logo",
+        "Đơn giá (VND)": 345000,
+        "MOQ": 50,
+        "Game/Project gốc": "PUBG Mobile - top-up event"
+      }
+    }
+  ],
+  "Catalogue": [
+    {
+      "id": "rec11tPoXFvUYZbVM",
+      "fields": {
+        "Thời gian sản xuất": "30-45 ngày",
+        "Đơn giá": 320000,
+        "Xuất xứ": "Nước ngoài",
+        "Name": "Figure PVC 10cm",
+        "Thời gian lên mẫu": "15-25 ngày",
+        "Miêu tả sản phẩm": "Tượng PVC sơn tay theo nhân vật game, cao 10cm, hộp màu riêng. Cần phí khuôn lớn.",
+        "Số lượng tối thiểu": "500 cái (do phí khuôn)"
+      }
+    },
+    {
+      "id": "rec2IRD3Fi9bBI8eb",
+      "fields": {
+        "Thời gian sản xuất": "20-30 ngày",
+        "Đơn giá": 280000,
+        "Xuất xứ": "Nước ngoài",
+        "Name": "Tai nghe bluetooth TWS",
+        "Thời gian lên mẫu": "7-10 ngày (mẫu thật)",
+        "Miêu tả sản phẩm": "Tai nghe true wireless, hộp sạc in logo, BT 5.3. Tùy biến màu hộp.",
+        "Số lượng tối thiểu": "200 cái"
+      }
+    },
+    {
+      "id": "rec2UjTH4Hhv2nMOC",
+      "fields": {
+        "Thời gian sản xuất": "15-20 ngày",
+        "Đơn giá": 75000,
+        "Xuất xứ": "Nước ngoài",
+        "Name": "Bình nước thể thao 750ml",
+        "Thời gian lên mẫu": "5-7 ngày",
+        "Miêu tả sản phẩm": "Nhựa Tritan không BPA, nắp bật, in logo theo yêu cầu. Nhiều màu.",
+        "Số lượng tối thiểu": "200 cái"
+      }
+    },
+    {
+      "id": "rec6DGXruIhJ81q2L",
+      "fields": {
+        "Thời gian sản xuất": "20-30 ngày",
+        "Đơn giá": 60000,
+        "Xuất xứ": "Nước ngoài",
+        "Name": "Dây cáp sạc đa năng 3 trong 1",
+        "Thời gian lên mẫu": "7-10 ngày (mẫu qua hình ảnh)",
+        "Miêu tả sản phẩm": "USB Type-C / Lightning / Micro USB, dài 120cm, sạc nhanh. Đóng gói 1 sản phẩm/hộp giấy. Có thể sản xuất theo thiết kế.",
+        "Số lượng tối thiểu": "100 cái mẫu có sẵn / 500 cái theo thiết kế"
+      }
+    },
+    {
+      "id": "rec6sqmhKIwQBFOVy",
+      "fields": {
+        "Thời gian sản xuất": "15-20 ngày",
+        "Đơn giá": 38000,
+        "Xuất xứ": "Nước ngoài",
+        "Name": "Huy hiệu pin enamel",
+        "Thời gian lên mẫu": "7-10 ngày",
+        "Miêu tả sản phẩm": "Pin cài áo hợp kim mạ, enamel màu theo thiết kế, chốt bướm sau. Phí khuôn riêng.",
+        "Số lượng tối thiểu": "200 cái"
+      }
+    },
+    {
+      "id": "rec7IlCgkJ0jVTDj8",
+      "fields": {
+        "Thời gian sản xuất": "20-30 ngày",
+        "Đơn giá": 240000,
+        "Xuất xứ": "Nước ngoài",
+        "Name": "Pin sạc dự phòng 10000mAh",
+        "Thời gian lên mẫu": "7-10 ngày",
+        "Miêu tả sản phẩm": "Power bank 10000mAh, vỏ nhựa/nhôm in logo, 2 cổng ra. Chứng nhận an toàn.",
+        "Số lượng tối thiểu": "200 cái"
+      }
+    },
+    {
+      "id": "recAsHVhffqx1mW34",
+      "fields": {
+        "Thời gian sản xuất": "20-30 ngày",
+        "Đơn giá": 135000,
+        "Xuất xứ": "Nước ngoài",
+        "Name": "Gấu bông 20cm",
+        "Thời gian lên mẫu": "10-15 ngày",
+        "Miêu tả sản phẩm": "Bông nhồi PP cotton, vải nhung mịn, may theo mẫu nhân vật. Kèm áo/phụ kiện tùy chọn.",
+        "Số lượng tối thiểu": "300 cái (theo thiết kế)"
+      }
+    },
+    {
+      "id": "recJRF7aHhGPkDTW2",
+      "fields": {
+        "Thời gian sản xuất": "15-20 ngày",
+        "Đơn giá": 120000,
+        "Xuất xứ": "Trong nước",
+        "Name": "Ly giữ nhiệt inox 500ml",
+        "Thời gian lên mẫu": "5-7 ngày",
+        "Miêu tả sản phẩm": "Inox 304 2 lớp giữ nhiệt 8-12h, in UV hoặc khắc laser logo. Nắp chống tràn.",
+        "Số lượng tối thiểu": "100 cái có sẵn / 300 cái khắc theo thiết kế"
+      }
+    },
+    {
+      "id": "recNtWdx2sYNDVxzS",
+      "fields": {
+        "Thời gian sản xuất": "10-15 ngày",
+        "Đơn giá": 95000,
+        "Xuất xứ": "Trong nước",
+        "Name": "Standee mica để bàn",
+        "Thời gian lên mẫu": "3-5 ngày",
+        "Miêu tả sản phẩm": "Mica acrylic in UV nhân vật + đế gỗ/mica. Cao 15-20cm.",
+        "Số lượng tối thiểu": "100 cái"
+      }
+    },
+    {
+      "id": "recQ1wxhBvbGzReEA",
+      "fields": {
+        "Thời gian sản xuất": "10-15 ngày",
+        "Đơn giá": 55000,
+        "Xuất xứ": "Trong nước",
+        "Name": "Mũ lưỡi trai kaki",
+        "Thời gian lên mẫu": "3-5 ngày",
+        "Miêu tả sản phẩm": "Vải kaki cứng form, thêu logo trước. 6 mảnh, khóa kim loại sau.",
+        "Số lượng tối thiểu": "100 cái"
+      }
+    },
+    {
+      "id": "recRNrKHSBmUXhDyM",
+      "fields": {
+        "Thời gian sản xuất": "12-18 ngày",
+        "Đơn giá": 65000,
+        "Xuất xứ": "Trong nước",
+        "Name": "Sổ tay bìa da PU",
+        "Thời gian lên mẫu": "3-5 ngày",
+        "Miêu tả sản phẩm": "Bìa da PU dập nổi logo, ruột 100 trang, dây chun. Khổ A5.",
+        "Số lượng tối thiểu": "100 cuốn"
+      }
+    },
+    {
+      "id": "recSJXFpAlkcl5PHR",
+      "fields": {
+        "Thời gian sản xuất": "15-20 ngày",
+        "Đơn giá": 165000,
+        "Xuất xứ": "Trong nước",
+        "Name": "Áo khoác gió 2 lớp",
+        "Thời gian lên mẫu": "5-7 ngày",
+        "Miêu tả sản phẩm": "Vải dù chống nước 2 lớp, khóa kéo YKK, in/thêu logo. Unisex.",
+        "Số lượng tối thiểu": "100 cái"
+      }
+    },
+    {
+      "id": "recWcB17KRgBEhydp",
+      "fields": {
+        "Thời gian sản xuất": "7-12 ngày",
+        "Đơn giá": 35000,
+        "Xuất xứ": "Trong nước",
+        "Name": "Lót chuột cao su",
+        "Thời gian lên mẫu": "2-3 ngày",
+        "Miêu tả sản phẩm": "Mousepad cao su đáy chống trượt, mặt vải in chuyển nhiệt full màu. Khổ 25x21cm hoặc dài.",
+        "Số lượng tối thiểu": "100 cái"
+      }
+    },
+    {
+      "id": "reca4K616aIzUmU8I",
+      "fields": {
+        "Thời gian sản xuất": "12-18 ngày",
+        "Đơn giá": 110000,
+        "Xuất xứ": "Trong nước",
+        "Name": "Áo polo cá sấu",
+        "Thời gian lên mẫu": "3-5 ngày",
+        "Miêu tả sản phẩm": "Vải cá sấu cotton, cổ bẻ, thêu logo ngực trái. Size S-XXL.",
+        "Số lượng tối thiểu": "100 cái"
+      }
+    },
+    {
+      "id": "recaxhjSqv7glC1J9",
+      "fields": {
+        "Thời gian sản xuất": "15-20 ngày",
+        "Đơn giá": 185000,
+        "Xuất xứ": "Trong nước",
+        "Name": "Áo hoodie nỉ bông",
+        "Thời gian lên mẫu": "5-7 ngày",
+        "Miêu tả sản phẩm": "Nỉ bông 320gsm có mũ trùm, túi kangaroo. In/thêu logo theo yêu cầu. Size S-XXL.",
+        "Số lượng tối thiểu": "50 cái/màu"
+      }
+    },
+    {
+      "id": "reccw0SKsL7YUpB7e",
+      "fields": {
+        "Thời gian sản xuất": "10-15 ngày",
+        "Đơn giá": 85000,
+        "Xuất xứ": "Trong nước",
+        "Name": "Áo thun cotton 250gsm",
+        "Thời gian lên mẫu": "3-5 ngày",
+        "Miêu tả sản phẩm": "Chất liệu cotton 100% 250gsm, in lụa hoặc in chuyển nhiệt theo thiết kế. Size S-XXL. Màu tùy chọn.",
+        "Số lượng tối thiểu": "100 cái/màu"
+      }
+    },
+    {
+      "id": "recdtxaPydor0SeuI",
+      "fields": {
+        "Thời gian sản xuất": "7-10 ngày",
+        "Đơn giá": 22000,
+        "Xuất xứ": "Trong nước",
+        "Name": "Sticker set die-cut (10 cái)",
+        "Thời gian lên mẫu": "2-3 ngày",
+        "Miêu tả sản phẩm": "Bộ 10 sticker decal PVC chống nước, cắt bế theo hình. In offset.",
+        "Số lượng tối thiểu": "100 bộ"
+      }
+    },
+    {
+      "id": "recf1wuLyVEz9HAmn",
+      "fields": {
+        "Thời gian sản xuất": "10-15 ngày",
+        "Đơn giá": 45000,
+        "Xuất xứ": "Trong nước",
+        "Name": "Túi tote canvas",
+        "Thời gian lên mẫu": "3-5 ngày",
+        "Miêu tả sản phẩm": "Canvas 12oz, in lụa 1-2 màu hoặc in kỹ thuật số full màu. Quai cùng vải.",
+        "Số lượng tối thiểu": "100 cái"
+      }
+    },
+    {
+      "id": "reckuptac2u67Qujc",
+      "fields": {
+        "Thời gian sản xuất": "7-12 ngày",
+        "Đơn giá": 18000,
+        "Xuất xứ": "Trong nước",
+        "Name": "Móc khóa acrylic in UV",
+        "Thời gian lên mẫu": "3-5 ngày",
+        "Miêu tả sản phẩm": "Acrylic 3mm cắt CNC theo hình, in UV 2 mặt. Kèm vòng kim loại.",
+        "Số lượng tối thiểu": "100 cái"
+      }
+    },
+    {
+      "id": "reclW2a7UcLV1oNVt",
+      "fields": {
+        "Thời gian sản xuất": "15-20 ngày",
+        "Đơn giá": 25000,
+        "Xuất xứ": "Nước ngoài",
+        "Name": "Móc khóa cao su PVC đổ khuôn",
+        "Thời gian lên mẫu": "7-10 ngày",
+        "Miêu tả sản phẩm": "Cao su PVC mềm đổ khuôn 3D theo nhân vật. Phí khuôn riêng cho mẫu mới.",
+        "Số lượng tối thiểu": "300 cái (do phí khuôn)"
+      }
+    }
+  ]
+}
