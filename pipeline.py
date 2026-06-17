@@ -1,14 +1,18 @@
 """Auto-chain tu webhook Airtable (Buoc 1 + Buoc 2 D1).
 
 Buoc 1: form submit -> phan tich (analyze_one).
-Buoc 2: du thong tin -> propose (AI #2). Hai nhanh:
+Buoc 2: du thong tin -> propose (AI #2). Ba nhanh:
   a) Con yeu cau dac biet chua dap ung -> Status "Cho lam ro yeu cau", hoi requester
      (mail qua Automation). Requester tra loi o "Tra loi lam ro" -> cham lai;
      qua MAX_CLARIFY_ROUNDS -> Can PIC xu ly.
-  b) Du dieu kien -> proposal + render HTML + upload -> Status "Cho duyet items"
+  b) Sau cac vong tu sua van vuot budget -> KHONG chot, Can PIC xu ly (_escalate_over_budget).
+  c) Du dieu kien -> proposal + render HTML + upload -> Status "Cho duyet items"
      -> requester set "Duyet proposal?" tren Airtable:
         Duyet   -> chot items (Status "Da duyet items")
         Can sua -> doc Feedback -> chay lai AI #2 -> upload lai -> +1 round (>3 -> Can PIC xu ly)
+
+Loi AI/LLM khong hop le (JSON hong/rong/thieu key) -> _mark_ai_error: tick Can PIC xu ly,
+clear "Gui phan hoi" (chong retry loop), ghi log — khong de record kep im lang.
 """
 import threading
 from datetime import date, timedelta
@@ -49,13 +53,24 @@ def _run_guarded(lock: threading.Lock, again: threading.Event, work) -> None:
         lock.release()
 
 
+def _mark_ai_error(record_id: str, stage: str, err: Exception) -> None:
+    """AI/LLM trả về không hợp lệ -> đừng để record kẹt im lặng: tick Cần PIC xử lý,
+    clear 'Gửi phản hồi' (chống retry loop mỗi webhook ping), ghi log cho PIC."""
+    try:
+        update_project(record_id, {"Cần PIC xử lý": True, "Gửi phản hồi": False})
+        append_note(record_id, f"[AI] Lỗi xử lý ({stage}): {err} — cần PIC kiểm tra.",
+                    field=HISTORY_FIELD)
+    except Exception as e:  # noqa: BLE001
+        print(f"[pipeline] không ghi được trạng thái lỗi cho {record_id}: {e}")
+
+
 def _make_proposal(record_id: str, feedback: str | None = None,
                    clarify: str | None = None) -> tuple[dict, str | None]:
     """Sinh proposal + render HTML. CHUA upload. Tra (result, html).
     Neu con yeu cau dac biet chua dap ung -> result['blocked']=True, html=None (chua co proposal)."""
     rec = airtable("GET", f"{PROJECTS_TABLE}/{record_id}")
     result = propose_items_for(rec, feedback=feedback, clarify=clarify)
-    if result.get("blocked"):
+    if result.get("blocked") or result.get("over_budget"):
         return result, None
     html = build_proposal_html(rec["fields"], result["proposal"], result["total"])
     return result, html
@@ -112,11 +127,27 @@ def _enter_clarify(record_id: str, result: dict) -> None:
     print(f"[proposal] {code} có yêu cầu đặc biệt chưa thỏa -> Chờ làm rõ yêu cầu (vòng {rounds})")
 
 
+def _escalate_over_budget(record_id: str, result: dict) -> None:
+    """Proposal sau cac vong tu sua van vuot budget -> KHONG chot cho requester, chuyen PIC."""
+    code = result.get("project_code", record_id)
+    update_project(record_id, {
+        "Cần PIC xử lý": True, "Gửi phản hồi": False, "Duyệt proposal?": None,
+    })
+    append_note(record_id,
+                f"[AI] Proposal vẫn vượt budget sau khi tự điều chỉnh "
+                f"({result['total']:,}đ / {result['budget']:,}đ) — chuyển Merch PIC xử lý.",
+                field=HISTORY_FIELD)
+    print(f"[proposal] {code} vượt budget -> Cần PIC xử lý")
+
+
 def first_send(record_id: str) -> None:
     """Lan dau: propose -> (neu con yeu cau dac biet chua thoa: hoi requester) -> publish + upload."""
     result, html = _make_proposal(record_id)
     if result.get("blocked"):
         _enter_clarify(record_id, result)
+        return
+    if result.get("over_budget"):
+        _escalate_over_budget(record_id, result)
         return
     _publish_proposal(record_id, result, html, reset_round=True)
 
@@ -130,7 +161,8 @@ def _scan_new() -> None:
             if result["new_status"] == "Chờ duyệt items":
                 first_send(r["id"])
         except Exception as e:  # noqa: BLE001
-            print(f"[webhook] pipeline error: {e}")
+            print(f"[webhook] pipeline error {r['id']}: {e}")
+            _mark_ai_error(r["id"], "phân tích / proposal", e)
 
 
 def analyze_new_async() -> None:
@@ -164,6 +196,9 @@ def _revise_or_escalate(record_id: str, code: str, fields: dict) -> None:
     if result.get("blocked"):  # feedback lam yeu cau dac biet thanh chua thoa -> hoi lai
         _enter_clarify(record_id, result)
         return
+    if result.get("over_budget"):  # feedback day vuot budget, khong tu sua duoc -> PIC
+        _escalate_over_budget(record_id, result)
+        return
     append_note(record_id, f"[AI] Round {rounds} — sửa proposal theo feedback: {feedback}", field=HISTORY_FIELD)
     update_project(record_id, {"Số round proposal": rounds})
     _publish_proposal(record_id, result, html, reset_round=False)
@@ -175,6 +210,9 @@ def _reevaluate_clarify(record_id: str, code: str, answer: str) -> None:
     result, html = _make_proposal(record_id, clarify=answer)
     if result.get("blocked"):
         _enter_clarify(record_id, result)  # van chua thoa -> hoi tiep (hoac escalate neu qua vong)
+        return
+    if result.get("over_budget"):
+        _escalate_over_budget(record_id, result)
         return
     append_note(record_id, f"[AI] Đã làm rõ yêu cầu đặc biệt theo trả lời requester: {answer}",
                 field=HISTORY_FIELD)
@@ -215,6 +253,7 @@ def _scan_decisions() -> None:
                 print(f"[proposal] {code} tick Gửi nhưng thiếu decision/feedback -> bỏ qua (không tốn round)")
         except Exception as e:  # noqa: BLE001
             print(f"[proposal] decision error {code}: {e}")
+            _mark_ai_error(r["id"], "xử lý phản hồi", e)
 
 
 def handle_proposal_decisions() -> None:

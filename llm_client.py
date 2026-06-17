@@ -31,8 +31,23 @@ def ask_llm_json(prompt: str, max_tokens: int = 1500) -> dict:
     )
     if LLM_REASONING_EFFORT:
         kwargs["reasoning_effort"] = LLM_REASONING_EFFORT
-    resp = llm.chat.completions.create(**kwargs)
-    raw = resp.choices[0].message.content.strip()
-    if raw.startswith("```"):
-        raw = raw.split("```")[1].removeprefix("json").strip()
-    return json.loads(raw)
+
+    # LLM co the tra JSON hong / bi cat (het max_tokens) / content rong / khong phai object.
+    # Retry vai lan; van fail -> raise loi ro de pipeline danh dau record (khong nuot im lang).
+    last_err = None
+    for attempt in range(3):
+        try:
+            resp = llm.chat.completions.create(**kwargs)
+            raw = (resp.choices[0].message.content or "").strip()
+            if not raw:
+                raise ValueError("LLM trả về rỗng (content None/empty)")
+            if raw.startswith("```"):
+                raw = raw.split("```")[1].removeprefix("json").strip()
+            data = json.loads(raw)
+            if not isinstance(data, dict):
+                raise ValueError(f"LLM trả về không phải JSON object: {type(data).__name__}")
+            return data
+        except (json.JSONDecodeError, ValueError) as e:
+            last_err = e
+            print(f"[llm] parse lỗi (lần {attempt + 1}/3): {e}")
+    raise ValueError(f"LLM không trả JSON hợp lệ sau 3 lần: {last_err}")

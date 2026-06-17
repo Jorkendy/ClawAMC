@@ -159,6 +159,12 @@ def propose_items_for(record: dict, feedback: str | None = None,
         return {"project_code": code, "blocked": True, "unmet": unmet,
                 "clarify_message": msg, "proposal": proposal}
 
+    # Cong chan budget: sau cac vong tu sua van vuot -> KHONG chot proposal, chuyen PIC
+    total_check = proposal_total(proposal)
+    if budget and total_check > budget:
+        return {"project_code": code, "over_budget": True,
+                "total": total_check, "budget": budget, "proposal": proposal}
+
     item_records = []
     phan_loai_merch = set()
     for it in proposal["items"]:
