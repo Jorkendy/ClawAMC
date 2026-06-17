@@ -39,10 +39,10 @@ def update_items(records: list[dict]) -> None:
     airtable("PATCH", "Items", {"records": records, "typecast": True})
 
 
-def append_note(record_id: str, note: str) -> None:
+def append_note(record_id: str, note: str, field: str = "Phân tích AI") -> None:
     rec = airtable("GET", f"{PROJECTS_TABLE}/{record_id}")
-    old = rec.get("fields", {}).get("Phân tích AI", "")
-    update_project(record_id, {"Phân tích AI": f"{old}\n\n{note}".strip()})
+    old = rec.get("fields", {}).get(field, "")
+    update_project(record_id, {field: f"{old}\n\n{note}".strip()})
 
 
 def fetch_items_of(record_id: str) -> list[dict]:

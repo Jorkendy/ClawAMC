@@ -21,6 +21,8 @@ _analyze_again = threading.Event()
 _decide_lock = threading.Lock()
 _decide_again = threading.Event()
 
+HISTORY_FIELD = "Lịch sử chỉnh sửa"  # log tung round feedback / duyet / escalate
+
 
 def _run_guarded(lock: threading.Lock, again: threading.Event, work) -> None:
     """Chay `work` tuan tu (1 luong/luc). Co ping moi luc dang chay -> danh dau `again`
@@ -89,6 +91,7 @@ def _approve_proposal(record_id: str, code: str) -> None:
     if updates:
         update_items(updates)
     update_project(record_id, {"Status": "Đã duyệt items", "Duyệt proposal?": None, "Gửi phản hồi": False})
+    append_note(record_id, "[AI] Requester đã DUYỆT — chốt đề xuất.", field=HISTORY_FIELD)
     print(f"[proposal] {code} DUYỆT -> chốt {len(updates)} items -> Đã duyệt items")
 
 
@@ -99,10 +102,10 @@ def _revise_or_escalate(record_id: str, code: str, fields: dict) -> None:
     if rounds > MAX_PROPOSAL_ROUNDS:
         update_project(record_id, {"Cần PIC xử lý": True, "Duyệt proposal?": None, "Gửi phản hồi": False})
         append_note(record_id, f"[AI] Proposal đã sửa {MAX_PROPOSAL_ROUNDS} round vẫn chưa duyệt "
-                               f"— chuyển Merch PIC xử lý. Feedback gần nhất: {feedback}")
+                               f"— chuyển Merch PIC xử lý. Feedback gần nhất: {feedback}", field=HISTORY_FIELD)
         print(f"[proposal] {code} vượt {MAX_PROPOSAL_ROUNDS} round -> Cần PIC xử lý")
         return
-    append_note(record_id, f"[AI] Round {rounds} — sửa proposal theo feedback: {feedback}")
+    append_note(record_id, f"[AI] Round {rounds} — sửa proposal theo feedback: {feedback}", field=HISTORY_FIELD)
     result, html = _make_proposal(record_id, feedback=feedback)
     update_project(record_id, {
         "Số round proposal": rounds,
