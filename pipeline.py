@@ -20,8 +20,8 @@ from datetime import date, timedelta
 from airtable_client import (airtable, append_note, fetch_items_of,
                              fetch_projects, update_items, update_project)
 from analysis import analyze_one
-from config import (MAX_CLARIFY_ROUNDS, MAX_PROPOSAL_ROUNDS, PROJECTS_TABLE,
-                    PROPOSAL_APPROVAL_DAYS)
+from config import (MAX_CLARIFY_ROUNDS, MAX_PROPOSAL_ROUNDS, MAX_SUPPLEMENT_ROUNDS,
+                    PROJECTS_TABLE, PROPOSAL_APPROVAL_DAYS)
 from proposal import propose_items_for
 from proposal_render import build_proposal_html, upload_proposal
 
@@ -160,15 +160,38 @@ def first_send(record_id: str) -> None:
     _publish_proposal(record_id, result, html, reset_round=True)
 
 
+SUPPLEMENT_FIELD = "Số lần bổ sung"  # dem so lan re-analyze (chong spam mail / escalate khi qua cap)
+
+
 def _reanalyze(record_id: str) -> None:
     """Record 'Thieu thong tin' -> requester bo sung roi tick Gui phan hoi -> chay lai Buoc 1;
-    neu da du thong tin -> tiep tuc Buoc 2 (propose)."""
+    du thong tin -> tiep Buoc 2. Qua MAX_SUPPLEMENT_ROUNDS van thieu -> escalate PIC (khong spam mail)."""
     rec = airtable("GET", f"{PROJECTS_TABLE}/{record_id}")
-    result = analyze_one(rec)
-    update_project(record_id, {"Gửi phản hồi": False})
-    print(f"[webhook] re-analyzed {result['project_code']} -> {result['new_status']}")
+    rounds = int(rec["fields"].get(SUPPLEMENT_FIELD) or 0)
+    # Con duoi cap thi cho gui mail bo sung; tu cap tro di -> im lang + escalate PIC
+    notify = rounds < MAX_SUPPLEMENT_ROUNDS
+    result = analyze_one(rec, notify_missing=notify)
+    code = result["project_code"]
+    print(f"[webhook] re-analyzed {code} -> {result['new_status']} (lần bổ sung {rounds + 1})")
+
     if result["new_status"] == "Chờ duyệt items":
+        update_project(record_id, {"Gửi phản hồi": False, SUPPLEMENT_FIELD: 0})
         first_send(record_id)
+        return
+
+    rounds += 1
+    if rounds > MAX_SUPPLEMENT_ROUNDS:
+        update_project(record_id, {
+            SUPPLEMENT_FIELD: rounds, "Gửi phản hồi": False, "Gửi mail bổ sung": False,
+            "Cần PIC xử lý": True,
+            "Lý do cần PIC": f"Requester bổ sung {MAX_SUPPLEMENT_ROUNDS} lần vẫn thiếu: "
+                             f"{', '.join(result['missing'])}",
+        })
+        append_note(record_id, f"[AI] Bổ sung quá {MAX_SUPPLEMENT_ROUNDS} lần vẫn thiếu thông tin "
+                               f"({', '.join(result['missing'])}) — chuyển Merch PIC.", field=HISTORY_FIELD)
+        print(f"[webhook] {code} bổ sung quá {MAX_SUPPLEMENT_ROUNDS} lần -> Cần PIC xử lý")
+    else:
+        update_project(record_id, {"Gửi phản hồi": False, SUPPLEMENT_FIELD: rounds})
 
 
 def _scan_new() -> None:

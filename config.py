@@ -32,6 +32,7 @@ PROPOSAL_FILE_FIELD_ID = os.environ.get("PROPOSAL_FILE_FIELD_ID", "fldFlkZzbRIX9
 PROPOSAL_APPROVAL_DAYS = 3   # han requester duyet proposal (ngay)
 MAX_PROPOSAL_ROUNDS = 3      # so round sua toi da -> escalate Merch PIC
 MAX_CLARIFY_ROUNDS = 3       # so vong lam ro yeu cau dac biet toi da -> escalate Merch PIC
+MAX_SUPPLEMENT_ROUNDS = 3    # so lan re-analyze (bo sung thong tin) toi da -> escalate PIC (chong spam mail)
 
 # Timeline du kien toan trinh intake -> hang ve kho, theo critical path
 # (buoc 1+2+5+6+10+11+13+14). Don vi: NGAY LAM VIEC.

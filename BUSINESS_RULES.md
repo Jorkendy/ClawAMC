@@ -8,6 +8,10 @@ Mục `[GIẢ ĐỊNH]` = số/ngưỡng cần validate bằng dữ liệu thự
 ## Bước 1 — Intake (analysis.py)
 
 - **Field bắt buộc** (`REQUIRED_FIELDS`, config.py): Mục đích, Chủ đề, Định vị, Target audience, Số lượng (bộ/suất), Deadline cần hàng, Budget. Thiếu → Status "Thiếu thông tin" (form đã required nên hiếm; chỉ là lưới an toàn).
+- **Validation giá trị** (`_is_missing`, không chỉ check None/""): field text toàn khoảng trắng → coi như thiếu; **Budget & Số lượng phải > 0** (≤0 hoặc âm → coi như thiếu, không cho lọt xuống Bước 2).
+- **Deadline quá khứ / = hôm nay** (days ≤ 0): vẫn là "không khả thi" nhưng cảnh báo ghi rõ "ĐÃ QUA HẠN" / "là HÔM NAY" (không hiện "còn -X ngày"). Marker cảnh báo: **🔴** = nghiêm trọng (không khả thi/quá hạn/hôm nay → banner đỏ), **⚠️** = gấp (banner cam).
+- **Re-analyze (requester bổ sung) có CAP** = `MAX_SUPPLEMENT_ROUNDS` (3): quá 3 lần tick "Gửi phản hồi" mà vẫn thiếu → escalate PIC + tắt mail bổ sung (chống spam vô hạn). Đếm ở field "Số lần bổ sung"; đủ thông tin → reset 0.
+- **Robustness AI**: dùng `.get(...)` default cho key AI #1 (tom_tat/muc_do_uu_tien/ly_do_deadline) → thiếu key không crash.
 - **Đánh giá deadline** (so critical-path, `assess_deadline`): ngưỡng ngày lịch `< 43` = **không khả thi**, `43–73` = **gấp**, `≥ 74` = **ổn** (= min31/avg53 ngày làm việc × 1.4). [GIẢ ĐỊNH] PIPELINE_WORKDAYS cần validate bằng 10-15 project history.
 - **Deadline chỉ CẢNH BÁO, không chặn**: Status chỉ phụ thuộc thiếu/đủ thông tin.
 - **Chống spam mail**: đủ field + deadline gấp/không khả thi → KHÔNG gửi mail riêng; ghi field "Cảnh báo deadline" → hiện **banner trong proposal + body mail proposal** (gộp 1 email).
@@ -65,6 +69,16 @@ Mục `[GIẢ ĐỊNH]` = số/ngưỡng cần validate bằng dữ liệu thự
 ## Escalate PIC (tick "Cần PIC xử lý" + ghi "Lý do cần PIC")
 4 trigger: (1) > 3 round proposal; (2) > 3 vòng làm rõ; (3) vượt budget sau 2 vòng tự sửa; (4) lỗi AI/LLM.
 **Re-trigger** (PIC sửa gốc xong): untick "Cần PIC xử lý" + Status = "Mới tiếp nhận" → chạy lại từ Bước 1 (reset counters).
+
+## Bảo mật (prompt injection / XSS)
+- **Không có tool/function-calling cho LLM** → LLM không thực thi hành động (không RCE/exfil); chỉ text→JSON. LLM chỉ thấy đề bài + catalogue (không secret).
+- **HTML escape** mọi field + text AI khi render proposal (`_esc` + escape trong `_md_inline`) → chống stored XSS (field như `<script>` thành text).
+- **Prompt hardening** AI#1/#2: nội dung đề bài/field là DỮ LIỆU, bỏ qua mệnh lệnh nhúng (đổi vai trò/luật/giá).
+- **Backstop**: giá catalogue code-enforced, budget code-tính, con người duyệt → injection lái logic bị giới hạn.
+- Còn lại (chấp nhận/để sau): nội dung AI bậy do injection (uy tín) — dựa human review; giới hạn độ dài field (cost) chưa làm.
+
+## Robustness (retry)
+- `ask_llm_json`/`ask_llm_grounded`/`generate_image`: retry lỗi API **transient** (503/429/mạng/timeout) + backoff; lỗi vĩnh viễn raise ngay. `upload_proposal`: retry 3 lần. → tránh escalate PIC oan vì hiccup tạm.
 
 ## Chi phí AI/proposal (tham khảo)
 - Insight grounded: ~$0.035 (~900đ)/proposal · Ảnh creative: ~$0.039 (~1.000đ)/ảnh → ~2-3K/proposal.

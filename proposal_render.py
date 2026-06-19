@@ -4,17 +4,26 @@ Khung HTML do code dung (dang tin), phan loi (intro/nhan_xet) lay tu proposal cu
 So tien tong do code tinh — khong lay so model tu cong.
 """
 import base64
+import html
 import json
 import re
+import time
+import urllib.error
 import urllib.request
 from datetime import date
 
 from config import AIRTABLE_BASE_ID, AIRTABLE_TOKEN, PROPOSAL_FILE_FIELD_ID
 
 
+def _esc(s) -> str:
+    """Escape & < > chong XSS khi nhet field/text nguoi dung vao HTML.
+    quote=False -> KHONG escape dau ngoac kep -> text thuong hien thi y het (chi vo hieu hoa tag injection)."""
+    return html.escape("" if s is None else str(s), quote=False)
+
+
 def _md_inline(text: str) -> str:
-    """Markdown inline -> HTML: **bold** -> <strong>. (Text AI tra ve hay co markdown.)"""
-    return re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", text or "")
+    """Escape HTML (chong XSS) roi markdown inline: **bold** -> <strong>. Dung cho text AI/nguoi dung."""
+    return re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", _esc(text))
 
 
 def _md_to_html(md: str) -> str:
@@ -60,7 +69,10 @@ body{font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a2e;
 .meta div{background:#fff;padding:14px 20px}
 .meta b{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:#8a8f99;margin-bottom:3px}
 .intro{padding:20px 32px;font-size:15px;color:#3a3f4b;background:#fffaf6;border-left:4px solid #ff6a00;margin:0}
-.warn{padding:14px 32px;font-size:14px;font-weight:600;color:#b45309;background:#fff4e5;border-left:4px solid #f59e0b;margin:0}
+.intro-warn{background:#fff4f0;border-left:5px solid #dc2626}
+.intro-crit{background:#fdecec;border-left:6px solid #b91c1c}
+.wline{color:#b91c1c;font-weight:700;font-size:14px;margin-bottom:10px;line-height:1.5}
+.intro-crit .wline{font-weight:800}
 .sec{padding:8px 32px 4px;font-size:12px;text-transform:uppercase;letter-spacing:.8px;color:#8a8f99;font-weight:700;margin-top:8px}
 .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;padding:16px 32px}
 .card{border:1px solid #e6e8ec;border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
@@ -127,21 +139,27 @@ def build_proposal_html(fields: dict, proposal: dict, total: int, images: dict |
                     if (img and not is_cat) else '')
         cards.append(
             f'<div class="card{" key" if is_key else ""}">{thumb}<div class="body">'
-            f'{badge}<h3>{"⭐ " if is_key else ""}{name}</h3>'
-            f'{img_note}<div class="spec">{spec}</div>{price}</div></div>'
+            f'{badge}<h3>{"⭐ " if is_key else ""}{_esc(name)}</h3>'
+            f'{img_note}<div class="spec">{_esc(spec)}</div>{price}</div></div>'
         )
 
     meta = ""
     for label, key in [("Game", "Game"), ("Mục đích", "Mục đích"),
                        ("Target audience", "Target audience"), ("Deadline cần hàng", "Deadline cần hàng")]:
         val = fields.get(key) or "—"
-        meta += f"<div><b>{label}</b>{val}</div>"
+        meta += f"<div><b>{label}</b>{_esc(val)}</div>"
 
     sum_class = "over" if over else "ok"
     sum_note = ("VƯỢT budget" if over else f"còn dư {_money(remain)}") if budget else "chưa có budget"
 
+    # Gop canh bao deadline (do) VAO chung khoi mo ta (nhan_xet) — 1 khoi, khong tach banner rieng.
     warn_txt = (fields.get("Cảnh báo deadline") or "").strip()
-    warn_html = f'<div class="warn">{warn_txt}</div>' if warn_txt else ""
+    nhan_xet = _md_inline(proposal.get("nhan_xet", ""))
+    if warn_txt:
+        sev = "intro-crit" if warn_txt.startswith("🔴") else "intro-warn"
+        intro_block = (f'<div class="intro {sev}"><div class="wline">{_md_inline(warn_txt)}</div>{nhan_xet}</div>')
+    else:
+        intro_block = f'<p class="intro">{nhan_xet}</p>'
 
     # Mục "Cơ sở quyết định": tier (code tính) + giải trình AI + insight game (web) -> requester/sếp đánh giá.
     dec = decision or {}
@@ -150,8 +168,8 @@ def build_proposal_html(fields: dict, proposal: dict, total: int, images: dict |
     insight = (dec.get("insight") or "").strip()
     rows = []
     if tier and per_unit:
-        rows.append(f'<p><b>Phân khúc:</b> {tier} — ngân sách ~{_money(per_unit)}/bộ quà '
-                    f'(tự tính: {_money(budget)} ÷ {fields.get("Số lượng (bộ/suất)", "?")} bộ)</p>')
+        rows.append(f'<p><b>Phân khúc:</b> {_esc(tier)} — ngân sách ~{_money(per_unit)}/bộ quà '
+                    f'(tự tính: {_money(budget)} ÷ {_esc(fields.get("Số lượng (bộ/suất)", "?"))} bộ)</p>')
     if rationale:
         rows.append(f'<p><b>Vì sao bộ này:</b> {_md_inline(rationale)}</p>')
     if insight:
@@ -165,14 +183,13 @@ def build_proposal_html(fields: dict, proposal: dict, total: int, images: dict |
 
     return f"""<!doctype html><html lang="vi"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Proposal {code}</title><style>{_CSS}</style></head><body><div class="wrap">
-<div class="head"><span class="code">{code}</span>
-<h1>{fields.get("Tên project", "Đề xuất Merchandise")}</h1>
+<title>Proposal {_esc(code)}</title><style>{_CSS}</style></head><body><div class="wrap">
+<div class="head"><span class="code">{_esc(code)}</span>
+<h1>{_esc(fields.get("Tên project", "Đề xuất Merchandise"))}</h1>
 <div class="sub">Bộ quà tặng đề xuất · {date.today():%d/%m/%Y}</div></div>
 <div class="meta">{meta}<div><b>Budget</b>{_money(budget)}</div>
-<div><b>Số lượng/bộ</b>{fields.get("Số lượng (bộ/suất)", "—")}</div></div>
-{warn_html}
-<p class="intro">{_md_inline(proposal.get("nhan_xet", ""))}</p>
+<div><b>Số lượng/bộ</b>{_esc(fields.get("Số lượng (bộ/suất)", "—"))}</div></div>
+{intro_block}
 <div class="sec">Danh sách items đề xuất</div>
 <div class="grid">{"".join(cards)}</div>
 <div class="sum"><div>Tổng dự kiến<br><span style="font-size:12px;opacity:.7">(chưa gồm item chờ báo giá)</span></div>
@@ -185,16 +202,25 @@ def build_proposal_html(fields: dict, proposal: dict, total: int, images: dict |
 
 
 def upload_proposal(record_id: str, html: str, code: str) -> dict:
-    """Upload HTML vao field 'File proposal' qua Airtable Upload Attachment API."""
+    """Upload HTML vao field 'File proposal' qua Airtable Upload Attachment API.
+    Retry 3 lan: upload hay dinh loi transient (403/429/5xx, mang) -> tranh _scan_new bat
+    exception roi escalate PIC OAN cho 1 hiccup tam thoi."""
     url = f"https://content.airtable.com/v0/{AIRTABLE_BASE_ID}/{record_id}/{PROPOSAL_FILE_FIELD_ID}/uploadAttachment"
-    payload = {
+    data = json.dumps({
         "contentType": "text/html",
         "filename": f"proposal_{code}.html",
         "file": base64.b64encode(html.encode("utf-8")).decode("ascii"),
-    }
-    req = urllib.request.Request(
-        url, data=json.dumps(payload).encode(), method="POST",
-        headers={"Authorization": f"Bearer {AIRTABLE_TOKEN}", "Content-Type": "application/json"},
-    )
-    with urllib.request.urlopen(req, timeout=30) as r:
-        return json.loads(r.read().decode())
+    }).encode()
+    headers = {"Authorization": f"Bearer {AIRTABLE_TOKEN}", "Content-Type": "application/json"}
+    last_err = None
+    for attempt in range(3):
+        try:
+            req = urllib.request.Request(url, data=data, method="POST", headers=headers)
+            with urllib.request.urlopen(req, timeout=30) as r:
+                return json.loads(r.read().decode())
+        except (urllib.error.HTTPError, urllib.error.URLError) as e:
+            last_err = e
+            print(f"[proposal] upload lỗi (lần {attempt + 1}/3): {e}")
+            if attempt < 2:
+                time.sleep(2 * (attempt + 1))
+    raise last_err
