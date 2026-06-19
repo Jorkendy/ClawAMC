@@ -4,11 +4,13 @@ Tỉ lệ định hướng ~80% catalogue + ~20% creative (gợi ý mềm). Giá
 từ bảng Catalogue (code ép, chống bịa giá); item creative don_gia=null. Code tính tổng (không
 tin số model tự cộng) + vòng tự sửa budget. Phân loại merch (project) suy ra từ items đã chọn.
 """
+import base64
 import json
+import urllib.request
 
 from airtable_client import airtable, fetch_all, fetch_items_of, update_project
 from analysis import build_brief, deadline_status_of
-from llm_client import ask_llm_json
+from llm_client import ask_llm_grounded, ask_llm_json, generate_image
 
 # Loai item — dung de map sang field "Loai" (singleSelect) cua bang Items khi khop
 ITEM_TYPES = ["Áo thun", "Hoodie", "Áo khoác gió", "Mũ lưỡi trai", "Ly giữ nhiệt",
@@ -20,7 +22,7 @@ def catalogue_data() -> tuple[str, dict]:
     """Doc bang Catalogue -> (text cho prompt, map ten->fields de ep gia)."""
     rows = fetch_all("Catalogue", [
         "Name", "Miêu tả sản phẩm", "Số lượng tối thiểu", "Đơn giá",
-        "Thời gian lên mẫu", "Thời gian sản xuất", "Xuất xứ",
+        "Thời gian lên mẫu", "Thời gian sản xuất", "Xuất xứ", "Hình ảnh mô tả",
     ])
     lines, by_name = [], {}
     for r in rows:
@@ -49,12 +51,12 @@ CATALOGUE SẢN PHẨM CÓ SẴN (giá cố định — nguồn giá DUY NHẤT;
 {catalogue}
 {special_req_block}
 YÊU CẦU:
-1. Đề xuất 4-6 items phù hợp chủ đề / định vị / target audience.
-2. Tỉ lệ định hướng ~80% từ CATALOGUE + ~20% CREATIVE (item tự sáng tạo, chỉ thêm nếu có ý tưởng hay). Ví dụ 5 món → ~4 catalogue + 1 creative. Đây là gợi ý mềm — ưu tiên hợp đề bài hơn là ép đúng tỉ lệ.
+1. Số lượng item LINH HOẠT (thường 3-6) tùy ngân sách mỗi bộ + độ phù hợp — KHÔNG nhồi cho đủ số; thà ít món chất hơn nhiều món gượng ép.
+2. Ưu tiên item từ CATALOGUE trước (có giá thật, sản xuất nhanh); chỉ thêm CREATIVE để lấp món catalogue còn THIẾU cho hợp đối tượng. Số item creative KHÔNG vượt số catalogue (giữ proposal đa số có giá để chốt được, không quá nhiều món chờ báo giá).
 3. PHẢI có ít nhất 1 "item key": món điểm nhấn mang dấu ấn riêng của game (thường là item creative).
 4. Item lấy từ catalogue: "nguon"="catalogue"; "ten" phải TRÙNG KHỚP TÊN trong catalogue; "don_gia" = đúng giá catalogue; "can_cu_gia"="Giá catalogue". "chat_lieu"/"kich_thuoc" rút từ mô tả catalogue.
-5. Item creative (không có trong catalogue): "nguon"="creative"; "don_gia"=null; "can_cu_gia"="Item sáng tạo — chưa có giá, cần hỏi vendor". TUYỆT ĐỐI không bịa giá.
-6. Tổng chi phí (đơn giá × số lượng, bỏ qua item giá null) phải ≤ budget. Lưu ý MOQ (Số lượng tối thiểu) của item catalogue — số lượng đề xuất nên ≥ MOQ; nếu nhỏ hơn thì ghi cảnh báo vào "can_cu_gia".
+5. Item creative (không có trong catalogue): "nguon"="creative"; "don_gia"=null; "can_cu_gia"="Item sáng tạo — chưa có giá, cần hỏi vendor". TUYỆT ĐỐI không bịa giá. Điền "goi_y_anh" = mô tả hình minh hoạ NGẮN bằng TIẾNG ANH (hình dạng sản phẩm + yếu tố/màu chủ đạo của game) để hệ thống tự generate ảnh concept. Item catalogue để "goi_y_anh"=null (đã có ảnh thật).
+6. Tổng chi phí (đơn giá × số lượng, bỏ qua item giá null) phải ≤ budget. Mặc định "so_luong" mỗi item = Số lượng (bộ/suất) ở đề bài. Lưu ý MOQ (Số lượng tối thiểu) của item catalogue — nếu Số lượng đề bài < MOQ thì nâng "so_luong" lên MOQ và ghi cảnh báo vào "can_cu_gia".
 7. "loai": loại item; nếu khớp một trong [{item_types}] thì ghi ĐÚNG tên đó, không thì để chuỗi rỗng.
 8. "nhan_xet": 2-3 câu về chiến lược bộ quà + lưu ý MOQ/lead time nếu liên quan. KHÔNG nêu con số tổng chi phí / số tiền còn dư trong nhan_xet — hệ thống tự tính và hiển thị riêng (model cộng tiền hay sai).
 9. YÊU CẦU ĐẶC BIỆT của requester (nếu có ở khối phía trên) là RÀNG BUỘC BẮT BUỘC. Với MỖI yêu cầu, xác định "loai" rồi tự chấm "dap_ung":
@@ -64,8 +66,9 @@ YÊU CẦU:
    - "unmet": món custom requester ĐÒI (item-bat-buoc) NGOÀI catalogue (vd gấu bông, figure đặc thù) mà bạn KHÔNG chắc sản xuất được / chưa rõ giá / chưa rõ MOQ; vượt budget; mâu thuẫn brief. KHI NGHI NGỜ → để "unmet" (TUYỆT ĐỐI không tự nhận làm được). Lưu ý: "design-co-san" KHÔNG thuộc nhóm này.
 10. Nếu có BẤT KỲ yêu cầu "unmet" → điền "cau_hoi_lam_ro": lời nhắn tiếng Việt ngắn gọn, lịch sự cho requester — nêu rõ TỪNG yêu cầu chưa đáp ứng + vì sao, rồi gợi ý 3 lựa chọn: (a) bỏ/nới yêu cầu đó, (b) tăng budget, (c) chấp nhận phương án thay thế. Nếu TẤT CẢ "met" (hoặc không có yêu cầu đặc biệt) → "cau_hoi_lam_ro"=null. ĐỪNG hỏi chung chung kiểu "còn yêu cầu nào khác không" — chỉ hỏi đúng cái đang unmet.
 11. "yeu_cau_dac_biet_chot": chỉ điền khi có CÂU TRẢ LỜI LÀM RÕ ở dưới — ghi lại nội dung yêu cầu đặc biệt SAU khi đã áp dụng câu trả lời (vd requester bỏ gấu bông và không còn ràng buộc nào → ""; nếu đổi sang món khác → mô tả món mới). Đây là bản chốt để lưu, dùng cho các lần sau. Nếu KHÔNG có câu trả lời làm rõ → null.
+12. "co_so_quyet_dinh": 2-4 câu tiếng Việt GIẢI TRÌNH vì sao chọn bộ này — cụ thể: vì sao số lượng & cơ cấu item (catalogue/creative) như vậy; insight game / đối tượng / phân khúc giá trị đã dẫn dắt thế nào; ràng buộc đã xét (deadline / MOQ / catalogue mỏng nếu có). Đây là phần để requester/sếp đánh giá chất lượng đề xuất.
 
-JSON schema: {{"items": [{{"ten": str, "nguon": "catalogue"|"creative", "loai": str, "chat_lieu": str, "kich_thuoc": str, "so_luong": int, "don_gia": int|null, "can_cu_gia": str, "item_key": bool, "design_link": str|null}}], "tong_du_kien": int, "nhan_xet": str, "yeu_cau_dac_biet": [{{"noi_dung": str, "dap_ung": "met"|"unmet", "ly_do": str, "loai": str}}], "cau_hoi_lam_ro": str|null, "yeu_cau_dac_biet_chot": str|null}}"""
+JSON schema: {{"items": [{{"ten": str, "nguon": "catalogue"|"creative", "loai": str, "chat_lieu": str, "kich_thuoc": str, "so_luong": int, "don_gia": int|null, "can_cu_gia": str, "item_key": bool, "design_link": str|null, "goi_y_anh": str|null}}], "tong_du_kien": int, "nhan_xet": str, "co_so_quyet_dinh": str, "yeu_cau_dac_biet": [{{"noi_dung": str, "dap_ung": "met"|"unmet", "ly_do": str, "loai": str}}], "cau_hoi_lam_ro": str|null, "yeu_cau_dac_biet_chot": str|null}}"""
 
 PHAN_LOAI_ITEMS = {"Sản xuất mới", "Mua sẵn", "Giá trị cao >50tr"}
 
@@ -88,6 +91,82 @@ def proposal_total(proposal: dict) -> int:
     """Tinh tong bang code — khong tin con so model tu cong."""
     return sum((it.get("don_gia") or 0) * (it.get("so_luong") or 0)
                for it in proposal.get("items", []))
+
+
+# BIZ RULE: phan khuc gia tri suy tu ngan sach MOI BO qua = Budget / So luong.
+# Nguong [GIA DINH 19/06 — can validate thuc te VNGGames]: xem BUSINESS_RULES.md.
+def value_tier(budget: int, quantity: int) -> tuple[str, int]:
+    """Tra (tier, per_unit). per_unit = ngan sach moi bo qua = budget/so luong."""
+    per_unit = int(budget / quantity) if (budget and quantity) else 0
+    if not per_unit:
+        return "(chưa xác định)", 0
+    if per_unit < 100_000:
+        return "Phổ thông", per_unit
+    if per_unit <= 500_000:
+        return "Tầm trung", per_unit
+    return "Cao cấp", per_unit
+
+
+_GAME_INSIGHT_CACHE: dict = {}
+
+GAME_INSIGHT_PROMPT = """Bạn là chuyên gia merchandise game. Dựa trên thông tin web MỚI NHẤT về game "{game}", \
+tóm tắt ngắn gọn (tiếng Việt, 5-8 gạch đầu dòng) để định hướng chọn quà tặng merch:
+- Đối tượng người chơi chính (độ tuổi, giới tính, đặc điểm).
+- Phong cách nghệ thuật / tông màu / nhân vật & biểu tượng đặc trưng.
+- Loại merchandise cộng đồng game này ưa thích (nếu có thông tin).
+Chỉ nêu điều có cơ sở; không chắc thì nói chung theo thể loại game. KHÔNG bịa."""
+
+
+def game_insight(game: str) -> str:
+    """Insight game tu web (grounding) -> dinh huong chon item khach quan (bot phu thuoc catalogue).
+    Cache theo ten game trong 1 lan chay (revise khong goi lai)."""
+    game = (game or "").strip()
+    if not game:
+        return ""
+    if game not in _GAME_INSIGHT_CACHE:
+        clean = game.split(" [")[0].strip()  # bo hau to ma noi bo "Nikki VN [199]" -> "Nikki VN"
+        _GAME_INSIGHT_CACHE[game] = ask_llm_grounded(GAME_INSIGHT_PROMPT.format(game=clean))
+    return _GAME_INSIGHT_CACHE[game]
+
+
+def _url_to_data_uri(url: str) -> str | None:
+    """Tai anh tu URL -> data URI base64 (nhung thang vao HTML, khong phu thuoc link het han)."""
+    try:
+        with urllib.request.urlopen(url, timeout=20) as r:
+            data = r.read()
+            ctype = r.headers.get("Content-Type", "image/png")
+        return f"data:{ctype};base64,{base64.b64encode(data).decode('ascii')}"
+    except Exception as e:  # noqa: BLE001
+        print(f"[proposal] tải ảnh catalogue lỗi: {e}")
+        return None
+
+
+def _build_images(items: list, by_name: dict) -> dict:
+    """Map {ten item -> data URI}: catalogue dung anh that (Hinh anh mo ta), creative generate concept.
+    Loi/khong co anh -> bo qua (renderer fallback icon). Chi goi o ban proposal CUOI (sau cac cong chan)."""
+    out = {}
+    for it in items:
+        name = it.get("ten", "")
+        if not name:
+            continue
+        if it.get("nguon") == "catalogue":
+            atts = (by_name.get(name) or {}).get("Hình ảnh mô tả") or []
+            if atts:
+                src = (atts[0].get("thumbnails", {}).get("large", {}).get("url")
+                       or atts[0].get("url"))
+                uri = _url_to_data_uri(src) if src else None
+                if uri:
+                    out[name] = uri
+        else:  # creative -> generate anh concept/wireframe
+            goi_y = (it.get("goi_y_anh") or "").strip()
+            if goi_y:
+                prompt = (f"{goi_y}. Style: rough concept sketch / wireframe mockup, "
+                          "simple line art, minimal color, plain white background, "
+                          "product visualization idea — not a final polished design.")
+                b64 = generate_image(prompt)
+                if b64:
+                    out[name] = f"data:image/png;base64,{b64}"
+    return out
 
 
 def _special_req_block(special: str) -> str:
@@ -118,6 +197,20 @@ def propose_items_for(record: dict, feedback: str | None = None,
         special_req_block=_special_req_block(special),
         item_types=", ".join(ITEM_TYPES),
     )
+    insight = game_insight(fields.get("Game", ""))
+    if insight:
+        base_prompt += ("\n\nINSIGHT GAME (research từ web — dùng để chọn item HỢP đối tượng & "
+                        f"phong cách game, KHÔNG chỉ dựa catalogue):\n{insight}")
+    quantity = fields.get("Số lượng (bộ/suất)") or 0
+    tier, per_unit = value_tier(budget, quantity)
+    if per_unit:
+        base_prompt += (
+            f"\n\nPHÂN KHÚC GIÁ TRỊ (tự tính): ngân sách mỗi bộ quà = {per_unit:,}đ "
+            f"({budget:,}đ ÷ {quantity} bộ) → phân khúc \"{tier}\". "
+            "Chọn item sao cho TỔNG đơn giá mỗi bộ ≈ ngân sách này (KHÔNG vượt): phân khúc cao "
+            "→ ưu tiên item giá trị/thẩm mỹ cao để người nhận thấy xứng đáng; phổ thông → item hợp lý, "
+            "thực dụng, có thể nhiều món. Dùng cả Định vị / Mục đích / Target audience để chọn LOẠI item phù hợp "
+            "(vd đối tượng lớn tuổi → đồ thực dụng như bình giữ nhiệt/sổ tay; thu nhập cao → item giá trị cao).")
     if feedback:
         base_prompt += (f"\n\nFEEDBACK CỦA REQUESTER VỀ PROPOSAL TRƯỚC "
                         f"(điều chỉnh lại đúng theo ý này):\n{feedback}")
@@ -150,7 +243,7 @@ def propose_items_for(record: dict, feedback: str | None = None,
             f"VƯỢT budget {budget:,}đ — KHÔNG chấp nhận được):\n{json.dumps(proposal, ensure_ascii=False)}\n\n"
             "Điều chỉnh lại để tổng (đơn giá × số lượng) ≤ budget: giảm số lượng item đắt, "
             "thay item đắt bằng item catalogue rẻ hơn, hoặc bỏ bớt item — nhưng vẫn giữ ít nhất 1 item key "
-            "và 4 items tối thiểu, và GIỮ các item thỏa yêu cầu đặc biệt. "
+            "và 3 items tối thiểu, và GIỮ các item thỏa yêu cầu đặc biệt. "
             "Vẫn tuân thủ mọi quy tắc về giá (giá catalogue cố định, creative giá null). "
             "Trả về JSON cùng schema."
         )
@@ -218,6 +311,9 @@ def propose_items_for(record: dict, feedback: str | None = None,
             chot if chot is not None else f"{special}\n[Điều chỉnh theo trả lời] {clarify}")
     update_project(record["id"], proj_updates)
 
+    images = _build_images(proposal["items"], by_name)
+
     return {"project_code": code, "blocked": False, "items_created": len(item_records),
             "total": total, "budget": budget, "revisions": revisions,
-            "n_catalogue": n_cat, "n_creative": n_cre, "proposal": proposal}
+            "n_catalogue": n_cat, "n_creative": n_cre, "proposal": proposal, "images": images,
+            "tier": tier, "per_unit": per_unit, "insight": insight}

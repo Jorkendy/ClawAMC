@@ -73,7 +73,11 @@ def _make_proposal(record_id: str, feedback: str | None = None,
     result = propose_items_for(rec, feedback=feedback, clarify=clarify)
     if result.get("blocked") or result.get("over_budget"):
         return result, None
-    html = build_proposal_html(rec["fields"], result["proposal"], result["total"])
+    html = build_proposal_html(rec["fields"], result["proposal"], result["total"],
+                               images=result.get("images"),
+                               decision={"tier": result.get("tier"), "per_unit": result.get("per_unit"),
+                                         "insight": result.get("insight"),
+                                         "rationale": result["proposal"].get("co_so_quyet_dinh")})
     return result, html
 
 

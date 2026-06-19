@@ -8,7 +8,8 @@ import json
 from openai import OpenAI
 
 from config import (CF_ACCESS_CLIENT_ID, CF_ACCESS_CLIENT_SECRET, LLM_API_KEY,
-                    LLM_BASE_URL, LLM_MODEL, LLM_REASONING_EFFORT)
+                    LLM_BASE_URL, LLM_GROUNDING_MODEL, LLM_IMAGE_MODEL, LLM_MODEL,
+                    LLM_REASONING_EFFORT)
 
 # User-Agent cua OpenAI SDK ("OpenAI/Python") bi Cloudflare "Block AI bots" chan (403).
 # Ghi de UA trung tinh de qua WAF. (Fix chinh nen dat o Cloudflare: skip bot rule cho
@@ -51,3 +52,31 @@ def ask_llm_json(prompt: str, max_tokens: int = 1500) -> dict:
             last_err = e
             print(f"[llm] parse lỗi (lần {attempt + 1}/3): {e}")
     raise ValueError(f"LLM không trả JSON hợp lệ sau 3 lần: {last_err}")
+
+
+def ask_llm_grounded(prompt: str, max_tokens: int = 3000) -> str:
+    """Chat co Google Search grounding (Gemini doc web that) -> tra text.
+    Loi -> '' (de flow khong bi chan neu grounding tat/loi).
+    LUU Y: grounding ngon nhieu token -> max_tokens phai rong (700/2000 bi cat cut voi prompt insight, dung >=3000)."""
+    try:
+        resp = llm.chat.completions.create(
+            model=LLM_GROUNDING_MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=max_tokens,
+            temperature=0.3,
+            extra_body={"tools": [{"googleSearch": {}}]},
+        )
+        return (resp.choices[0].message.content or "").strip()
+    except Exception as e:  # noqa: BLE001
+        print(f"[llm] ask_llm_grounded lỗi: {e}")
+        return ""
+
+
+def generate_image(prompt: str) -> str | None:
+    """Sinh 1 anh tu prompt -> base64 (b64_json). Loi -> None (de proposal van render, fallback icon)."""
+    try:
+        resp = llm.images.generate(model=LLM_IMAGE_MODEL, prompt=prompt)
+        return resp.data[0].b64_json
+    except Exception as e:  # noqa: BLE001
+        print(f"[llm] generate_image lỗi: {e}")
+        return None

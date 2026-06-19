@@ -5,10 +5,43 @@ So tien tong do code tinh — khong lay so model tu cong.
 """
 import base64
 import json
+import re
 import urllib.request
 from datetime import date
 
 from config import AIRTABLE_BASE_ID, AIRTABLE_TOKEN, PROPOSAL_FILE_FIELD_ID
+
+
+def _md_inline(text: str) -> str:
+    """Markdown inline -> HTML: **bold** -> <strong>. (Text AI tra ve hay co markdown.)"""
+    return re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", text or "")
+
+
+def _md_to_html(md: str) -> str:
+    """Convert markdown co ban (bullet *, -, **bold**) -> HTML. Dung cho text AI (insight...)
+    vi LLM hay tra markdown ma HTML khong render duoc. Bullet long nhau -> lam phang 1 cap."""
+    md = (md or "").strip()
+    if not md:
+        return ""
+    out, in_list = [], False
+    for raw in md.split("\n"):
+        line = raw.strip()
+        if not line:
+            continue
+        m = re.match(r"^[\*\-]\s+(.*)", line)
+        if m:
+            if not in_list:
+                out.append("<ul>")
+                in_list = True
+            out.append(f"<li>{_md_inline(m.group(1))}</li>")
+        else:
+            if in_list:
+                out.append("</ul>")
+                in_list = False
+            out.append(f"<p>{_md_inline(line)}</p>")
+    if in_list:
+        out.append("</ul>")
+    return "".join(out)
 
 
 def _money(n) -> str:
@@ -32,9 +65,11 @@ body{font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a2e;
 .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;padding:16px 32px}
 .card{border:1px solid #e6e8ec;border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
 .card.key{border-color:#ff6a00;box-shadow:0 0 0 2px rgba(255,106,0,.15)}
-.thumb{height:120px;background:linear-gradient(135deg,#eef1f5,#dfe3ea);display:flex;align-items:center;justify-content:center;color:#aab;font-size:34px}
+.thumb{height:160px;background:linear-gradient(135deg,#eef1f5,#dfe3ea);display:flex;align-items:center;justify-content:center;color:#aab;font-size:34px}
+.thumb.has-img{background:#fff;background-size:contain;background-repeat:no-repeat;background-position:center}
 .card .body{padding:14px 16px;flex:1;display:flex;flex-direction:column}
 .badge{align-self:flex-start;font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;margin-bottom:6px}
+.imgnote{font-size:10px;color:#9aa0a8;font-style:italic;margin-bottom:6px}
 .b-cat{background:#e6f4ea;color:#1a7f37}
 .b-cre{background:#fff1e0;color:#c2410c}
 .card h3{font-size:16px;margin-bottom:4px}
@@ -46,10 +81,22 @@ body{font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a2e;
 .sum .big{font-size:24px;font-weight:800}
 .sum .ok{color:#4ade80}.sum .over{color:#f87171}
 .foot{padding:18px 32px;border-top:1px solid #eee;font-size:13px;color:#8a8f99;text-align:center}
+.decision{margin:0 32px 12px;padding:16px 20px;background:#f5f8ff;border:1px solid #dbe4ff;border-radius:12px;font-size:14px;color:#384}
+.decision p{margin:0 0 8px;color:#33384a}
+.decision b{color:#1a1a2e}
+.decision details{margin-top:6px}
+.decision summary{cursor:pointer;color:#3a5bd9;font-weight:600;font-size:13px}
+.decision .ins{margin-top:8px;padding:10px 14px;background:#fff;border-radius:8px;font-size:13px;color:#4a5568;line-height:1.6}
+.decision .ins ul{margin:4px 0;padding-left:18px}
+.decision .ins li{margin:3px 0}
+.decision .ins p{margin:4px 0}
+.decision .ins strong{color:#1a1a2e}
+.disclaimer{margin:0 32px 18px;font-size:12px;color:#9aa0a8;font-style:italic;line-height:1.5}
 """
 
 
-def build_proposal_html(fields: dict, proposal: dict, total: int, images: dict | None = None) -> str:
+def build_proposal_html(fields: dict, proposal: dict, total: int, images: dict | None = None,
+                        decision: dict | None = None) -> str:
     images = images or {}
     code = fields.get("Mã project", "")
     budget = fields.get("Budget (VND)") or 0
@@ -66,7 +113,7 @@ def build_proposal_html(fields: dict, proposal: dict, total: int, images: dict |
         spec_bits = [b for b in [it.get("chat_lieu"), it.get("kich_thuoc")] if b]
         spec = " · ".join(spec_bits) or it.get("can_cu_gia", "")
         img = images.get(name)
-        thumb = (f'<div class="thumb" style="background-image:url({img});background-size:cover"></div>'
+        thumb = (f'<div class="thumb has-img" style="background-image:url({img})"></div>'
                  if img else '<div class="thumb">🎁</div>')
         if unit:
             price = (f'<div class="price"><span>{_money(unit)} × {qty}</span>'
@@ -76,10 +123,12 @@ def build_proposal_html(fields: dict, proposal: dict, total: int, images: dict |
                      '<span class="quote">Chờ báo giá vendor</span></div>')
         badge = ('<span class="badge b-cat">Có sẵn</span>' if is_cat
                  else '<span class="badge b-cre">Sáng tạo</span>')
+        img_note = ('<div class="imgnote">Hình minh hoạ ý tưởng — AI tạo, chưa phải mẫu cuối</div>'
+                    if (img and not is_cat) else '')
         cards.append(
             f'<div class="card{" key" if is_key else ""}">{thumb}<div class="body">'
             f'{badge}<h3>{"⭐ " if is_key else ""}{name}</h3>'
-            f'<div class="spec">{spec}</div>{price}</div></div>'
+            f'{img_note}<div class="spec">{spec}</div>{price}</div></div>'
         )
 
     meta = ""
@@ -94,6 +143,26 @@ def build_proposal_html(fields: dict, proposal: dict, total: int, images: dict |
     warn_txt = (fields.get("Cảnh báo deadline") or "").strip()
     warn_html = f'<div class="warn">{warn_txt}</div>' if warn_txt else ""
 
+    # Mục "Cơ sở quyết định": tier (code tính) + giải trình AI + insight game (web) -> requester/sếp đánh giá.
+    dec = decision or {}
+    tier, per_unit = dec.get("tier"), dec.get("per_unit")
+    rationale = (dec.get("rationale") or "").strip()
+    insight = (dec.get("insight") or "").strip()
+    rows = []
+    if tier and per_unit:
+        rows.append(f'<p><b>Phân khúc:</b> {tier} — ngân sách ~{_money(per_unit)}/bộ quà '
+                    f'(tự tính: {_money(budget)} ÷ {fields.get("Số lượng (bộ/suất)", "?")} bộ)</p>')
+    if rationale:
+        rows.append(f'<p><b>Vì sao bộ này:</b> {_md_inline(rationale)}</p>')
+    if insight:
+        rows.append('<details><summary>Insight game (nguồn web)</summary>'
+                    f'<div class="ins">{_md_to_html(insight)}</div></details>')
+    decision_html = (f'<div class="sec">📋 Cơ sở quyết định</div><div class="decision">{"".join(rows)}</div>'
+                     if rows else "")
+    disclaimer = ('<div class="disclaimer">Ảnh chỉ mang tính minh hoạ: item có sẵn là ảnh tham khảo kiểu dáng, '
+                  'item sáng tạo là concept do AI tạo. Thành phẩm sẽ được THIẾT KẾ RIÊNG theo nhận diện của game '
+                  '(màu sắc, nhân vật, logo) sau khi chốt đề xuất.</div>')
+
     return f"""<!doctype html><html lang="vi"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Proposal {code}</title><style>{_CSS}</style></head><body><div class="wrap">
@@ -103,12 +172,14 @@ def build_proposal_html(fields: dict, proposal: dict, total: int, images: dict |
 <div class="meta">{meta}<div><b>Budget</b>{_money(budget)}</div>
 <div><b>Số lượng/bộ</b>{fields.get("Số lượng (bộ/suất)", "—")}</div></div>
 {warn_html}
-<p class="intro">{proposal.get("nhan_xet", "")}</p>
+<p class="intro">{_md_inline(proposal.get("nhan_xet", ""))}</p>
 <div class="sec">Danh sách items đề xuất</div>
 <div class="grid">{"".join(cards)}</div>
 <div class="sum"><div>Tổng dự kiến<br><span style="font-size:12px;opacity:.7">(chưa gồm item chờ báo giá)</span></div>
 <div style="text-align:right"><span class="big">{_money(total)}</span><br>
 <span class="{sum_class}">{sum_note}</span></div></div>
+{decision_html}
+{disclaimer}
 <div class="foot">Proposal tạo tự động bởi <b>Merch Agent — VNGGames</b> · vui lòng phản hồi Duyệt / Cần sửa trên Airtable</div>
 </div></body></html>"""
 
