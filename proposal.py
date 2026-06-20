@@ -6,10 +6,13 @@ tin số model tự cộng) + vòng tự sửa budget. Phân loại merch (proje
 """
 import base64
 import json
+import re
 import urllib.request
 
 from airtable_client import airtable, fetch_all, fetch_items_of, update_project
-from analysis import build_brief, deadline_status_of
+from analysis import build_brief, days_to_deadline_of, deadline_status_of
+from config import (CREATIVE_LEADTIME_LEN_MAU, CREATIVE_LEADTIME_SAN_XUAT,
+                    DEADLINE_BUFFER, DEADLINE_OVERHEAD_WORKDAYS, WORKDAYS_TO_CALENDAR)
 from llm_client import ask_llm_grounded, ask_llm_json, generate_image
 
 # Loai item — dung de map sang field "Loai" (singleSelect) cua bang Items khi khop
@@ -75,24 +78,78 @@ JSON schema: {{"items": [{{"ten": str, "nguon": "catalogue"|"creative", "loai": 
 PHAN_LOAI_ITEMS = {"Sản xuất mới", "Mua sẵn", "Giá trị cao >50tr"}
 
 
+def _norm_name(s: str) -> str:
+    """Chuan hoa ten de khop catalogue: bo khac biet hoa/thuong + khoang trang thua."""
+    return " ".join((s or "").lower().split())
+
+
+def _parse_int(val):
+    """Catalogue luu MOQ/lead-time la TEXT co range + don vi ('200 cái', '7-10 ngày', '10-15 ngày (theo thiết kế)').
+    Lay so LON NHAT trong chuoi (range -> can tren, BAO THU: deadline tha tre hon con hon hua nham kip;
+    MOQ thuong 1 so). int/float -> giu. Khong co so -> None."""
+    if isinstance(val, (int, float)):
+        return int(val)
+    nums = re.findall(r"\d+", str(val or ""))
+    return max(int(n) for n in nums) if nums else None
+
+
 def _enforce_catalogue_price(proposal: dict, by_name: dict) -> None:
-    """Chong bia gia: item catalogue PHAI lay gia that tu Catalogue.
-    Ten khong khop catalogue -> ha xuong creative (gia null, can hoi vendor)."""
+    """Item catalogue: ep gia THAT + ep MOQ (chong bia gia, chong dat duoi muc san xuat).
+    - Ten khop chinh xac HOAC khop sau chuan hoa (hoa/thuong, space) -> giu la catalogue, gia tu bang.
+    - so_luong < MOQ ('So luong toi thieu') -> NANG len MOQ + ghi canh bao (truoc đay chi nho prompt -> model hay bo sot).
+    - Ten that su khong khop -> ha xuong creative (gia null) + LOG (khong am tham bien hang co san thanh cho bao gia)."""
+    norm_lookup = {_norm_name(k): k for k in by_name}
     for it in proposal.get("items", []):
-        if it.get("nguon") == "catalogue":
-            cat = by_name.get(it.get("ten", ""))
-            if cat:
-                it["don_gia"] = cat.get("Đơn giá")
-            else:
-                it["nguon"] = "creative"
-                it["don_gia"] = None
-                it["can_cu_gia"] = "Tên không khớp catalogue — coi như sáng tạo, cần hỏi vendor"
+        if it.get("nguon") != "catalogue":
+            continue
+        name = it.get("ten", "")
+        cat = by_name.get(name)
+        if not cat:  # thu khop sau chuan hoa truoc khi ha thanh creative
+            canon = norm_lookup.get(_norm_name(name))
+            if canon:
+                it["ten"] = canon
+                cat = by_name[canon]
+        if cat:
+            it["don_gia"] = cat.get("Đơn giá")
+            moq = _parse_int(cat.get("Số lượng tối thiểu"))
+            if moq and moq > 0 and (it.get("so_luong") or 0) < moq:
+                it["so_luong"] = moq
+                base = it.get("can_cu_gia") or "Giá catalogue"
+                it["can_cu_gia"] = f"{base} | Đã nâng số lượng lên MOQ {moq}"
+        else:
+            print(f"[proposal] tên '{name}' không khớp catalogue -> hạ thành creative (cần hỏi vendor)")
+            it["nguon"] = "creative"
+            it["don_gia"] = None
+            it["can_cu_gia"] = "Tên không khớp catalogue — coi như sáng tạo, cần hỏi vendor"
 
 
 def proposal_total(proposal: dict) -> int:
     """Tinh tong bang code — khong tin con so model tu cong."""
     return sum((it.get("don_gia") or 0) * (it.get("so_luong") or 0)
                for it in proposal.get("items", []))
+
+
+def deadline_days_needed(items: list, by_name: dict) -> int:
+    """So ngay LICH can de san xuat bo item nay kip (chinh xac hon ro cung generic).
+    San xuat song song -> lay MAX(lead-time) qua cac item; creative dung gia dinh (lau hon).
+      Ngay can (LV) = OVERHEAD + max(Thoi gian len mau) + max(Thoi gian san xuat)
+      Ngay can (lich) = Ngay can (LV) x WORKDAYS_TO_CALENDAR"""
+    len_mau, san_xuat = [], []
+    for it in items:
+        if it.get("nguon") == "catalogue":
+            cat = by_name.get(it.get("ten", ""), {})
+            lm, sx = _parse_int(cat.get("Thời gian lên mẫu")), _parse_int(cat.get("Thời gian sản xuất"))
+            # Catalogue thieu/khong parse duoc -> fallback generic gantt (Len mau 8 / San xuat 18) de KHONG uoc tinh thap
+            if lm is None:
+                lm = 8
+            if sx is None:
+                sx = 18
+        else:
+            lm, sx = CREATIVE_LEADTIME_LEN_MAU, CREATIVE_LEADTIME_SAN_XUAT
+        len_mau.append(lm)
+        san_xuat.append(sx)
+    workdays = DEADLINE_OVERHEAD_WORKDAYS + (max(len_mau) if len_mau else 0) + (max(san_xuat) if san_xuat else 0)
+    return round(workdays * WORKDAYS_TO_CALENDAR)
 
 
 # BIZ RULE: phan khuc gia tri suy tu ngan sach MOI BO qua = Budget / So luong.
@@ -143,6 +200,11 @@ def _url_to_data_uri(url: str) -> str | None:
         return None
 
 
+# Cache anh creative theo noi dung goi_y (chuan hoa) -> revise/re-trigger KHONG gen lai anh item
+# KHONG doi (tiet kiem ~1.000d/anh). Trong process; mat khi redeploy (chap nhan — xem BUSINESS_RULES).
+_IMG_CACHE: dict = {}
+
+
 def _build_images(items: list, by_name: dict) -> dict:
     """Map {ten item -> data URI}: catalogue dung anh that (Hinh anh mo ta), creative generate concept.
     Loi/khong co anh -> bo qua (renderer fallback icon). Chi goi o ban proposal CUOI (sau cac cong chan)."""
@@ -159,13 +221,18 @@ def _build_images(items: list, by_name: dict) -> dict:
                 uri = _url_to_data_uri(src) if src else None
                 if uri:
                     out[name] = uri
-        else:  # creative -> generate anh concept/wireframe
+        else:  # creative -> generate anh concept/wireframe (cache theo goi_y de khong gen lai)
             goi_y = (it.get("goi_y_anh") or "").strip()
             if goi_y:
-                prompt = (f"{goi_y}. Style: rough concept sketch / wireframe mockup, "
-                          "simple line art, minimal color, plain white background, "
-                          "product visualization idea — not a final polished design.")
-                b64 = generate_image(prompt)
+                key = " ".join(goi_y.lower().split())  # chuan hoa: bo khac biet hoa thuong / khoang trang
+                b64 = _IMG_CACHE.get(key)
+                if not b64:
+                    prompt = (f"{goi_y}. Style: rough concept sketch / wireframe mockup, "
+                              "simple line art, minimal color, plain white background, "
+                              "product visualization idea — not a final polished design.")
+                    b64 = generate_image(prompt)
+                    if b64:
+                        _IMG_CACHE[key] = b64  # chi cache khi gen thanh cong (None -> thu lai lan sau)
                 if b64:
                     out[name] = f"data:image/png;base64,{b64}"
     return out
@@ -253,14 +320,34 @@ def propose_items_for(record: dict, feedback: str | None = None,
         proposal = ask_llm_json(fix_prompt, max_tokens=2500)
         _enforce_catalogue_price(proposal, by_name)
 
-    # Cong chan deadline KHONG kha thi: ep catalogue-only o CODE (prompt khong du tin cay,
-    # model van them creative). Loc bo creative; dam bao con >=1 item key tu catalogue.
-    if deadline_status == "không khả thi":
-        cats = [it for it in proposal.get("items", []) if it.get("nguon") == "catalogue"]
-        if cats:
-            if not any(it.get("item_key") for it in cats):
-                cats[0]["item_key"] = True
-            proposal["items"] = cats
+    # Cong chan DEADLINE theo LEAD-TIME ITEM (chinh xac hon ro cung generic — tinh sau khi co item).
+    #   MEM: bo full khong kip -> thu catalogue-only (nhanh hon) -> kip thi dung + canh bao do.
+    #   CUNG: ca catalogue-only (hoac khong co hang co san) cung tre -> infeasible_deadline -> pipeline.
+    deadline_warn = ""
+    days_left = days_to_deadline_of(fields)
+    if days_left is not None:
+        needed = deadline_days_needed(proposal.get("items", []), by_name)
+        if needed > days_left:
+            cats = [it for it in proposal.get("items", []) if it.get("nguon") == "catalogue"]
+            needed_cats = deadline_days_needed(cats, by_name) if cats else None
+            if cats and needed_cats is not None and needed_cats <= days_left:
+                if not any(it.get("item_key") for it in cats):
+                    cats[0]["item_key"] = True
+                proposal["items"] = cats
+                deadline_warn = (f"🔴 Deadline gấp: phương án đầy đủ cần ~{needed} ngày > còn {days_left} ngày "
+                                 f"→ chỉ đề xuất HÀNG CÓ SẴN (cần ~{needed_cats} ngày) để kịp, bỏ item sáng tạo; "
+                                 f"vẫn nên theo sát tiến độ.")
+            else:
+                fields["Cảnh báo deadline"] = (
+                    f"🔴 Deadline KHÔNG khả thi: cần ~{needed_cats or needed} ngày kể cả hàng có sẵn nhanh nhất, "
+                    f"còn {days_left} ngày.")
+                return {"project_code": code, "infeasible_deadline": True,
+                        "needed_days": needed_cats or needed, "days_left": days_left,
+                        "proposal": proposal}
+        elif days_left < needed * DEADLINE_BUFFER:
+            deadline_warn = (f"⚠️ Deadline sát: cần ~{needed} ngày, còn {days_left} ngày — "
+                             f"rủi ro nếu duyệt mẫu chậm / mùa cao điểm.")
+    fields["Cảnh báo deadline"] = deadline_warn  # accurate hoa (de-override canh bao generic cua Buoc 1)
 
     # Cong chan: con yeu cau dac biet chua dap ung -> KHONG chot proposal, hoi lai requester
     unmet = [r for r in (proposal.get("yeu_cau_dac_biet") or [])
@@ -314,7 +401,8 @@ def propose_items_for(record: dict, feedback: str | None = None,
     n_cre = len(proposal["items"]) - n_cat
     # KHONG nhet summary vao "Phan tich AI" (de field do = phan tich de bai cua AI #1).
     # Proposal da the hien qua Items + File proposal.
-    proj_updates = {"Phân loại merch": sorted(phan_loai_merch)}
+    proj_updates = {"Phân loại merch": sorted(phan_loai_merch),
+                    "Cảnh báo deadline": fields.get("Cảnh báo deadline", "")}
     # Clarify resolve -> luu yeu cau da chot vao "Yeu cau dac biet" (de lan sau revise khong block lai
     # vi doc lai field cu mau thuan voi cau tra loi).
     if clarify:

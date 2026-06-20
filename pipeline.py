@@ -15,6 +15,7 @@ Loi AI/LLM khong hop le (JSON hong/rong/thieu key) -> _mark_ai_error: tick Can P
 clear "Gui phan hoi" (chong retry loop), ghi log — khong de record kep im lang.
 """
 import threading
+import time
 from datetime import date, timedelta
 
 from airtable_client import (airtable, append_note, fetch_items_of,
@@ -22,6 +23,7 @@ from airtable_client import (airtable, append_note, fetch_items_of,
 from analysis import analyze_one
 from config import (MAX_CLARIFY_ROUNDS, MAX_PROPOSAL_ROUNDS, MAX_SUPPLEMENT_ROUNDS,
                     PROJECTS_TABLE, PROPOSAL_APPROVAL_DAYS)
+from llm_client import estimate_cost_vnd, get_cost_summary, reset_cost
 from proposal import propose_items_for
 from proposal_render import build_proposal_html, upload_proposal
 
@@ -65,13 +67,31 @@ def _mark_ai_error(record_id: str, stage: str, err: Exception) -> None:
         print(f"[pipeline] không ghi được trạng thái lỗi cho {record_id}: {e}")
 
 
+def _log_cost(record_id: str, code: str, elapsed: float) -> None:
+    """Ghi chi phi AI + thoi gian xu ly 1 proposal -> Lich su chinh sua + stdout (Coolify log).
+    De co so lieu THAT chung minh chi phi van hanh (thay vi uoc tinh). Cache anh -> lan revise re hon."""
+    s = get_cost_summary()
+    cost = estimate_cost_vnd(s)
+    tok = s["chat_tok_in"] + s["chat_tok_out"]
+    msg = (f"[Chi phí] ~{cost:,}đ · {elapsed:.0f}s · {s['images']} ảnh · "
+           f"{s['grounded_calls']} grounded · {s['chat_calls']} chat ({tok:,} tok)")
+    print(f"[proposal] {code} {msg}")
+    try:
+        append_note(record_id, msg, field=HISTORY_FIELD)
+    except Exception as e:  # noqa: BLE001
+        print(f"[pipeline] không ghi được chi phí {code}: {e}")
+
+
 def _make_proposal(record_id: str, feedback: str | None = None,
                    clarify: str | None = None) -> tuple[dict, str | None]:
     """Sinh proposal + render HTML. CHUA upload. Tra (result, html).
     Neu con yeu cau dac biet chua dap ung -> result['blocked']=True, html=None (chua co proposal)."""
     rec = airtable("GET", f"{PROJECTS_TABLE}/{record_id}")
+    reset_cost()  # do chi phi AI rieng cho proposal nay (token + anh + grounding)
+    t0 = time.monotonic()
     result = propose_items_for(rec, feedback=feedback, clarify=clarify)
-    if result.get("blocked") or result.get("over_budget"):
+    _log_cost(record_id, result.get("project_code", record_id), time.monotonic() - t0)
+    if result.get("blocked") or result.get("over_budget") or result.get("infeasible_deadline"):
         return result, None
     html = build_proposal_html(rec["fields"], result["proposal"], result["total"],
                                images=result.get("images"),
@@ -148,6 +168,22 @@ def _escalate_over_budget(record_id: str, result: dict) -> None:
     print(f"[proposal] {code} vượt budget -> Cần PIC xử lý")
 
 
+def _escalate_deadline(record_id: str, result: dict) -> None:
+    """Deadline khong kha thi ke ca hang co san nhanh nhat -> KHONG chot, chuyen PIC.
+    (Interim: vong dieu chinh-hoi-requester hop nhat se thay the o buoc sau, can them field Airtable.)"""
+    code = result.get("project_code", record_id)
+    update_project(record_id, {
+        "Cần PIC xử lý": True, "Gửi phản hồi": False, "Duyệt proposal?": None,
+        "Lý do cần PIC": f"Deadline không khả thi kể cả hàng có sẵn nhanh nhất "
+                         f"(cần ~{result.get('needed_days', '?')} ngày, còn {result.get('days_left', '?')} ngày) "
+                         f"— cần dời deadline / xác nhận phương án.",
+    })
+    append_note(record_id, f"[AI] Deadline không khả thi kể cả catalogue-only "
+                           f"(cần ~{result.get('needed_days', '?')}d / còn {result.get('days_left', '?')}d) "
+                           f"— chuyển Merch PIC.", field=HISTORY_FIELD)
+    print(f"[proposal] {code} deadline không khả thi -> Cần PIC xử lý")
+
+
 def first_send(record_id: str) -> None:
     """Lan dau: propose -> (neu con yeu cau dac biet chua thoa: hoi requester) -> publish + upload."""
     result, html = _make_proposal(record_id)
@@ -156,6 +192,9 @@ def first_send(record_id: str) -> None:
         return
     if result.get("over_budget"):
         _escalate_over_budget(record_id, result)
+        return
+    if result.get("infeasible_deadline"):
+        _escalate_deadline(record_id, result)
         return
     _publish_proposal(record_id, result, html, reset_round=True)
 
@@ -243,6 +282,9 @@ def _revise_or_escalate(record_id: str, code: str, fields: dict) -> None:
     if result.get("over_budget"):  # feedback day vuot budget, khong tu sua duoc -> PIC
         _escalate_over_budget(record_id, result)
         return
+    if result.get("infeasible_deadline"):  # feedback day tre deadline ke ca catalogue-only -> PIC
+        _escalate_deadline(record_id, result)
+        return
     append_note(record_id, f"[AI] Round {rounds} — sửa proposal theo feedback: {feedback}", field=HISTORY_FIELD)
     update_project(record_id, {"Số round proposal": rounds})
     _publish_proposal(record_id, result, html, reset_round=False)
@@ -257,6 +299,9 @@ def _reevaluate_clarify(record_id: str, code: str, answer: str) -> None:
         return
     if result.get("over_budget"):
         _escalate_over_budget(record_id, result)
+        return
+    if result.get("infeasible_deadline"):
+        _escalate_deadline(record_id, result)
         return
     append_note(record_id, f"[AI] Đã làm rõ yêu cầu đặc biệt theo trả lời requester: {answer}",
                 field=HISTORY_FIELD)

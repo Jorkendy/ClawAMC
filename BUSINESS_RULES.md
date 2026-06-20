@@ -31,7 +31,7 @@ Mục `[GIẢ ĐỊNH]` = số/ngưỡng cần validate bằng dữ liệu thự
 - **Ưu tiên Catalogue trước** (có giá thật, nhanh); **Creative** chỉ lấp món catalogue thiếu.
 - **Cap creative ≤ số catalogue** — giữ proposal đa số có giá để chốt được (creative = giá null → chờ báo giá vendor → nhiều quá thì khó chốt + lâu).
 - **≥1 item key ⭐** (điểm nhấn).
-- **so_luong mỗi item = Số lượng (bộ/suất)** ở đề bài; nếu < MOQ catalogue → nâng lên MOQ + ghi cảnh báo.
+- **so_luong mỗi item = Số lượng (bộ/suất)** ở đề bài; nếu < MOQ catalogue → **CODE tự nâng lên MOQ** + ghi cảnh báo vào can_cu_gia (✅ DONE 19/06 `_enforce_catalogue_price`, không còn chỉ nhờ prompt → model bỏ sót cũng an toàn; MOQ nâng trước khi check budget → không kịp/không đủ thì loop/escalate đúng).
 
 ### Phân khúc giá trị (tier) — TỰ SUY (value_tier)
 - **Ngân sách mỗi bộ quà = Budget ÷ Số lượng (bộ)** → suy phân khúc. Đây vừa là tier vừa là **trần tổng đơn giá/bộ**.
@@ -45,7 +45,7 @@ Mục `[GIẢ ĐỊNH]` = số/ngưỡng cần validate bằng dữ liệu thự
 - **KHÔNG hỏi requester nhập tier** (field "Định vị" gây khó hiểu) → tự suy cho khách quan; vẫn dùng Định vị/Mục đích/Target để chọn LOẠI item.
 
 ### Giá & budget
-- **Giá catalogue cố định** lấy đúng từ bảng (`_enforce_catalogue_price`) — chống bịa giá. Tên không khớp catalogue → hạ thành creative.
+- **Giá catalogue cố định** lấy đúng từ bảng (`_enforce_catalogue_price`) — chống bịa giá. Tên **khớp chính xác HOẶC sau chuẩn hoá** (hoa/thường, space) → giữ catalogue (✅ DONE 19/06: tránh hạ nhầm hàng có sẵn do model lệch hoa/space). Tên thật sự không khớp → hạ thành creative (giá null) + **LOG** (không âm thầm).
 - **Creative: don_gia = null** → hỏi vendor sau.
 - Code tự tính tổng (không tin model cộng). **Vượt budget → tự sửa tối đa 2 vòng**; vẫn vượt → escalate PIC (không chốt).
 
@@ -82,3 +82,52 @@ Mục `[GIẢ ĐỊNH]` = số/ngưỡng cần validate bằng dữ liệu thự
 
 ## Chi phí AI/proposal (tham khảo)
 - Insight grounded: ~$0.035 (~900đ)/proposal · Ảnh creative: ~$0.039 (~1.000đ)/ảnh → ~2-3K/proposal.
+
+---
+
+## MÔ HÌNH MỤC TIÊU — Redesign Bước 1/2 (chốt 19/06; ⏳ = SẼ LÀM, chưa code)
+> Sơ đồ trực quan: `docs/flowchart.html` (serve tại `GET /flowchart`). Cập nhật file + redeploy khi có quyết định mới.
+
+### Phân ranh lại Bước 1 / Bước 2 = **Khả thi vs Sở thích**
+- **Bước 1 = động cơ khả thi** (3 phase: Tiếp nhận → Thẩm định → ra proposal). Output = **một proposal CHẠY ĐƯỢC THỰC TẾ** (thoả đồng thời budget + deadline-theo-lead-time + yêu cầu đặc biệt). **Mọi vòng cần requester can thiệp để ĐẠT khả thi** (bổ sung info / chỉnh budget / dời deadline / bỏ-đổi yêu cầu) thuộc Bước 1.
+- **Bước 2 = cổng sở thích**: requester xem proposal *đã khả thi* → **Duyệt** hoặc **feedback ITEM**. Feedback item phá khả thi → **rớt ngược về phase Thẩm định**.
+- ⚠️ Thẩm định khả thi (budget/deadline-theo-item/yêu cầu met) **cần thử dựng bộ item** → không tách "Bước 1 không item / Bước 2 có item" được; tách theo **khả thi vs sở thích**.
+
+### Yêu cầu đặc biệt → thuộc Bước 1 (thẩm định), KHÔNG phải Bước 2
+- ⏳ **Chuẩn hoá nội dung** bằng AI: "không có"/"ko"/"-"/"n/a" → coi như RỖNG (KHÔNG dùng blacklist từ khoá — tiếng Việt vô số cách nói). Gộp vào lượt AI sẵn có → ~0 thêm chi phí. Field vẫn optional.
+- Cases (đã có ở code, sẽ chuyển về khung Bước 1): trống · met hết · design-co-san (luôn met) · unmet → vòng làm rõ.
+- ⏳ **Tách field dual-use**: "Yêu cầu đặc biệt" = thuần input requester; bản hệ thống chốt ghi field RIÊNG ("…(đã chốt)", read-only) — hết cảnh hệ thống ghi đè input. Cần khi dựng Interface.
+
+### Cơ chế ĐIỀU CHỈNH/LÀM RÕ hợp nhất (gom 4 cơ chế rời thành 1)
+- 1 vòng "Làm rõ/Điều chỉnh" nhiều `lý do` (thiếu-info / yêu-cầu / budget / deadline), hỏi requester chỉnh đúng lever.
+- **1 bộ đếm khả thi CHUNG** mọi lever ≤3 → PIC (chống lách cap bằng cách đổi qua lại lever). **Tách** với **bộ đếm sửa item** (`Số round proposal`, Bước 2 ≤3 → PIC).
+- **Budget = bất khả thi CỨNG**: AI tự sửa 2 vòng (đã có), vẫn vượt → **buộc** điều chỉnh (tăng budget / bỏ-rẻ yêu cầu) → loop → PIC.
+- ⏳ **Deadline = MỀM**: vẫn ra proposal nhanh nhất (catalogue-only) + cảnh báo; **chỉ chặn** khi cả phương án nhanh nhất cũng trễ → loop xin dời deadline → PIC. (Không biến deadline thành chặn cứng vô điều kiện.)
+
+### ✅ Deadline theo lead-time item (DONE 19/06 — thay rổ cứng 43/74 bằng ngưỡng riêng từng proposal)
+**Đã code** (`proposal.deadline_days_needed` + nhánh mềm/cứng trong `propose_items_for`): sau khi chọn item, tính `Ngày cần` theo lead-time → **mềm** (full không kịp → tự chuyển catalogue-only nếu kịp + ghi 🔴 cảnh báo vào "Cảnh báo deadline") · **cứng** (cả catalogue-only cũng trễ → `infeasible_deadline` → hiện `_escalate_deadline` chuyển PIC, interim) · **sát nút** (còn < Ngày cần×1.15 → ⚠️ cảnh báo, vẫn chạy). Catalogue thiếu data lead-time → fallback 8/18 (không ước tính thấp). ⚠️ Phụ thuộc **catalogue điền `Thời gian lên mẫu`/`Thời gian sản xuất`** để chính xác. Pre-gate generic vẫn ở Tiếp nhận.
+
+- Dùng catalogue **"Thời gian lên mẫu"** (= bước Lên mẫu) + **"Thời gian sản xuất"** (= bước Sản xuất hàng loạt). Duyệt mẫu + Chọn vendor/PO = overhead, KHÔNG trong catalogue.
+- ⚠️ **GOTCHA dữ liệu:** 3 field này + `Số lượng tối thiểu` (MOQ) lưu dạng **TEXT có range + đơn vị** ("7-10 ngày", "200 cái", "10-15 ngày (theo thiết kế)"), KHÔNG phải số → code `_parse_int` lấy **số lớn nhất** (range → cận trên, bảo thủ: thà ước tính trễ hơn còn hơn hứa nhầm kịp). Không parse được → fallback 8/18. (Phát hiện + fix 19/06 — trước đó check isinstance số → không bao giờ khớp data thật.)
+- Sản xuất **song song** → lấy **max** qua các item:
+  ```
+  Ngày cần (LV)  = 27 + max(Thời gian lên mẫu) + max(Thời gian sản xuất)
+                   (27 = Head 18 + Duyệt mẫu 7 + Giao hàng 2 — overhead cố định)
+  Ngày cần (lịch) = Ngày cần (LV) × 1.4
+  khả thi ⟺ số ngày tới deadline ≥ Ngày cần (lịch)
+  ```
+- Kiểm chứng: item generic 8+18 → 27+26 = 53 LV → ×1.4 = 74 lịch (khớp ngưỡng cũ). [GIẢ ĐỊNH] 27 & ×1.4 cần validate 10-15 project. Pre-gate generic (`PIPELINE_WORKDAYS`) vẫn giữ ở Tiếp nhận để loại ca vô vọng trước khi dựng item.
+- Sai số lớn nhất: Duyệt mẫu lặp round (tốc độ requester) + mùa cao điểm → giữ buffer (vd "gấp" khi trong khoảng `Ngày cần` → `Ngày cần ×1.15`).
+
+### Chi phí & vận hành
+- ✅ **Cache ảnh creative (DONE 19/06, mức A)** — `proposal._IMG_CACHE` key = `goi_y_anh` chuẩn hoá (lower+collapse space): revise/re-trigger KHÔNG gen lại ảnh item không đổi (~1.000đ/ảnh). Chỉ cache khi gen thành công. Trong process, mất khi redeploy. KHÔNG để "AI quyết định gen lại" (thêm chi phí + thiếu tin cậy — so sánh prompt là đủ). ⏳ Mức B (lưu attachment trên Item, bền qua restart) để sau nếu cần.
+- ✅ **Log chi phí + thời gian/proposal (DONE 19/06)** — `llm_client` đếm thread-local (chat calls/tokens, grounded calls, images); `estimate_cost_vnd` (đơn giá [GIẢ ĐỊNH] ở config). `pipeline._log_cost` ghi 1 dòng `[Chi phí] ~Xđ · Ys · N ảnh · …` vào **Lịch sử chỉnh sửa** + stdout (Coolify). ⏳ Sau gom thành field số riêng để aggregate dashboard.
+
+### ⏳ Interface portal (gom tương tác requester, bỏ sửa record thô)
+- 1 Interface app: Tạo yêu cầu (form) · Yêu cầu của tôi (list lọc Created by) · Chi tiết+Proposal (preview File proposal — Interface xem được, Fillout không) + nút Duyệt/Cần sửa/Trả lời làm rõ/Bổ sung · Cần PIC (đã có).
+- **Cho sửa theo TRẠNG THÁI** (gần như mọi field đều ảnh hưởng mạnh; chỉ Tên project là vô hại): chưa có proposal → sửa thoải mái; đã có proposal → field cốt lõi sửa qua nút **"Cập nhật & tính lại"** (tái dùng đường re-trigger, rẻ nhờ cache ảnh); đã duyệt/sản xuất → khoá, đổi qua PIC.
+
+## Test (regression các sửa 19/06)
+Bộ test đầy đủ + data prereq ở memory `merch-test-cases-buoc2`. Nhóm: **A** cache ảnh · **B** log chi phí · **C** MOQ + khớp tên · **D** deadline lead-time (ổn/sát/mềm/cứng) · **E** không hồi quy.
+- **Đã pass isolation 19/06** (logic/math, không network): cache gen 1 lần qua 3 lượt cùng/khác hoa-space; cost estimate khớp tay; MOQ nâng + khớp tên chuẩn hoá + hạ creative; deadline math (cat 74/59, creative 84, mixed=max 84, fallback). Lệnh: `./venv/bin/python -c "..."` (xem transcript / memory).
+- **E2E chưa chạy** — prereq: catalogue điền `Thời gian lên mẫu`/`Thời gian sản xuất` + `Số lượng tối thiểu`; chạy local override hoặc deploy trước (tránh race sandbox). Ưu tiên: B1→B3, D1–D4, C1/C2, E1.

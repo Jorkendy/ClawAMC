@@ -41,12 +41,18 @@ def assess_deadline(days_to_deadline) -> str:
     return "ổn"
 
 
+def days_to_deadline_of(fields: dict):
+    """So ngay (lich) tu hom nay den deadline; None neu chua co deadline."""
+    if not fields.get("Deadline cần hàng"):
+        return None
+    d = datetime.strptime(fields["Deadline cần hàng"], "%Y-%m-%d").date()
+    return (d - date.today()).days
+
+
 def deadline_status_of(fields: dict) -> str:
     """deadline_status tu field 'Deadline can hang' — dung chung Buoc 1 (analyze) + Buoc 2 (proposal)."""
-    if not fields.get("Deadline cần hàng"):
-        return "chưa có"
-    d = datetime.strptime(fields["Deadline cần hàng"], "%Y-%m-%d").date()
-    return assess_deadline((d - date.today()).days)
+    days = days_to_deadline_of(fields)
+    return assess_deadline(days) if days is not None else "chưa có"
 
 
 def build_brief(fields: dict) -> str:

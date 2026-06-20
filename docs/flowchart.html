@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Merch Agent — Logic xử lý (Flowchart)</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a2e;background:#f4f5f7;line-height:1.55}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 0 60px}
+  header{background:linear-gradient(135deg,#ff6a00,#ff3d57);color:#fff;padding:34px 40px 30px}
+  header .tag{display:inline-block;background:rgba(255,255,255,.22);padding:3px 12px;border-radius:20px;font-size:12px;font-weight:600;letter-spacing:.5px}
+  header h1{font-size:28px;margin:12px 0 6px}
+  header p{opacity:.93;font-size:14px;max-width:760px}
+  header .meta{margin-top:14px;font-size:12.5px;opacity:.9}
+  .legend{display:flex;flex-wrap:wrap;gap:10px 22px;background:#fff;margin:0 40px;margin-top:-18px;padding:16px 22px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.08);position:relative;font-size:13px}
+  .legend .it{display:flex;align-items:center;gap:8px}
+  .sw{width:26px;height:16px;border-radius:4px;border:1.5px solid}
+  .sw.built{background:#e6f4ea;border-color:#1a7f37}
+  .sw.planned{background:#fff4e0;border-color:#d97706;border-style:dashed}
+  .sw.pic{background:#fdecec;border-color:#b91c1c}
+  .sw.dec{background:#fff;border-color:#475569;transform:rotate(45deg);width:16px;height:16px}
+  section{background:#fff;margin:22px 40px 0;border-radius:14px;box-shadow:0 3px 16px rgba(0,0,0,.06);overflow:hidden}
+  .shead{padding:16px 26px;border-bottom:1px solid #eef0f3;background:#fafbfc}
+  .shead h2{font-size:19px;color:#1a1a2e}
+  .shead .sub{font-size:13px;color:#6b7280;margin-top:3px}
+  .diagram{padding:22px 18px;overflow-x:auto;text-align:center}
+  .notes{padding:4px 26px 22px;font-size:13.5px;color:#3a3f4b}
+  .notes ul{margin:6px 0 0 18px}
+  .notes li{margin:5px 0}
+  .notes b{color:#1a1a2e}
+  .assum{display:inline-block;background:#fff4e0;color:#92400e;font-size:11px;font-weight:700;padding:1px 7px;border-radius:6px;margin-left:4px}
+  .formula{background:#0f172a;color:#e2e8f0;font-family:'SF Mono',ui-monospace,Menlo,monospace;font-size:13px;padding:14px 18px;border-radius:10px;margin:12px 0;line-height:1.6;overflow-x:auto}
+  .formula b{color:#fbbf24}
+  footer{text-align:center;color:#8a8f99;font-size:12.5px;margin-top:30px}
+  .mermaid{margin:0 auto}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="tag">VNGGames · Merch Automation</span>
+    <h1>Logic xử lý của Merch Agent</h1>
+    <p>Mô hình mục tiêu — cách agent tiếp nhận đề bài, thẩm định tính khả thi và ra đề xuất (proposal). Mỗi khung là một giai đoạn; hình thoi là điểm quyết định <i>nếu… thì…</i>.</p>
+    <div class="meta">Cập nhật: 19/06/2026 · Phiên bản mô hình mục tiêu (sẽ update khi có quyết định mới)</div>
+  </header>
+
+  <div class="legend">
+    <div class="it"><span class="sw built"></span> <b>Đã build</b> — đang chạy thật</div>
+    <div class="it"><span class="sw planned"></span> <b>Sẽ làm</b> — đã chốt, chưa code</div>
+    <div class="it"><span class="sw pic"></span> Chuyển <b>PIC</b> (người xử lý)</div>
+    <div class="it"><span class="sw dec"></span> Điểm quyết định</div>
+  </div>
+
+  <!-- ===================== TỔNG QUAN ===================== -->
+  <section>
+    <div class="shead">
+      <h2>① Tổng quan toàn trình</h2>
+      <div class="sub">Requester gửi đề bài → 3 giai đoạn: Tiếp nhận → Thẩm định khả thi → Chốt/Duyệt.</div>
+    </div>
+    <div class="diagram">
+<pre class="mermaid">
+flowchart TD
+  S(["Requester submit form"]) --> P1{"PHASE 1 - Tiếp nhận<br/>Đủ thông tin?"}
+  P1 -- "Thiếu" --> M1["Hỏi bổ sung (≤3 lần)"]:::built
+  M1 -- "Quá 3 lần" --> PICa["Chuyển PIC"]:::pic
+  M1 -- "Bổ sung đủ" --> P1
+  P1 -- "Đủ" --> NORM["Chuẩn hoá yêu cầu đặc biệt"]:::planned
+  NORM --> P2["PHASE 2 - Thẩm định<br/>Dựng item + kiểm: Budget · Deadline (lead-time) · Yêu cầu đặc biệt"]
+  P2 -- "Chưa khả thi" --> ADJ["Vòng điều chỉnh / làm rõ (≤3)"]:::planned
+  ADJ -- "Quá 3 lần" --> PICb["Chuyển PIC"]:::pic
+  ADJ -- "Requester chỉnh budget / deadline / yêu cầu" --> P2
+  P2 -- "KHẢ THI" --> PROP["Proposal chạy được thực tế"]:::built
+  PROP --> D3{"PHASE 3 - Requester duyệt?"}
+  D3 -- "Duyệt" --> DONE["Chốt items → sản xuất"]:::built
+  D3 -- "Cần sửa ITEM" --> REV["Sửa theo feedback"]:::built
+  REV -- "Phá khả thi" --> P2
+  REV -- "Vẫn khả thi" --> D3
+  classDef built fill:#e6f4ea,stroke:#1a7f37,color:#11532a;
+  classDef planned fill:#fff4e0,stroke:#d97706,color:#92400e,stroke-dasharray:4 3;
+  classDef pic fill:#fdecec,stroke:#b91c1c,color:#7f1d1d,font-weight:bold;
+</pre>
+    </div>
+    <div class="notes">
+      <ul>
+        <li><b>Phase 1 (Tiếp nhận):</b> chỉ chặn khi thiếu thông tin — không bàn chuyện khả thi.</li>
+        <li><b>Phase 2 (Thẩm định):</b> đầu ra là một proposal <b>chạy được thực tế</b> (thoả đồng thời ngân sách + thời gian + yêu cầu đặc biệt). Mọi vòng cần requester can thiệp để ĐẠT khả thi đều ở đây.</li>
+        <li><b>Phase 3 (Chốt):</b> chỉ là <b>sở thích</b> — duyệt hoặc đổi item. Đổi item làm vỡ khả thi → rớt ngược về Phase 2.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ===================== PHASE 1 ===================== -->
+  <section>
+    <div class="shead">
+      <h2>② Phase 1 — Tiếp nhận</h2>
+      <div class="sub">Kiểm đủ thông tin + chuẩn hoá yêu cầu đặc biệt + pre-gate deadline sơ bộ.</div>
+    </div>
+    <div class="diagram">
+<pre class="mermaid">
+flowchart TD
+  A(["Record mới / Re-trigger"]) --> B{"Đủ 7 field bắt buộc?<br/>Mục đích · Chủ đề · Định vị · Target<br/>Số lượng &gt; 0 · Deadline · Budget &gt; 0"}
+  B -- "Thiếu (trống / space / số ≤ 0)" --> C["Status: Thiếu thông tin<br/>+ soạn mail bổ sung"]:::built
+  C --> D["Requester bổ sung → tick Gửi phản hồi"]
+  D --> E{"Số lần bổ sung &gt; 3?"}
+  E -- "Có" --> F["Chuyển PIC (tắt mail, chống spam)"]:::pic
+  E -- "Chưa" --> B
+  B -- "Đủ" --> G["Chuẩn hoá Yêu cầu đặc biệt (AI)<br/>'không có' / 'ko' / '-' → coi như RỖNG"]:::planned
+  G --> H{"Pre-gate deadline (ước lượng generic)<br/>đã qua hạn / vô vọng?"}
+  H -- "Vô vọng" --> I["Gắn cảnh báo (vẫn cho chạy tiếp - mềm)"]:::planned
+  H -- "OK" --> J(["→ Phase 2: Thẩm định"]):::built
+  I --> J
+  classDef built fill:#e6f4ea,stroke:#1a7f37,color:#11532a;
+  classDef planned fill:#fff4e0,stroke:#d97706,color:#92400e,stroke-dasharray:4 3;
+  classDef pic fill:#fdecec,stroke:#b91c1c,color:#7f1d1d,font-weight:bold;
+</pre>
+    </div>
+    <div class="notes">
+      <ul>
+        <li>Form đã <b>required</b> 7 field → nhánh "Thiếu" hiếm khi xảy ra qua form, chỉ là lưới an toàn.</li>
+        <li><b>Chuẩn hoá yêu cầu đặc biệt</b> <span class="assum">SẼ LÀM</span>: dùng AI nhận biết "không có yêu cầu" (vô số cách nói tiếng Việt) thay vì so khớp từ khoá cứng.</li>
+        <li>Pre-gate deadline chỉ để loại ca vô vọng <b>trước khi</b> tốn công dựng item; con số có thẩm quyền tính ở Phase 2 (theo lead-time item).</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ===================== PHASE 2 ===================== -->
+  <section>
+    <div class="shead">
+      <h2>③ Phase 2 — Thẩm định (động cơ khả thi)</h2>
+      <div class="sub">Dựng item nháp → kiểm 3 ràng buộc → vòng điều chỉnh hợp nhất nếu chưa khả thi.</div>
+    </div>
+    <div class="diagram">
+<pre class="mermaid">
+flowchart TD
+  A(["Vào Thẩm định"]) --> B["Dựng bộ item nháp<br/>catalogue-first + creative · theo Insight game + Tier (Budget ÷ Số lượng)"]:::built
+  B --> C["Ép giá catalogue (code) · tính tổng (code)"]:::built
+  C --> D{"① Tổng ≤ Budget?"}
+  D -- "Vượt" --> D1["AI tự đổi / giảm item rẻ hơn (≤ 2 vòng)"]:::built
+  D1 -- "Vẫn vượt" --> ADJ
+  D -- "OK" --> E{"② Deadline đủ?<br/>(tính theo lead-time item)"}
+  E -- "Không kịp" --> E1["Thử item nhanh hơn → Catalogue-only"]:::planned
+  E1 -- "Cả phương án nhanh nhất cũng trễ" --> ADJ
+  E1 -- "Catalogue-only kịp (kèm cảnh báo)" --> F
+  E -- "OK" --> F{"③ Yêu cầu đặc biệt: tất cả met?"}
+  F -- "Còn unmet" --> ADJ
+  F -- "Met hết" --> OK(["Proposal KHẢ THI → render → Phase 3"]):::built
+  ADJ["VÒNG ĐIỀU CHỈNH / LÀM RÕ (hợp nhất)<br/>Hỏi requester: tăng budget · dời deadline · bỏ-đổi yêu cầu<br/>→ dùng CHUNG 1 bộ đếm vòng"]:::planned
+  ADJ --> G{"Số vòng điều chỉnh &gt; 3?"}
+  G -- "Có" --> PIC["Chuyển PIC"]:::pic
+  G -- "Chưa" --> H["Requester trả lời / sửa field"]
+  H --> B
+  classDef built fill:#e6f4ea,stroke:#1a7f37,color:#11532a;
+  classDef planned fill:#fff4e0,stroke:#d97706,color:#92400e,stroke-dasharray:4 3;
+  classDef pic fill:#fdecec,stroke:#b91c1c,color:#7f1d1d,font-weight:bold;
+</pre>
+    </div>
+    <div class="notes">
+      <p><b>Hai loại "không khả thi" xử lý khác nhau:</b></p>
+      <ul>
+        <li><b>Budget = cứng</b> (đã build): không tồn tại proposal hợp lệ trong ngân sách → AI tự sửa 2 vòng, vẫn vượt thì <b>buộc</b> điều chỉnh (tăng budget / bỏ-rẻ hoá yêu cầu).</li>
+        <li><b>Deadline = mềm</b> <span class="assum">SẼ LÀM</span>: vẫn có proposal nhanh nhất (catalogue-only) kèm cảnh báo rủi ro; <b>chỉ chặn</b> khi ngay cả phương án nhanh nhất cũng trễ.</li>
+      </ul>
+      <p><b>Công thức deadline theo lead-time item</b> <span class="assum">SẼ LÀM</span> — chính xác hơn ước lượng phẳng, tính riêng cho từng proposal (sản xuất song song → lấy max):</p>
+      <div class="formula">
+Ngày cần (ngày LV) = <b>27</b> + max(Thời gian lên mẫu) + max(Thời gian sản xuất)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↑ overhead cố định = Head(18) + Duyệt mẫu(7) + Giao hàng(2)<br/>
+Ngày cần (lịch) = Ngày cần (LV) × <b>1.4</b><br/>
+KHẢ THI ⟺ số ngày tới deadline ≥ Ngày cần (lịch)
+      </div>
+      <ul>
+        <li>Kiểm chứng: item generic (8 + 18) → 27+8+18 = 53 ngày LV → ×1.4 = 74 ngày lịch (khớp ngưỡng hiện tại). <span class="assum">GIẢ ĐỊNH</span> các số 27, ×1.4 cần validate bằng 10–15 project thật.</li>
+        <li><b>Biến động lớn nhất</b>: "Duyệt mẫu" lặp theo round (tuỳ tốc độ phản hồi requester) + mùa cao điểm → nên giữ buffer, không hứa sát nút.</li>
+        <li>Catalogue "Thời gian lên mẫu" = bước Lên mẫu; "Thời gian sản xuất" = bước Sản xuất hàng loạt. (Duyệt mẫu + Chọn vendor/PO là overhead, không nằm trong catalogue.)</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ===================== PHASE 3 ===================== -->
+  <section>
+    <div class="shead">
+      <h2>④ Phase 3 — Chốt / Duyệt (sở thích)</h2>
+      <div class="sub">Proposal đã khả thi → requester duyệt hoặc đổi item.</div>
+    </div>
+    <div class="diagram">
+<pre class="mermaid">
+flowchart TD
+  A(["Proposal khả thi gửi requester"]) --> B{"Duyệt proposal?"}
+  B -- "Duyệt" --> C["Chốt items (Đã duyệt items)<br/>→ design theo game → vendor (bước sau)"]:::built
+  B -- "Cần sửa ITEM (+ feedback)" --> D{"Số round sửa &gt; 3?"}
+  D -- "Có" --> PIC["Chuyển PIC"]:::pic
+  D -- "Chưa" --> E["Dựng lại theo feedback item"]:::built
+  E --> F{"Feedback có phá khả thi?<br/>(vượt budget / trễ deadline / yêu cầu mới)"}
+  F -- "Có" --> G(["↩ Rớt về Phase 2: Thẩm định"]):::planned
+  F -- "Không" --> B
+  classDef built fill:#e6f4ea,stroke:#1a7f37,color:#11532a;
+  classDef planned fill:#fff4e0,stroke:#d97706,color:#92400e,stroke-dasharray:4 3;
+  classDef pic fill:#fdecec,stroke:#b91c1c,color:#7f1d1d,font-weight:bold;
+</pre>
+    </div>
+    <div class="notes">
+      <ul>
+        <li><b>2 bộ đếm độc lập:</b> đếm <i>khả thi</i> (Phase 2, chung mọi lever) và đếm <i>sửa item</i> (Phase 3) — vượt cái nào cũng → PIC.</li>
+        <li><b>Re-trigger</b> (đã build): bất kỳ lúc nào PIC sửa gốc xong → untick "Cần PIC" + Status = "Mới tiếp nhận" → chạy lại từ Phase 1 (reset các bộ đếm).</li>
+        <li><b>Cập nhật &amp; tính lại</b> <span class="assum">SẼ LÀM</span>: requester sửa field cốt lõi (budget/deadline/số lượng) sau khi đã có proposal → đi qua nút này (tái dùng đường re-trigger), không sửa ngầm.</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer>Merch Agent — VNGGames · Sơ đồ logic tự cập nhật theo quyết định mới · Xanh = đang chạy · Cam nét đứt = sẽ nâng cấp</footer>
+</div>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({
+    startOnLoad: true,
+    securityLevel: 'loose',
+    theme: 'base',
+    themeVariables: {
+      fontFamily: "-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      fontSize: '14px',
+      primaryColor: '#eef2ff',
+      primaryBorderColor: '#475569',
+      primaryTextColor: '#1a1a2e',
+      lineColor: '#94a3b8'
+    },
+    flowchart: { htmlLabels: true, curve: 'basis', useMaxWidth: true, nodeSpacing: 45, rankSpacing: 50 }
+  });
+</script>
+</body>
+</html>

@@ -34,11 +34,26 @@ MAX_PROPOSAL_ROUNDS = 3      # so round sua toi da -> escalate Merch PIC
 MAX_CLARIFY_ROUNDS = 3       # so vong lam ro yeu cau dac biet toi da -> escalate Merch PIC
 MAX_SUPPLEMENT_ROUNDS = 3    # so lan re-analyze (bo sung thong tin) toi da -> escalate PIC (chong spam mail)
 
+# Don gia uoc tinh chi phi AI (VND) — [GIA DINH] cap nhat theo bang gia thuc te de "chung minh"
+# chi phi van hanh. Anh + grounding la phan dat; chat self-host re.
+COST_PER_IMAGE_VND = 1000          # gemini image ~ $0.039
+COST_GROUNDED_PER_CALL_VND = 900   # grounding Google Search ~ $0.035/call (gop ca token)
+COST_CHAT_PER_1K_IN_VND = 2        # chat input (gemini-flash) ~
+COST_CHAT_PER_1K_OUT_VND = 8       # chat output ~
+
 # Timeline du kien toan trinh intake -> hang ve kho, theo critical path
 # (buoc 1+2+5+6+10+11+13+14). Don vi: NGAY LAM VIEC.
 # So lieu [GIA DINH] — can validate bang 10-15 project history.
 PIPELINE_WORKDAYS = {"min": 31, "avg": 53, "max": 68}
 WORKDAYS_TO_CALENDAR = 1.4  # 5 ngay lam viec ~ 7 ngay lich
+
+# Deadline theo LEAD-TIME ITEM (Buoc 2 — chinh xac hon ro cung generic; tinh sau khi chon item).
+# Ngay can (LV) = OVERHEAD + max(Thoi gian len mau) + max(Thoi gian san xuat)  [san xuat song song -> max]
+# [GIA DINH 19/06 — validate bang gantt/project that]
+DEADLINE_OVERHEAD_WORKDAYS = 27   # overhead co dinh ngoai item = Head 18 + Duyet mau 7 + Giao hang 2
+CREATIVE_LEADTIME_LEN_MAU = 8     # item creative (chua co trong catalogue) -> gia dinh thoi gian len mau
+CREATIVE_LEADTIME_SAN_XUAT = 25   # ... san xuat (lay dau phuc tap vi creative thuong lau)
+DEADLINE_BUFFER = 1.15            # con lai < ngay_can*buffer -> canh bao "sat nut" (van chay)
 
 REQUIRED_FIELDS = {
     "Mục đích": "Mục đích sản xuất",

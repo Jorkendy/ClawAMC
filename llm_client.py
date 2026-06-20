@@ -4,14 +4,60 @@ Backend: LiteLLM self-host (llm.vinhpham.com.vn). Neu endpoint dat sau Cloudflar
 Access thi gui kem 2 header service token (CF-Access-Client-Id / CF-Access-Client-Secret).
 """
 import json
+import threading
 import time
 
 from openai import (APIConnectionError, APITimeoutError, InternalServerError,
                     OpenAI, RateLimitError)
 
-from config import (CF_ACCESS_CLIENT_ID, CF_ACCESS_CLIENT_SECRET, LLM_API_KEY,
+from config import (CF_ACCESS_CLIENT_ID, CF_ACCESS_CLIENT_SECRET,
+                    COST_CHAT_PER_1K_IN_VND, COST_CHAT_PER_1K_OUT_VND,
+                    COST_GROUNDED_PER_CALL_VND, COST_PER_IMAGE_VND, LLM_API_KEY,
                     LLM_BASE_URL, LLM_GROUNDING_MODEL, LLM_IMAGE_MODEL, LLM_MODEL,
                     LLM_REASONING_EFFORT)
+
+# --- Theo doi chi phi AI moi proposal ---
+# Thread-local: moi luong xu ly 1 project rieng -> tranh lan chi phi khi analyze & decide
+# chay song song (2 lock khac nhau). reset_cost() truoc khi dung 1 proposal, get_cost_summary() sau.
+_cost = threading.local()
+
+
+def reset_cost() -> None:
+    _cost.d = {"chat_calls": 0, "chat_tok_in": 0, "chat_tok_out": 0,
+               "grounded_calls": 0, "grounded_tok_in": 0, "grounded_tok_out": 0, "images": 0}
+
+
+def _cost_d() -> dict:
+    d = getattr(_cost, "d", None)
+    if d is None:
+        reset_cost()
+        d = _cost.d
+    return d
+
+
+def _add_cost(**kw) -> None:
+    d = _cost_d()
+    for k, v in kw.items():
+        d[k] = d.get(k, 0) + (v or 0)
+
+
+def _usage(resp):
+    u = getattr(resp, "usage", None)
+    return (getattr(u, "prompt_tokens", 0) or 0, getattr(u, "completion_tokens", 0) or 0) if u else (0, 0)
+
+
+def get_cost_summary() -> dict:
+    return dict(_cost_d())
+
+
+def estimate_cost_vnd(s: dict) -> int:
+    """Uoc tinh chi phi VND tu so dem (don gia [GIA DINH] o config)."""
+    return round(
+        s.get("images", 0) * COST_PER_IMAGE_VND
+        + s.get("grounded_calls", 0) * COST_GROUNDED_PER_CALL_VND
+        + s.get("chat_tok_in", 0) / 1000 * COST_CHAT_PER_1K_IN_VND
+        + s.get("chat_tok_out", 0) / 1000 * COST_CHAT_PER_1K_OUT_VND
+    )
 
 # Loi API TAM THOI -> nen retry (Gemini 503 qua tai / 429 rate-limit / mat ket noi / timeout).
 # Loi vinh vien (BadRequest model sai, Auth 401/403) KHONG nam day -> raise ngay, khong retry.
@@ -45,6 +91,8 @@ def ask_llm_json(prompt: str, max_tokens: int = 1500) -> dict:
     for attempt in range(4):
         try:
             resp = llm.chat.completions.create(**kwargs)
+            tin, tout = _usage(resp)
+            _add_cost(chat_calls=1, chat_tok_in=tin, chat_tok_out=tout)
             raw = (resp.choices[0].message.content or "").strip()
             if not raw:
                 raise ValueError("LLM trả về rỗng (content None/empty)")
@@ -77,6 +125,8 @@ def ask_llm_grounded(prompt: str, max_tokens: int = 3000) -> str:
                 temperature=0.3,
                 extra_body={"tools": [{"googleSearch": {}}]},
             )
+            tin, tout = _usage(resp)
+            _add_cost(grounded_calls=1, grounded_tok_in=tin, grounded_tok_out=tout)
             return (resp.choices[0].message.content or "").strip()
         except _TRANSIENT_ERRORS as e:
             print(f"[llm] grounded transient (lần {attempt + 1}/3): {type(e).__name__}")
@@ -92,6 +142,7 @@ def generate_image(prompt: str) -> str | None:
     for attempt in range(3):
         try:
             resp = llm.images.generate(model=LLM_IMAGE_MODEL, prompt=prompt)
+            _add_cost(images=1)
             return resp.data[0].b64_json
         except _TRANSIENT_ERRORS as e:
             print(f"[llm] generate_image transient (lần {attempt + 1}/3): {type(e).__name__}")

@@ -20,9 +20,11 @@ Module:
   proposal_render.py render HTML + upload Airtable
   pipeline.py        auto-chain tu webhook Airtable
 """
+import os
 import threading
 
 from fastapi import FastAPI, Request
+from fastapi.responses import FileResponse
 
 from airtable_client import fetch_projects
 from analysis import analyze_one
@@ -83,6 +85,15 @@ async def invocations(request: Request) -> dict:
 @app.get("/health")
 def health() -> dict:
     return {"status": "healthy"}
+
+
+_FLOWCHART = os.path.join(os.path.dirname(__file__), "docs", "flowchart.html")
+
+
+@app.get("/flowchart")
+def flowchart() -> FileResponse:
+    """So do logic Merch Agent (demo cho stakeholder) — update file docs/flowchart.html roi redeploy."""
+    return FileResponse(_FLOWCHART, media_type="text/html")
 
 
 if __name__ == "__main__":
