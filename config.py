@@ -27,6 +27,8 @@ LLM_REASONING_EFFORT = os.environ.get("LLM_REASONING_EFFORT", "disable")
 
 # Field id "File proposal" (bang Projects) — dung cho Airtable Upload Attachment API (base-specific)
 PROPOSAL_FILE_FIELD_ID = os.environ.get("PROPOSAL_FILE_FIELD_ID", "fldFlkZzbRIX9Um48")
+# Field id "File plan san xuat" (Buoc 4) — Airtable Upload Attachment API (base appo1Oei5JvJ1EXAG)
+PLAN_FILE_FIELD_ID = os.environ.get("PLAN_FILE_FIELD_ID", "fldYBX6NoMbTOqatf")
 
 # URL form Fillout phan hoi (seat-free). De trong -> route /proposal khong chen nut "Phan hoi".
 # Link tao = FILLOUT_FORM_URL + "?id=" + record_id (khop pre-fetch + update record cua Fillout).
@@ -55,6 +57,10 @@ WORKDAYS_TO_CALENDAR = 1.4  # 5 ngay lam viec ~ 7 ngay lich
 # Ngay can (LV) = OVERHEAD + max(Thoi gian len mau) + max(Thoi gian san xuat)  [san xuat song song -> max]
 # [GIA DINH 19/06 — validate bang gantt/project that]
 DEADLINE_OVERHEAD_WORKDAYS = 27   # overhead co dinh ngoai item = Head 18 + Duyet mau 7 + Giao hang 2
+# Chi tiet overhead (de ve timeline tung giai doan o plan san xuat Buoc 4); tong = DEADLINE_OVERHEAD_WORKDAYS
+OVERHEAD_HEAD_WORKDAYS = 18           # chuan bi: brief, ke hoach, chot NCC
+OVERHEAD_REVIEW_SAMPLE_WORKDAYS = 7   # duyet mau
+OVERHEAD_DELIVERY_WORKDAYS = 2        # giao hang & nghiem thu
 CREATIVE_LEADTIME_LEN_MAU = 8     # item creative (chua co trong catalogue) -> gia dinh thoi gian len mau
 CREATIVE_LEADTIME_SAN_XUAT = 25   # ... san xuat (lay dau phuc tap vi creative thuong lau)
 DEADLINE_BUFFER = 1.15            # con lai < ngay_can*buffer -> canh bao "sat nut" (van chay)

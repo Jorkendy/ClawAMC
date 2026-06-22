@@ -129,26 +129,25 @@ def proposal_total(proposal: dict) -> int:
                for it in proposal.get("items", []))
 
 
+def item_leadtime(it: dict, by_name: dict) -> tuple[int, int]:
+    """Lead-time (NGAY LAM VIEC) cua 1 item: (len_mau, san_xuat).
+    Catalogue -> doc field (fallback generic 8/18 neu thieu/khong parse, de KHONG uoc tinh thap);
+    creative -> hang so gia dinh (lau hon)."""
+    if it.get("nguon") == "catalogue":
+        cat = by_name.get(it.get("ten", ""), {})
+        lm, sx = _parse_int(cat.get("Thời gian lên mẫu")), _parse_int(cat.get("Thời gian sản xuất"))
+        return (lm if lm is not None else 8, sx if sx is not None else 18)
+    return (CREATIVE_LEADTIME_LEN_MAU, CREATIVE_LEADTIME_SAN_XUAT)
+
+
 def deadline_days_needed(items: list, by_name: dict) -> int:
     """So ngay LICH can de san xuat bo item nay kip (chinh xac hon ro cung generic).
     San xuat song song -> lay MAX(lead-time) qua cac item; creative dung gia dinh (lau hon).
       Ngay can (LV) = OVERHEAD + max(Thoi gian len mau) + max(Thoi gian san xuat)
       Ngay can (lich) = Ngay can (LV) x WORKDAYS_TO_CALENDAR"""
-    len_mau, san_xuat = [], []
-    for it in items:
-        if it.get("nguon") == "catalogue":
-            cat = by_name.get(it.get("ten", ""), {})
-            lm, sx = _parse_int(cat.get("Thời gian lên mẫu")), _parse_int(cat.get("Thời gian sản xuất"))
-            # Catalogue thieu/khong parse duoc -> fallback generic gantt (Len mau 8 / San xuat 18) de KHONG uoc tinh thap
-            if lm is None:
-                lm = 8
-            if sx is None:
-                sx = 18
-        else:
-            lm, sx = CREATIVE_LEADTIME_LEN_MAU, CREATIVE_LEADTIME_SAN_XUAT
-        len_mau.append(lm)
-        san_xuat.append(sx)
-    workdays = DEADLINE_OVERHEAD_WORKDAYS + (max(len_mau) if len_mau else 0) + (max(san_xuat) if san_xuat else 0)
+    leads = [item_leadtime(it, by_name) for it in items]
+    workdays = DEADLINE_OVERHEAD_WORKDAYS + (max(lm for lm, _ in leads) if leads else 0) \
+        + (max(sx for _, sx in leads) if leads else 0)
     return round(workdays * WORKDAYS_TO_CALENDAR)
 
 
@@ -327,6 +326,8 @@ def propose_items_for(record: dict, feedback: str | None = None,
                 "Mỗi item trả về PHẢI kèm trường \"giu_nguyen\": true nếu item GIỮ NGUYÊN từ proposal hiện tại "
                 "(KHÔNG liên quan feedback — giữ Y HỆT TÊN cũ); false nếu item MỚI hoặc BỊ SỬA theo feedback. "
                 "CHỈ để giu_nguyen=false cho item liên quan TRỰC TIẾP feedback; mọi item khác PHẢI giu_nguyen=true với TÊN trùng khớp proposal hiện tại. "
+                "BẮT BUỘC gắn giu_nguyen=true cho MỌI item không liên quan feedback — KỂ CẢ item creative và item key (⭐). "
+                "TUYỆT ĐỐI KHÔNG đổi item_key, không đổi goi_y_anh, không đổi tên của item đang giữ nguyên. "
                 "Ngoại lệ: feedback TỔNG THỂ (đổi tông cả bộ, làm lại, đổi tổng số món) → cho phép nhiều item giu_nguyen=false.")
     if clarify:
         base_prompt += (

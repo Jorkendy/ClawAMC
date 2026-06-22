@@ -14,6 +14,7 @@ Buoc 2: du thong tin -> propose (AI #2). VONG DIEU CHINH/LAM RO HOP NHAT (_reque
 Loi AI/LLM khong hop le (JSON hong/rong/thieu key) -> _mark_ai_error: tick Can PIC xu ly,
 clear "Gui phan hoi" (chong retry loop), ghi log — khong de record kep im lang.
 """
+import json
 import threading
 import time
 from datetime import date, timedelta
@@ -24,8 +25,9 @@ from analysis import analyze_one
 from config import (MAX_CLARIFY_ROUNDS, MAX_PROPOSAL_ROUNDS, MAX_SUPPLEMENT_ROUNDS,
                     PROJECTS_TABLE, PROPOSAL_APPROVAL_DAYS)
 from llm_client import estimate_cost_vnd, get_cost_summary, reset_cost
+from plan import build_plan, render_plan_xlsx
 from proposal import propose_items_for
-from proposal_render import build_proposal_html, upload_proposal
+from proposal_render import build_proposal_html, upload_plan, upload_proposal
 
 _analyze_lock = threading.Lock()
 _analyze_again = threading.Event()
@@ -264,8 +266,42 @@ def analyze_new_async() -> None:
     _run_guarded(_analyze_lock, _analyze_again, _scan_new)
 
 
+def _plan_items_from_fields(fields: dict, record_id: str) -> list:
+    """Nguon item cho plan: uu tien 'Proposal JSON' (snapshot publish gan nhat, co nguon + don gia);
+    thieu -> fallback bang Items (suy nguon tu co/khong don gia)."""
+    raw = fields.get("Proposal JSON")
+    if raw:
+        try:
+            items = json.loads(raw)
+            if items:
+                return items
+        except Exception:
+            pass
+    out = []
+    for it in fetch_items_of(record_id):
+        f = it["fields"]
+        dg = f.get("Đơn giá dự kiến (VND)")
+        out.append({"ten": f.get("Tên item", ""), "loai": f.get("Loại", ""),
+                    "so_luong": f.get("Số lượng") or 0, "don_gia": dg,
+                    "nguon": "catalogue" if dg else "creative"})
+    return out
+
+
+def _generate_plan(record_id: str, code: str) -> None:
+    """Buoc 4: sinh Excel plan san xuat (timeline + ngan sach) -> upload field 'File plan san xuat'.
+    Goi sau khi Duyet items; loi KHONG duoc pha viec chot items (caller bao try/except)."""
+    rec = airtable("GET", f"{PROJECTS_TABLE}/{record_id}")
+    fields = rec.get("fields", {})
+    items = _plan_items_from_fields(fields, record_id)
+    plan = build_plan(fields, items, date.today())
+    upload_plan(record_id, render_plan_xlsx(plan), code)
+    append_note(record_id, f"[AI] Đã sinh plan sản xuất — giao dự kiến {plan['delivery']} "
+                           f"({plan['total_cal']} ngày lịch). {plan['feasible']}", field=HISTORY_FIELD)
+    print(f"[plan] {code} -> plan sản xuất uploaded (giao {plan['delivery']})")
+
+
 def _approve_proposal(record_id: str, code: str) -> None:
-    """Requester duyet: chot items + Status 'Da duyet items'."""
+    """Requester duyet: chot items + Status 'Da duyet items' + sinh plan san xuat (Buoc 4)."""
     updates = [{"id": it["id"], "fields": {"Status": "Đã duyệt"}}
                for it in fetch_items_of(record_id)
                if it["fields"].get("Status") == "Đề xuất"]
@@ -274,6 +310,12 @@ def _approve_proposal(record_id: str, code: str) -> None:
     update_project(record_id, {"Status": "Đã duyệt items", "Duyệt proposal?": None, "Gửi phản hồi": False})
     append_note(record_id, "[AI] Requester đã DUYỆT — chốt đề xuất.", field=HISTORY_FIELD)
     print(f"[proposal] {code} DUYỆT -> chốt {len(updates)} items -> Đã duyệt items")
+    try:
+        _generate_plan(record_id, code)
+    except Exception as e:
+        append_note(record_id, f"[AI] Sinh plan sản xuất lỗi (không ảnh hưởng chốt items): {e}",
+                    field=HISTORY_FIELD)
+        print(f"[plan] {code} sinh plan lỗi: {e}")
 
 
 def _revise_or_escalate(record_id: str, code: str, fields: dict) -> None:

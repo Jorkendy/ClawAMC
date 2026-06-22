@@ -12,7 +12,8 @@ import urllib.error
 import urllib.request
 from datetime import date
 
-from config import AIRTABLE_BASE_ID, AIRTABLE_TOKEN, PROPOSAL_FILE_FIELD_ID
+from config import (AIRTABLE_BASE_ID, AIRTABLE_TOKEN, PLAN_FILE_FIELD_ID,
+                    PROPOSAL_FILE_FIELD_ID)
 
 
 def _esc(s) -> str:
@@ -201,15 +202,16 @@ def build_proposal_html(fields: dict, proposal: dict, total: int, images: dict |
 </div></body></html>"""
 
 
-def upload_proposal(record_id: str, html: str, code: str) -> dict:
-    """Upload HTML vao field 'File proposal' qua Airtable Upload Attachment API.
+def _upload_attachment(record_id: str, field_id: str, content_type: str,
+                       filename: str, raw: bytes) -> dict:
+    """Upload 1 file vao field attachment qua Airtable Upload Attachment API.
     Retry 3 lan: upload hay dinh loi transient (403/429/5xx, mang) -> tranh _scan_new bat
     exception roi escalate PIC OAN cho 1 hiccup tam thoi."""
-    url = f"https://content.airtable.com/v0/{AIRTABLE_BASE_ID}/{record_id}/{PROPOSAL_FILE_FIELD_ID}/uploadAttachment"
+    url = f"https://content.airtable.com/v0/{AIRTABLE_BASE_ID}/{record_id}/{field_id}/uploadAttachment"
     data = json.dumps({
-        "contentType": "text/html",
-        "filename": f"proposal_{code}.html",
-        "file": base64.b64encode(html.encode("utf-8")).decode("ascii"),
+        "contentType": content_type,
+        "filename": filename,
+        "file": base64.b64encode(raw).decode("ascii"),
     }).encode()
     headers = {"Authorization": f"Bearer {AIRTABLE_TOKEN}", "Content-Type": "application/json"}
     last_err = None
@@ -220,7 +222,21 @@ def upload_proposal(record_id: str, html: str, code: str) -> dict:
                 return json.loads(r.read().decode())
         except (urllib.error.HTTPError, urllib.error.URLError) as e:
             last_err = e
-            print(f"[proposal] upload lỗi (lần {attempt + 1}/3): {e}")
+            print(f"[upload] lỗi {filename} (lần {attempt + 1}/3): {e}")
             if attempt < 2:
                 time.sleep(2 * (attempt + 1))
     raise last_err
+
+
+def upload_proposal(record_id: str, html: str, code: str) -> dict:
+    """Upload HTML vao field 'File proposal'."""
+    return _upload_attachment(record_id, PROPOSAL_FILE_FIELD_ID, "text/html",
+                              f"proposal_{code}.html", html.encode("utf-8"))
+
+
+def upload_plan(record_id: str, xlsx: bytes, code: str) -> dict:
+    """Upload file Excel plan san xuat (Buoc 4) vao field 'File plan san xuat'."""
+    return _upload_attachment(
+        record_id, PLAN_FILE_FIELD_ID,
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        f"plan_san_xuat_{code}.xlsx", xlsx)
