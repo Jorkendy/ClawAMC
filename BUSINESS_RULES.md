@@ -98,11 +98,12 @@ Mục `[GIẢ ĐỊNH]` = số/ngưỡng cần validate bằng dữ liệu thự
 - Cases (đã có ở code, sẽ chuyển về khung Bước 1): trống · met hết · design-co-san (luôn met) · unmet → vòng làm rõ.
 - ⏳ **Tách field dual-use**: "Yêu cầu đặc biệt" = thuần input requester; bản hệ thống chốt ghi field RIÊNG ("…(đã chốt)", read-only) — hết cảnh hệ thống ghi đè input. Cần khi dựng Interface.
 
-### Cơ chế ĐIỀU CHỈNH/LÀM RÕ hợp nhất (gom 4 cơ chế rời thành 1)
-- 1 vòng "Làm rõ/Điều chỉnh" nhiều `lý do` (thiếu-info / yêu-cầu / budget / deadline), hỏi requester chỉnh đúng lever.
-- **1 bộ đếm khả thi CHUNG** mọi lever ≤3 → PIC (chống lách cap bằng cách đổi qua lại lever). **Tách** với **bộ đếm sửa item** (`Số round proposal`, Bước 2 ≤3 → PIC).
-- **Budget = bất khả thi CỨNG**: AI tự sửa 2 vòng (đã có), vẫn vượt → **buộc** điều chỉnh (tăng budget / bỏ-rẻ yêu cầu) → loop → PIC.
-- ⏳ **Deadline = MỀM**: vẫn ra proposal nhanh nhất (catalogue-only) + cảnh báo; **chỉ chặn** khi cả phương án nhanh nhất cũng trễ → loop xin dời deadline → PIC. (Không biến deadline thành chặn cứng vô điều kiện.)
+### ✅ Cơ chế ĐIỀU CHỈNH/LÀM RÕ hợp nhất (DONE 19/06 — `pipeline._request_adjust` + `_route_result`)
+- **1 cơ chế** cho 3 lý do, **1 bộ đếm khả thi CHUNG** = field `Số vòng làm rõ` (tái dùng) ≤3 → PIC (chống lách cap khi đổi lever). Tách với `Số round proposal` (Bước 2 sửa item).
+- **Yêu cầu đặc biệt** unmet → Status `Chờ làm rõ yêu cầu` (cần text answer ở "Trả lời làm rõ").
+- **Budget CỨNG** (AI tự sửa 2 vòng vẫn vượt) + **Deadline cứng** (cả catalogue-only cũng trễ) → Status `Chờ điều chỉnh`: requester **SỬA field Budget/Deadline** (hoặc bỏ yêu cầu) rồi tick "Gửi phản hồi" → tính lại (KHÔNG cần text). Deadline mềm vẫn ra catalogue-only + cảnh báo (không vào loop).
+- Publish thành công → reset bộ đếm chung = 0. Mail dùng lại Automation "Gửi mail làm rõ" (flag-based, không cần dựng mới).
+- ⚠️ **CẦN tạo tay**: option Status **"Chờ điều chỉnh"** (update_project không typecast → thiếu option sẽ 422 → graceful rơi vào PIC). Bộ đếm KHÔNG cần field mới.
 
 ### ✅ Deadline theo lead-time item (DONE 19/06 — thay rổ cứng 43/74 bằng ngưỡng riêng từng proposal)
 **Đã code** (`proposal.deadline_days_needed` + nhánh mềm/cứng trong `propose_items_for`): sau khi chọn item, tính `Ngày cần` theo lead-time → **mềm** (full không kịp → tự chuyển catalogue-only nếu kịp + ghi 🔴 cảnh báo vào "Cảnh báo deadline") · **cứng** (cả catalogue-only cũng trễ → `infeasible_deadline` → hiện `_escalate_deadline` chuyển PIC, interim) · **sát nút** (còn < Ngày cần×1.15 → ⚠️ cảnh báo, vẫn chạy). Catalogue thiếu data lead-time → fallback 8/18 (không ước tính thấp). ⚠️ Phụ thuộc **catalogue điền `Thời gian lên mẫu`/`Thời gian sản xuất`** để chính xác. Pre-gate generic vẫn ở Tiếp nhận.

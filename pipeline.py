@@ -1,11 +1,11 @@
 """Auto-chain tu webhook Airtable (Buoc 1 + Buoc 2 D1).
 
 Buoc 1: form submit -> phan tich (analyze_one).
-Buoc 2: du thong tin -> propose (AI #2). Ba nhanh:
-  a) Con yeu cau dac biet chua dap ung -> Status "Cho lam ro yeu cau", hoi requester
-     (mail qua Automation). Requester tra loi o "Tra loi lam ro" -> cham lai;
-     qua MAX_CLARIFY_ROUNDS -> Can PIC xu ly.
-  b) Sau cac vong tu sua van vuot budget -> KHONG chot, Can PIC xu ly (_escalate_over_budget).
+Buoc 2: du thong tin -> propose (AI #2). VONG DIEU CHINH/LAM RO HOP NHAT (_request_adjust,
+1 bo dem chung CLARIFY_ROUND_FIELD, qua MAX_CLARIFY_ROUNDS -> Can PIC):
+  a) Yeu cau dac biet unmet -> "Cho lam ro yeu cau": requester tra loi text o "Tra loi lam ro".
+  b) Vuot budget / Deadline khong du (ke ca hang co san) -> "Cho dieu chinh": requester SUA
+     field Budget/Deadline (hoac bo yeu cau) roi tick "Gui phan hoi" -> tinh lai (khong can text).
   c) Du dieu kien -> proposal + render HTML + upload -> Status "Cho duyet items"
      -> requester set "Duyet proposal?" tren Airtable:
         Duyet   -> chot items (Status "Da duyet items")
@@ -33,11 +33,12 @@ _decide_lock = threading.Lock()
 _decide_again = threading.Event()
 
 HISTORY_FIELD = "Lịch sử chỉnh sửa"  # log tung round feedback / duyet / escalate
-CLARIFY_STATUS = "Chờ làm rõ yêu cầu"  # con yeu cau dac biet chua dap ung
-CLARIFY_FIELD = "Trao đổi yêu cầu"     # cau hoi AI hoi requester (requester doc o record view)
-CLARIFY_ROUND_FIELD = "Số vòng làm rõ"  # dem rieng, KHONG dung chung Số round proposal
+CLARIFY_STATUS = "Chờ làm rõ yêu cầu"  # YEU CAU DAC BIET unmet -> can text answer o "Tra loi lam ro"
+ADJUST_STATUS = "Chờ điều chỉnh"        # BUDGET/DEADLINE -> requester SUA field (Budget/Deadline) roi tick, KHONG can text
+CLARIFY_FIELD = "Trao đổi yêu cầu"     # cau hoi/huong dan AI gui requester (dung chung clarify + adjust)
+CLARIFY_ROUND_FIELD = "Số vòng làm rõ"  # BO DEM KHA THI CHUNG (yeu cau + budget + deadline); KHAC "Số round proposal"
 CLARIFY_MAIL_FLAG = "Gửi mail làm rõ"   # co bat moi vong -> Automation gui mail requester roi tu untick
-CLARIFY_ANSWER_FIELD = "Trả lời làm rõ"  # requester tra loi cau hoi lam ro (KHAC 'Feedback proposal' — luc nay chua co proposal)
+CLARIFY_ANSWER_FIELD = "Trả lời làm rõ"  # requester tra loi cau hoi lam ro (chi yeu cau dac biet)
 
 
 def _run_guarded(lock: threading.Lock, again: threading.Event, work) -> None:
@@ -114,6 +115,7 @@ def _publish_proposal(record_id: str, result: dict, html: str, *, reset_round: b
         CLARIFY_FIELD: None,  # da giai quyet yeu cau dac biet -> xoa cau hoi
         CLARIFY_ANSWER_FIELD: None,  # don cau tra loi lam ro
         CLARIFY_MAIL_FLAG: False,  # don co (truong hop con sot)
+        CLARIFY_ROUND_FIELD: 0,  # publish thanh cong = da kha thi -> reset bo dem dieu chinh chung
     }
     if reset_round:
         fields["Số round proposal"] = 0
@@ -124,8 +126,10 @@ def _publish_proposal(record_id: str, result: dict, html: str, *, reset_round: b
           f"{result['total']:,}đ / {result['budget']:,}đ -> Chờ duyệt items")
 
 
-def _enter_clarify(record_id: str, result: dict) -> None:
-    """Con yeu cau dac biet chua dap ung -> dem vong lam ro, hoi requester; qua MAX -> escalate PIC."""
+def _request_adjust(record_id: str, status: str, message: str, pic_reason: str, log: str) -> None:
+    """VONG DIEU CHINH/LAM RO HOP NHAT (yeu cau dac biet / budget / deadline) — 1 BO DEM CHUNG
+    (CLARIFY_ROUND_FIELD). Tang bo dem; qua MAX -> escalate PIC; else set status + cau hoi + co mail,
+    cho requester chinh (text answer / sua Budget|Deadline) roi tick 'Gui phan hoi' -> tinh lai."""
     rec = airtable("GET", f"{PROJECTS_TABLE}/{record_id}")
     f = rec["fields"]
     code = f.get("Mã project", record_id)
@@ -133,70 +137,77 @@ def _enter_clarify(record_id: str, result: dict) -> None:
     if rounds > MAX_CLARIFY_ROUNDS:
         update_project(record_id, {
             CLARIFY_ROUND_FIELD: rounds, "Cần PIC xử lý": True,
-            "Gửi phản hồi": False, "Feedback proposal": None,
-            "Lý do cần PIC": f"Yêu cầu đặc biệt làm rõ {MAX_CLARIFY_ROUNDS} vòng vẫn chưa thỏa.",
+            "Gửi phản hồi": False, "Feedback proposal": None, "Duyệt proposal?": None,
+            "Lý do cần PIC": pic_reason,
         })
-        append_note(record_id, f"[AI] Yêu cầu đặc biệt làm rõ {MAX_CLARIFY_ROUNDS} vòng vẫn chưa thỏa "
-                               f"— chuyển Merch PIC xử lý.", field=HISTORY_FIELD)
-        print(f"[proposal] {code} vượt {MAX_CLARIFY_ROUNDS} vòng làm rõ -> Cần PIC xử lý")
+        append_note(record_id, f"[AI] {pic_reason} (sau {MAX_CLARIFY_ROUNDS} vòng điều chỉnh) — chuyển Merch PIC.",
+                    field=HISTORY_FIELD)
+        print(f"[proposal] {code} quá {MAX_CLARIFY_ROUNDS} vòng điều chỉnh -> Cần PIC xử lý")
         return
     update_project(record_id, {
-        "Status": CLARIFY_STATUS,
-        CLARIFY_FIELD: result["clarify_message"],
+        "Status": status,
+        CLARIFY_FIELD: message,
         CLARIFY_ROUND_FIELD: rounds,
         CLARIFY_MAIL_FLAG: True,  # bat co -> Automation gui mail requester (tu untick sau khi gui)
-        "Gửi phản hồi": False,
-        CLARIFY_ANSWER_FIELD: None,  # xoa cau tra loi cu -> vong sau nhap moi
+        "Gửi phản hồi": False, "Feedback proposal": None, "Duyệt proposal?": None,
+        CLARIFY_ANSWER_FIELD: None,
     })
-    append_note(record_id, f"[AI] Vòng làm rõ {rounds} — yêu cầu đặc biệt chưa thỏa, đã hỏi requester.",
-                field=HISTORY_FIELD)
-    print(f"[proposal] {code} có yêu cầu đặc biệt chưa thỏa -> Chờ làm rõ yêu cầu (vòng {rounds})")
+    append_note(record_id, f"[AI] Vòng điều chỉnh {rounds} — {log}; đã hỏi requester.", field=HISTORY_FIELD)
+    print(f"[proposal] {code} -> {status} (vòng điều chỉnh {rounds})")
 
 
-def _escalate_over_budget(record_id: str, result: dict) -> None:
-    """Proposal sau cac vong tu sua van vuot budget -> KHONG chot cho requester, chuyen PIC."""
-    code = result.get("project_code", record_id)
-    update_project(record_id, {
-        "Cần PIC xử lý": True, "Gửi phản hồi": False, "Duyệt proposal?": None,
-        "Lý do cần PIC": f"Proposal vẫn vượt budget sau tự điều chỉnh: "
-                         f"{result['total']:,}đ / {result['budget']:,}đ.",
-    })
-    append_note(record_id,
-                f"[AI] Proposal vẫn vượt budget sau khi tự điều chỉnh "
-                f"({result['total']:,}đ / {result['budget']:,}đ) — chuyển Merch PIC xử lý.",
-                field=HISTORY_FIELD)
-    print(f"[proposal] {code} vượt budget -> Cần PIC xử lý")
+def _enter_clarify(record_id: str, result: dict) -> None:
+    """Yeu cau dac biet unmet -> hoi requester (can text answer)."""
+    _request_adjust(record_id, CLARIFY_STATUS, result["clarify_message"],
+                    f"Yêu cầu đặc biệt làm rõ {MAX_CLARIFY_ROUNDS} vòng vẫn chưa thỏa.",
+                    "yêu cầu đặc biệt chưa thỏa")
 
 
-def _escalate_deadline(record_id: str, result: dict) -> None:
-    """Deadline khong kha thi ke ca hang co san nhanh nhat -> KHONG chot, chuyen PIC.
-    (Interim: vong dieu chinh-hoi-requester hop nhat se thay the o buoc sau, can them field Airtable.)"""
-    code = result.get("project_code", record_id)
-    update_project(record_id, {
-        "Cần PIC xử lý": True, "Gửi phản hồi": False, "Duyệt proposal?": None,
-        "Lý do cần PIC": f"Deadline không khả thi kể cả hàng có sẵn nhanh nhất "
-                         f"(cần ~{result.get('needed_days', '?')} ngày, còn {result.get('days_left', '?')} ngày) "
-                         f"— cần dời deadline / xác nhận phương án.",
-    })
-    append_note(record_id, f"[AI] Deadline không khả thi kể cả catalogue-only "
-                           f"(cần ~{result.get('needed_days', '?')}d / còn {result.get('days_left', '?')}d) "
-                           f"— chuyển Merch PIC.", field=HISTORY_FIELD)
-    print(f"[proposal] {code} deadline không khả thi -> Cần PIC xử lý")
+def _enter_adjust_budget(record_id: str, result: dict) -> None:
+    """Vuot budget sau 2 vong tu sua -> hoi requester tang budget / bo bot yeu cau (thay vi PIC ngay)."""
+    total, budget = result.get("total") or 0, result.get("budget") or 0
+    msg = (f"Phương án tốt nhất vẫn VƯỢT ngân sách ({total:,}đ > {budget:,}đ) sau khi tối ưu. "
+           "Vui lòng (a) tăng Budget, hoặc (b) bỏ/nới yêu cầu khiến chi phí cao, "
+           "rồi tick \"Gửi phản hồi\" để tính lại.")
+    _request_adjust(record_id, ADJUST_STATUS, msg,
+                    f"Vẫn vượt budget ({total:,}đ/{budget:,}đ) sau các vòng điều chỉnh.",
+                    f"vượt budget {total:,}đ/{budget:,}đ")
+
+
+def _enter_adjust_deadline(record_id: str, result: dict) -> None:
+    """Deadline khong du ke ca hang co san nhanh nhat -> hoi requester doi deadline (thay vi PIC ngay)."""
+    need, left = result.get("needed_days", "?"), result.get("days_left", "?")
+    msg = (f"Deadline hiện KHÔNG đủ thời gian sản xuất: cần ~{need} ngày kể cả hàng có sẵn nhanh nhất, "
+           f"còn {left} ngày. Vui lòng DỜI 'Deadline cần hàng' (hoặc xác nhận chấp nhận rủi ro) "
+           "rồi tick \"Gửi phản hồi\" để tính lại.")
+    _request_adjust(record_id, ADJUST_STATUS, msg,
+                    f"Deadline không khả thi kể cả hàng có sẵn (cần ~{need}d/còn {left}d).",
+                    f"deadline không đủ (cần ~{need}d/còn {left}d)")
+
+
+def _route_result(record_id: str, result: dict, html: str | None, *, reset_round: bool) -> None:
+    """Dispatch ket qua _make_proposal: 3 nhanh khong kha thi -> vong dieu chinh hop nhat; else publish."""
+    if result.get("blocked"):
+        _enter_clarify(record_id, result)
+    elif result.get("over_budget"):
+        _enter_adjust_budget(record_id, result)
+    elif result.get("infeasible_deadline"):
+        _enter_adjust_deadline(record_id, result)
+    else:
+        _publish_proposal(record_id, result, html, reset_round=reset_round)
 
 
 def first_send(record_id: str) -> None:
-    """Lan dau: propose -> (neu con yeu cau dac biet chua thoa: hoi requester) -> publish + upload."""
+    """Lan dau: propose -> khong kha thi thi vao vong dieu chinh, else publish + upload."""
     result, html = _make_proposal(record_id)
-    if result.get("blocked"):
-        _enter_clarify(record_id, result)
-        return
-    if result.get("over_budget"):
-        _escalate_over_budget(record_id, result)
-        return
-    if result.get("infeasible_deadline"):
-        _escalate_deadline(record_id, result)
-        return
-    _publish_proposal(record_id, result, html, reset_round=True)
+    _route_result(record_id, result, html, reset_round=True)
+
+
+def _reevaluate_adjust(record_id: str, code: str) -> None:
+    """Requester da SUA Budget/Deadline (hoac bo yeu cau) roi tick -> tinh lai (KHONG can text answer)."""
+    result, html = _make_proposal(record_id)
+    _route_result(record_id, result, html, reset_round=True)
+    print(f"[proposal] {code} tính lại sau điều chỉnh")
 
 
 SUPPLEMENT_FIELD = "Số lần bổ sung"  # dem so lan re-analyze (chong spam mail / escalate khi qua cap)
@@ -276,14 +287,8 @@ def _revise_or_escalate(record_id: str, code: str, fields: dict) -> None:
         print(f"[proposal] {code} vượt {MAX_PROPOSAL_ROUNDS} round -> Cần PIC xử lý")
         return
     result, html = _make_proposal(record_id, feedback=feedback)
-    if result.get("blocked"):  # feedback lam yeu cau dac biet thanh chua thoa -> hoi lai
-        _enter_clarify(record_id, result)
-        return
-    if result.get("over_budget"):  # feedback day vuot budget, khong tu sua duoc -> PIC
-        _escalate_over_budget(record_id, result)
-        return
-    if result.get("infeasible_deadline"):  # feedback day tre deadline ke ca catalogue-only -> PIC
-        _escalate_deadline(record_id, result)
+    if result.get("blocked") or result.get("over_budget") or result.get("infeasible_deadline"):
+        _route_result(record_id, result, html, reset_round=False)  # feedback gây không khả thi -> vòng điều chỉnh
         return
     append_note(record_id, f"[AI] Round {rounds} — sửa proposal theo feedback: {feedback}", field=HISTORY_FIELD)
     update_project(record_id, {"Số round proposal": rounds})
@@ -292,21 +297,12 @@ def _revise_or_escalate(record_id: str, code: str, fields: dict) -> None:
 
 
 def _reevaluate_clarify(record_id: str, code: str, answer: str) -> None:
-    """Requester tra loi cau hoi lam ro -> cham lai yeu cau dac biet; thoa thi gui proposal."""
+    """Requester tra loi cau hoi lam ro -> cham lai; thoa thi gui proposal, chua thi vao vong dieu chinh tiep."""
     result, html = _make_proposal(record_id, clarify=answer)
-    if result.get("blocked"):
-        _enter_clarify(record_id, result)  # van chua thoa -> hoi tiep (hoac escalate neu qua vong)
-        return
-    if result.get("over_budget"):
-        _escalate_over_budget(record_id, result)
-        return
-    if result.get("infeasible_deadline"):
-        _escalate_deadline(record_id, result)
-        return
-    append_note(record_id, f"[AI] Đã làm rõ yêu cầu đặc biệt theo trả lời requester: {answer}",
-                field=HISTORY_FIELD)
-    _publish_proposal(record_id, result, html, reset_round=True)
-    print(f"[proposal] {code} đã thỏa yêu cầu đặc biệt -> gửi proposal")
+    if not (result.get("blocked") or result.get("over_budget") or result.get("infeasible_deadline")):
+        append_note(record_id, f"[AI] Đã làm rõ yêu cầu đặc biệt theo trả lời requester: {answer}",
+                    field=HISTORY_FIELD)
+    _route_result(record_id, result, html, reset_round=True)
 
 
 def _scan_decisions() -> None:
@@ -328,6 +324,10 @@ def _scan_decisions() -> None:
                     print(f"[proposal] {code} tick Gửi nhưng chưa trả lời làm rõ -> bỏ qua")
                     continue
                 _reevaluate_clarify(r["id"], code, answer)
+                continue
+            # dang cho dieu chinh budget/deadline -> requester da sua field (Budget/Deadline) roi tick (KHONG can text)
+            if f.get("Status") == ADJUST_STATUS:
+                _reevaluate_adjust(r["id"], code)
                 continue
             # record thieu thong tin -> requester bo sung roi tick Gui -> chay lai Buoc 1
             if f.get("Status") == "Thiếu thông tin":
