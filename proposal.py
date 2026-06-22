@@ -255,9 +255,19 @@ def propose_items_for(record: dict, feedback: str | None = None,
     deadline_status = deadline_status_of(fields)
     catalogue_txt, by_name = catalogue_data()
 
-    # Xoa item de xuat cu (neu co) -> tao lai sach, tranh nhan doi khi revise
+    # Xoa item de xuat cu (neu co) -> tao lai sach, tranh nhan doi khi revise.
+    # Snapshot TRUOC khi xoa: revise (co feedback) can dua proposal hien tai cho LLM de GIU NGUYEN
+    # cac item khong lien quan feedback (tranh "sua 1 mon doi ca bo"). [A — minimal-diff prompt]
+    current_items = []
     for it in fetch_items_of(record["id"]):
         if it["fields"].get("Status") == "Đề xuất":
+            ff = it["fields"]
+            loai = ff.get("Loại")
+            current_items.append({
+                "ten": ff.get("Tên item"),
+                "loai": loai.get("name") if isinstance(loai, dict) else loai,
+                "so_luong": ff.get("Số lượng"),
+            })
             airtable("DELETE", f"Items/{it['id']}")
 
     base_prompt = PROPOSAL_PROMPT.format(
@@ -283,6 +293,15 @@ def propose_items_for(record: dict, feedback: str | None = None,
     if feedback:
         base_prompt += (f"\n\nFEEDBACK CỦA REQUESTER VỀ PROPOSAL TRƯỚC "
                         f"(điều chỉnh lại đúng theo ý này):\n{feedback}")
+        if current_items:
+            base_prompt += (
+                "\n\nPROPOSAL HIỆN TẠI (requester đã xem, phần lớn đã ưng):\n"
+                f"{json.dumps(current_items, ensure_ascii=False)}\n"
+                "QUY TẮC SỬA TỐI THIỂU (QUAN TRỌNG): requester CHỈ muốn thay đổi đúng phần FEEDBACK nói tới. "
+                "GIỮ NGUYÊN mọi item KHÁC y hệt — cùng tên, cùng loại, cùng số lượng, cùng gợi ý ảnh — "
+                "TUYỆT ĐỐI không thay item khác, không đổi gợi ý ảnh của chúng. "
+                "CHỈ thêm/bớt/sửa item liên quan TRỰC TIẾP đến feedback. "
+                "Ngoại lệ: nếu feedback mang tính TỔNG THỂ (đổi tông cả bộ, làm lại, đổi tổng số món) thì mới chỉnh nhiều item.")
     if clarify:
         base_prompt += (
             "\n\nREQUESTER ĐÃ TRẢ LỜI LÀM RÕ YÊU CẦU ĐẶC BIỆT:\n"
