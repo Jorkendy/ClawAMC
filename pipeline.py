@@ -35,6 +35,7 @@ _decide_again = threading.Event()
 HISTORY_FIELD = "Lịch sử chỉnh sửa"  # log tung round feedback / duyet / escalate
 CLARIFY_STATUS = "Chờ làm rõ yêu cầu"  # YEU CAU DAC BIET unmet -> can text answer o "Tra loi lam ro"
 ADJUST_STATUS = "Chờ điều chỉnh"        # BUDGET/DEADLINE -> requester SUA field (Budget/Deadline) roi tick, KHONG can text
+PIC_STATUS = "Chờ Merch PIC"            # escalate -> PIC xu ly (kem checkbox "Cần PIC xử lý"); Status ngoai 4 trang thai can phan hoi -> Fillout tu an form
 CLARIFY_FIELD = "Trao đổi yêu cầu"     # cau hoi/huong dan AI gui requester (dung chung clarify + adjust)
 CLARIFY_ROUND_FIELD = "Số vòng làm rõ"  # BO DEM KHA THI CHUNG (yeu cau + budget + deadline); KHAC "Số round proposal"
 CLARIFY_MAIL_FLAG = "Gửi mail làm rõ"   # co bat moi vong -> Automation gui mail requester roi tu untick
@@ -60,7 +61,7 @@ def _mark_ai_error(record_id: str, stage: str, err: Exception) -> None:
     """AI/LLM trả về không hợp lệ -> đừng để record kẹt im lặng: tick Cần PIC xử lý,
     clear 'Gửi phản hồi' (chống retry loop mỗi webhook ping), ghi log cho PIC."""
     try:
-        update_project(record_id, {"Cần PIC xử lý": True, "Gửi phản hồi": False,
+        update_project(record_id, {"Status": PIC_STATUS, "Cần PIC xử lý": True, "Gửi phản hồi": False,
                                    "Lý do cần PIC": f"Lỗi AI ({stage}): {err}"})
         append_note(record_id, f"[AI] Lỗi xử lý ({stage}): {err} — cần PIC kiểm tra.",
                     field=HISTORY_FIELD)
@@ -136,7 +137,7 @@ def _request_adjust(record_id: str, status: str, message: str, pic_reason: str, 
     rounds = int(f.get(CLARIFY_ROUND_FIELD) or 0) + 1
     if rounds > MAX_CLARIFY_ROUNDS:
         update_project(record_id, {
-            CLARIFY_ROUND_FIELD: rounds, "Cần PIC xử lý": True,
+            "Status": PIC_STATUS, CLARIFY_ROUND_FIELD: rounds, "Cần PIC xử lý": True,
             "Gửi phản hồi": False, "Feedback proposal": None, "Duyệt proposal?": None,
             "Lý do cần PIC": pic_reason,
         })
@@ -232,6 +233,7 @@ def _reanalyze(record_id: str) -> None:
     rounds += 1
     if rounds > MAX_SUPPLEMENT_ROUNDS:
         update_project(record_id, {
+            "Status": PIC_STATUS,
             SUPPLEMENT_FIELD: rounds, "Gửi phản hồi": False, "Gửi mail bổ sung": False,
             "Cần PIC xử lý": True,
             "Lý do cần PIC": f"Requester bổ sung {MAX_SUPPLEMENT_ROUNDS} lần vẫn thiếu: "
@@ -279,7 +281,8 @@ def _revise_or_escalate(record_id: str, code: str, fields: dict) -> None:
     feedback = fields.get("Feedback proposal", "") or ""
     rounds = int(fields.get("Số round proposal") or 0) + 1
     if rounds > MAX_PROPOSAL_ROUNDS:
-        update_project(record_id, {"Cần PIC xử lý": True, "Duyệt proposal?": None, "Gửi phản hồi": False,
+        update_project(record_id, {"Status": PIC_STATUS, "Cần PIC xử lý": True, "Duyệt proposal?": None,
+                                   "Gửi phản hồi": False,
                                    "Lý do cần PIC": f"Sửa proposal {MAX_PROPOSAL_ROUNDS} round vẫn chưa "
                                                     f"duyệt. Feedback gần nhất: {feedback}"})
         append_note(record_id, f"[AI] Proposal đã sửa {MAX_PROPOSAL_ROUNDS} round vẫn chưa duyệt "
