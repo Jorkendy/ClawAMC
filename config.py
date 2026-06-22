@@ -28,6 +28,10 @@ LLM_REASONING_EFFORT = os.environ.get("LLM_REASONING_EFFORT", "disable")
 # Field id "File proposal" (bang Projects) — dung cho Airtable Upload Attachment API (base-specific)
 PROPOSAL_FILE_FIELD_ID = os.environ.get("PROPOSAL_FILE_FIELD_ID", "fldFlkZzbRIX9Um48")
 
+# URL form Fillout phan hoi (seat-free). De trong -> route /proposal khong chen nut "Phan hoi".
+# Link tao = FILLOUT_FORM_URL + "?id=" + record_id (khop pre-fetch + update record cua Fillout).
+FILLOUT_FORM_URL = os.environ.get("FILLOUT_FORM_URL", "")
+
 # Proposal duyet (Buoc 2 — D1: requester duyet tren Airtable)
 PROPOSAL_APPROVAL_DAYS = 3   # han requester duyet proposal (ngay)
 MAX_PROPOSAL_ROUNDS = 3      # so round sua toi da -> escalate Merch PIC
