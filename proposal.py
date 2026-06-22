@@ -246,6 +246,17 @@ def _special_req_block(special: str) -> str:
             f"{special}\n")
 
 
+def _restore_kept_items(proposal: dict, prev_items: list) -> None:
+    """[B] Item LLM đánh dấu giu_nguyen=true -> copy NGUYÊN VẸN từ proposal cũ (khớp tên chuẩn hoá)
+    -> deterministic, hết drift item không liên quan feedback. Không khớp tên -> coi như item mới (giữ bản LLM)."""
+    prev_by_name = {_norm_name(it.get("ten", "")): it for it in (prev_items or [])}
+    for i, it in enumerate(proposal.get("items", [])):
+        if it.get("giu_nguyen") is True:
+            prev = prev_by_name.get(_norm_name(it.get("ten", "")))
+            if prev:
+                proposal["items"][i] = {k: v for k, v in prev.items() if k != "giu_nguyen"}
+
+
 def propose_items_for(record: dict, feedback: str | None = None,
                       clarify: str | None = None) -> dict:
     fields = record["fields"]
@@ -270,6 +281,17 @@ def propose_items_for(record: dict, feedback: str | None = None,
             })
             airtable("DELETE", f"Items/{it['id']}")
 
+    # [B] Snapshot ĐẦY ĐỦ proposal publish lần trước (full schema, có goi_y_anh) -> restore deterministic
+    # item giu_nguyen (hết drift). Không có JSON cũ -> fallback hành vi A (current_items từ Items table).
+    prev_items: list = []
+    if feedback:
+        raw = fields.get("Proposal JSON")
+        if raw:
+            try:
+                prev_items = json.loads(raw)
+            except Exception:  # noqa: BLE001
+                prev_items = []
+
     base_prompt = PROPOSAL_PROMPT.format(
         brief=build_brief(fields),
         catalogue=catalogue_txt,
@@ -293,15 +315,19 @@ def propose_items_for(record: dict, feedback: str | None = None,
     if feedback:
         base_prompt += (f"\n\nFEEDBACK CỦA REQUESTER VỀ PROPOSAL TRƯỚC "
                         f"(điều chỉnh lại đúng theo ý này):\n{feedback}")
-        if current_items:
+        snapshot = prev_items or current_items
+        if snapshot:
+            shown = [{"ten": it.get("ten"), "nguon": it.get("nguon"),
+                      "so_luong": it.get("so_luong"), "don_gia": it.get("don_gia")}
+                     for it in snapshot]
             base_prompt += (
                 "\n\nPROPOSAL HIỆN TẠI (requester đã xem, phần lớn đã ưng):\n"
-                f"{json.dumps(current_items, ensure_ascii=False)}\n"
+                f"{json.dumps(shown, ensure_ascii=False)}\n"
                 "QUY TẮC SỬA TỐI THIỂU (QUAN TRỌNG): requester CHỈ muốn thay đổi đúng phần FEEDBACK nói tới. "
-                "GIỮ NGUYÊN mọi item KHÁC y hệt — cùng tên, cùng loại, cùng số lượng, cùng gợi ý ảnh — "
-                "TUYỆT ĐỐI không thay item khác, không đổi gợi ý ảnh của chúng. "
-                "CHỈ thêm/bớt/sửa item liên quan TRỰC TIẾP đến feedback. "
-                "Ngoại lệ: nếu feedback mang tính TỔNG THỂ (đổi tông cả bộ, làm lại, đổi tổng số món) thì mới chỉnh nhiều item.")
+                "Mỗi item trả về PHẢI kèm trường \"giu_nguyen\": true nếu item GIỮ NGUYÊN từ proposal hiện tại "
+                "(KHÔNG liên quan feedback — giữ Y HỆT TÊN cũ); false nếu item MỚI hoặc BỊ SỬA theo feedback. "
+                "CHỈ để giu_nguyen=false cho item liên quan TRỰC TIẾP feedback; mọi item khác PHẢI giu_nguyen=true với TÊN trùng khớp proposal hiện tại. "
+                "Ngoại lệ: feedback TỔNG THỂ (đổi tông cả bộ, làm lại, đổi tổng số món) → cho phép nhiều item giu_nguyen=false.")
     if clarify:
         base_prompt += (
             "\n\nREQUESTER ĐÃ TRẢ LỜI LÀM RÕ YÊU CẦU ĐẶC BIỆT:\n"
@@ -321,6 +347,8 @@ def propose_items_for(record: dict, feedback: str | None = None,
             "chưa kèm item creative (cần thêm thời gian thiết kế/sản xuất); và cảnh báo dù chỉ dùng hàng có sẵn "
             "vẫn rủi ro không kịp deadline.")
     proposal = ask_llm_json(base_prompt, max_tokens=2500)
+    if feedback and prev_items:
+        _restore_kept_items(proposal, prev_items)  # [B] copy nguyên vẹn item giu_nguyen từ proposal cũ
     _enforce_catalogue_price(proposal, by_name)
 
     # Vong tu sua: vuot budget -> bat LLM dieu chinh, toi da 2 lan
@@ -421,7 +449,9 @@ def propose_items_for(record: dict, feedback: str | None = None,
     # KHONG nhet summary vao "Phan tich AI" (de field do = phan tich de bai cua AI #1).
     # Proposal da the hien qua Items + File proposal.
     proj_updates = {"Phân loại merch": sorted(phan_loai_merch),
-                    "Cảnh báo deadline": fields.get("Cảnh báo deadline", "")}
+                    "Cảnh báo deadline": fields.get("Cảnh báo deadline", ""),
+                    # [B] snapshot items publish lần này -> revise sau restore item giu_nguyen
+                    "Proposal JSON": json.dumps(proposal["items"], ensure_ascii=False)}
     # Clarify resolve -> luu yeu cau da chot vao "Yeu cau dac biet" (de lan sau revise khong block lai
     # vi doc lai field cu mau thuan voi cau tra loi).
     if clarify:
