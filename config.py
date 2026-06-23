@@ -12,7 +12,7 @@ AIRTABLE_TOKEN = os.environ.get("AIRTABLE_TOKEN", "")
 LLM_BASE_URL = os.environ.get("LLM_BASE_URL", "https://llm.vinhpham.com.vn/v1")
 LLM_MODEL = os.environ.get("LLM_MODEL", "")
 LLM_API_KEY = os.environ.get("LLM_API_KEY", "")
-LLM_IMAGE_MODEL = os.environ.get("LLM_IMAGE_MODEL", "gemini/gemini-2.5-flash-image")
+LLM_IMAGE_MODEL = os.environ.get("LLM_IMAGE_MODEL", "gemini/imagen-4.0-fast-generate-001")
 # Model cho insight game (grounding Google Search) — can Gemini 2.x, tach khoi LLM_MODEL chinh.
 LLM_GROUNDING_MODEL = os.environ.get("LLM_GROUNDING_MODEL", "gemini-flash")
 
