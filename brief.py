@@ -103,7 +103,7 @@ def build_brief_content(fields: dict, items: list, asset_status: dict, insight: 
 
 # ---------- gather images (tai dung cache proposal) ----------
 _BRIEF_IMG_CACHE: dict = {}
-_BRIEF_IMG_TIMEOUT = 60   # giay/anh — het gio bo qua (chan treo pipeline)
+_BRIEF_IMG_TIMEOUT = 120  # giay/anh (cap CUNG nho max_retries=0) — latency anh dao dong ~35-90s, het gio bo qua (chan treo pipeline)
 _BRIEF_IMG_WORKERS = 3    # gen SONG SONG (giam wall-clock; nhe tay voi endpoint)
 
 

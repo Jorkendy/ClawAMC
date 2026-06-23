@@ -139,11 +139,14 @@ def ask_llm_grounded(prompt: str, max_tokens: int = 3000) -> str:
 
 def generate_image(prompt: str, timeout: float | None = None) -> str | None:
     """Sinh 1 anh tu prompt -> base64 (b64_json). Loi -> None (de van render, fallback icon).
-    timeout (giay): chan treo — het gio -> None NGAY (KHONG retry, tranh block pipeline nhieu phut;
-    SDK OpenAI mac dinh 600s + retry => 1 anh ket co the treo hang chuc phut neu khong dat timeout)."""
+    timeout (giay): cap CUNG tong thoi gian — het gio -> None NGAY.
+    LUU Y: timeout cua SDK chi cap MOI HTTP attempt, ma SDK OpenAI mac dinh tu retry 2 lan
+    khi APITimeoutError => 1 anh cham co the treo 3x timeout (vd 60s -> 180s). Phai dat
+    max_retries=0 khi co timeout de timeout thanh cap cung that, tranh block pipeline."""
+    client = llm.with_options(max_retries=0, timeout=timeout) if timeout else llm
     for attempt in range(3):
         try:
-            resp = llm.images.generate(model=LLM_IMAGE_MODEL, prompt=prompt, timeout=timeout)
+            resp = client.images.generate(model=LLM_IMAGE_MODEL, prompt=prompt)
             _add_cost(images=1)
             return resp.data[0].b64_json
         except APITimeoutError:
