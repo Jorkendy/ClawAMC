@@ -12,8 +12,8 @@ import urllib.error
 import urllib.request
 from datetime import date
 
-from config import (AIRTABLE_BASE_ID, AIRTABLE_TOKEN, PLAN_FILE_FIELD_ID,
-                    PROPOSAL_FILE_FIELD_ID)
+from config import (AIRTABLE_BASE_ID, AIRTABLE_TOKEN, BRIEF_FILE_FIELD_ID,
+                    PLAN_FILE_FIELD_ID, PROPOSAL_FILE_FIELD_ID)
 
 
 def _esc(s) -> str:
@@ -240,3 +240,11 @@ def upload_plan(record_id: str, xlsx: bytes, code: str) -> dict:
         record_id, PLAN_FILE_FIELD_ID,
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         f"plan_san_xuat_{code}.xlsx", xlsx)
+
+
+def upload_brief(record_id: str, pptx: bytes, code: str) -> dict:
+    """Upload deck brief design (.pptx) vao field 'File brief design' (Buoc 5)."""
+    return _upload_attachment(
+        record_id, BRIEF_FILE_FIELD_ID,
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        f"brief_design_{code}.pptx", pptx)
