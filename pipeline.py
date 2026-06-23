@@ -27,7 +27,7 @@ from config import (MAX_CLARIFY_ROUNDS, MAX_PROPOSAL_ROUNDS, MAX_SUPPLEMENT_ROUN
                     PROJECTS_TABLE, PROPOSAL_APPROVAL_DAYS)
 from llm_client import estimate_cost_vnd, get_cost_summary, reset_cost
 from plan import build_plan, render_plan_xlsx
-from brief import build_brief_content, gather_images, render_brief_pptx
+from brief import build_brief_content, gather_brief_images, render_brief_pptx
 from proposal import game_insight, propose_items_for
 from proposal_render import build_proposal_html, upload_brief, upload_plan, upload_proposal
 
@@ -334,7 +334,7 @@ def _generate_brief(record_id: str, code: str) -> None:
     fields = rec.get("fields", {})
     items, asset_status, insight, logo_png = _gather_brief_inputs(fields, record_id)
     brief_data = build_brief_content(fields, items, asset_status, insight)
-    images = gather_images(items)
+    images = gather_brief_images(brief_data["items"], fields.get("Game") or "")
     project = {
         "code": fields.get("Mã project") or code, "name": fields.get("Tên project") or "",
         "game": fields.get("Game") or "", "so_luong": fields.get("Số lượng (bộ/suất)") or "?",

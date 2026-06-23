@@ -10,8 +10,8 @@ from pptx import Presentation
 from pptx.dml.color import RGBColor
 from pptx.util import Inches, Pt
 
-from llm_client import ask_llm_json
-from proposal import _build_images, catalogue_data, game_insight
+from llm_client import ask_llm_json, generate_image
+from proposal import game_insight
 
 BRIEF_PROMPT = """Bạn là chuyên gia brief design merchandise game. Soạn BRIEF DESIGN cho bộ quà dưới đây \
 để đội M&D/đối tác design. Đây là BẢN NHÁP định hướng — bạn CHỦ ĐỘNG đề xuất khi thiếu thông tin, \
@@ -101,17 +101,34 @@ def build_brief_content(fields: dict, items: list, asset_status: dict, insight: 
 
 
 # ---------- gather images (tai dung cache proposal) ----------
-def gather_images(items: list) -> dict:
-    """Map {ten item -> PNG bytes}. Tai dung proposal._build_images (data-URI) roi tach bytes."""
-    _, by_name = catalogue_data()
-    uri_map = _build_images(items, by_name)  # {ten -> "data:image/...;base64,..." hoac data-uri}
+_BRIEF_IMG_CACHE: dict = {}
+
+
+def gather_brief_images(brief_items: list, game: str) -> dict:
+    """Map {ten item -> PNG bytes}: AI generate concept mockup theo GAME cho MOI item
+    (catalogue + creative), dua tren design_direction da enrich — KHONG dung anh catalogue goc.
+    Cache theo prompt chuan hoa -> re-trigger khong gen lai. Loi gen -> bo qua item (render fallback icon)."""
     out = {}
-    for name, uri in uri_map.items():
-        try:
-            b64 = uri.split(",", 1)[1] if "," in uri else uri
-            out[name] = base64.b64decode(b64)
-        except Exception:
+    for it in brief_items:
+        name = (it.get("ten") or "").strip()
+        if not name:
             continue
+        direction = (it.get("design_direction") or it.get("idea") or "").strip()
+        prompt = (f"Product mockup of '{name}' ({it.get('loai', '')}) as merchandise for the game "
+                  f"'{game}'. Design direction: {direction}. "
+                  "Style: clean concept mockup / product visualization, illustrative, plain background, "
+                  "shows the design idea — NOT a final production-ready file.")
+        key = " ".join(prompt.lower().split())
+        b64 = _BRIEF_IMG_CACHE.get(key)
+        if not b64:
+            b64 = generate_image(prompt)
+            if b64:
+                _BRIEF_IMG_CACHE[key] = b64  # chi cache khi gen thanh cong
+        if b64:
+            try:
+                out[name] = base64.b64decode(b64)
+            except Exception:
+                continue
     return out
 
 
