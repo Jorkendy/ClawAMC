@@ -29,6 +29,8 @@ LLM_REASONING_EFFORT = os.environ.get("LLM_REASONING_EFFORT", "disable")
 PROPOSAL_FILE_FIELD_ID = os.environ.get("PROPOSAL_FILE_FIELD_ID", "fldFlkZzbRIX9Um48")
 # Field id "File plan san xuat" (Buoc 4) — Airtable Upload Attachment API (base appo1Oei5JvJ1EXAG)
 PLAN_FILE_FIELD_ID = os.environ.get("PLAN_FILE_FIELD_ID", "fldYBX6NoMbTOqatf")
+# Field id "File brief design" (Buoc 5) — Airtable Upload Attachment API (base appo1Oei5JvJ1EXAG)
+BRIEF_FILE_FIELD_ID = os.environ.get("BRIEF_FILE_FIELD_ID", "fldfqeqkVAegySzZ5")
 
 # URL form Fillout phan hoi (seat-free). De trong -> route /proposal khong chen nut "Phan hoi".
 # Link tao = FILLOUT_FORM_URL + "?id=" + record_id (khop pre-fetch + update record cua Fillout).
