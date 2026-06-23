@@ -137,13 +137,18 @@ def ask_llm_grounded(prompt: str, max_tokens: int = 3000) -> str:
     return ""
 
 
-def generate_image(prompt: str) -> str | None:
-    """Sinh 1 anh tu prompt -> base64 (b64_json). Loi -> None (de proposal van render, fallback icon)."""
+def generate_image(prompt: str, timeout: float | None = None) -> str | None:
+    """Sinh 1 anh tu prompt -> base64 (b64_json). Loi -> None (de van render, fallback icon).
+    timeout (giay): chan treo — het gio -> None NGAY (KHONG retry, tranh block pipeline nhieu phut;
+    SDK OpenAI mac dinh 600s + retry => 1 anh ket co the treo hang chuc phut neu khong dat timeout)."""
     for attempt in range(3):
         try:
-            resp = llm.images.generate(model=LLM_IMAGE_MODEL, prompt=prompt)
+            resp = llm.images.generate(model=LLM_IMAGE_MODEL, prompt=prompt, timeout=timeout)
             _add_cost(images=1)
             return resp.data[0].b64_json
+        except APITimeoutError:
+            print(f"[llm] generate_image timeout ({timeout}s) -> bỏ ảnh")
+            return None
         except _TRANSIENT_ERRORS as e:
             print(f"[llm] generate_image transient (lần {attempt + 1}/3): {type(e).__name__}")
             time.sleep(2 * (attempt + 1))

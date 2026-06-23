@@ -4,6 +4,7 @@ AI nhap -> M&D hoan thien. Chu dong fill gap khi input ngheo + GAN NHAN nguon (r
 de M&D biet cai nao la gia dinh. Khong bia chi tiet logo/KV brand cu the.
 """
 import base64
+import concurrent.futures
 import io
 
 from pptx import Presentation
@@ -102,33 +103,52 @@ def build_brief_content(fields: dict, items: list, asset_status: dict, insight: 
 
 # ---------- gather images (tai dung cache proposal) ----------
 _BRIEF_IMG_CACHE: dict = {}
+_BRIEF_IMG_TIMEOUT = 60   # giay/anh — het gio bo qua (chan treo pipeline)
+_BRIEF_IMG_WORKERS = 3    # gen SONG SONG (giam wall-clock; nhe tay voi endpoint)
+
+
+def _brief_img_prompt(it: dict, game: str) -> str:
+    direction = (it.get("design_direction") or it.get("idea") or "").strip()
+    return (f"Product mockup of '{it.get('ten', '')}' ({it.get('loai', '')}) as merchandise for the "
+            f"game '{game}'. Design direction: {direction}. "
+            "Style: clean concept mockup / product visualization, illustrative, plain background, "
+            "shows the design idea — NOT a final production-ready file.")
 
 
 def gather_brief_images(brief_items: list, game: str) -> dict:
     """Map {ten item -> PNG bytes}: AI generate concept mockup theo GAME cho MOI item
     (catalogue + creative), dua tren design_direction da enrich — KHONG dung anh catalogue goc.
-    Cache theo prompt chuan hoa -> re-trigger khong gen lai. Loi gen -> bo qua item (render fallback icon)."""
-    out = {}
+    Gen SONG SONG + timeout/anh: tranh treo ca pipeline (truoc tuan tu, 1 call ket -> ket het).
+    Cache theo prompt chuan hoa -> re-trigger khong gen lai. Timeout/loi 1 anh -> bo qua item."""
+    out, todo = {}, []
     for it in brief_items:
         name = (it.get("ten") or "").strip()
         if not name:
             continue
-        direction = (it.get("design_direction") or it.get("idea") or "").strip()
-        prompt = (f"Product mockup of '{name}' ({it.get('loai', '')}) as merchandise for the game "
-                  f"'{game}'. Design direction: {direction}. "
-                  "Style: clean concept mockup / product visualization, illustrative, plain background, "
-                  "shows the design idea — NOT a final production-ready file.")
-        key = " ".join(prompt.lower().split())
-        b64 = _BRIEF_IMG_CACHE.get(key)
-        if not b64:
-            b64 = generate_image(prompt)
-            if b64:
-                _BRIEF_IMG_CACHE[key] = b64  # chi cache khi gen thanh cong
-        if b64:
+        key = " ".join(_brief_img_prompt(it, game).lower().split())
+        cached = _BRIEF_IMG_CACHE.get(key)
+        if cached:
             try:
-                out[name] = base64.b64decode(b64)
+                out[name] = base64.b64decode(cached)
             except Exception:
-                continue
+                pass
+        else:
+            todo.append((name, key, _brief_img_prompt(it, game)))
+    if todo:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=_BRIEF_IMG_WORKERS) as ex:
+            futs = {ex.submit(generate_image, p, _BRIEF_IMG_TIMEOUT): (n, k) for (n, k, p) in todo}
+            for f in concurrent.futures.as_completed(futs):
+                name, key = futs[f]
+                try:
+                    b64 = f.result()
+                except Exception:
+                    b64 = None
+                if b64:
+                    _BRIEF_IMG_CACHE[key] = b64  # chi cache khi gen thanh cong
+                    try:
+                        out[name] = base64.b64decode(b64)
+                    except Exception:
+                        pass
     return out
 
 

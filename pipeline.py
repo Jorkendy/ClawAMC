@@ -342,6 +342,7 @@ def _generate_brief(record_id: str, code: str) -> None:
         "logo_png": logo_png,
     }
     pptx = render_brief_pptx(brief_data, images, project)
+    update_project(record_id, {"File brief design": []})  # clear ban cu -> re-trigger thay vi cong don
     upload_brief(record_id, pptx, code)
     update_project(record_id, {"Bắt đầu design": False})
     append_note(record_id, f"[AI] Đã sinh brief design ({len(brief_data.get('items', []))} item).",
