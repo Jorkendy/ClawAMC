@@ -13,6 +13,8 @@ AI_COST_LOG_TABLE = os.environ.get("AI_COST_LOG_TABLE", "tblssSLXoyXZiEjwG")
 AIRTABLE_TOKEN = os.environ.get("AIRTABLE_TOKEN", "")
 LLM_BASE_URL = os.environ.get("LLM_BASE_URL", "https://llm.vinhpham.com.vn/v1")
 LLM_MODEL = os.environ.get("LLM_MODEL", "")
+# Model du phong khi LLM_MODEL fail (vd LiteLLM fallback hong -> 503). Vd "claude-sonnet". "" = tat.
+LLM_MODEL_FALLBACK = os.environ.get("LLM_MODEL_FALLBACK", "")
 LLM_API_KEY = os.environ.get("LLM_API_KEY", "")
 LLM_IMAGE_MODEL = os.environ.get("LLM_IMAGE_MODEL", "gemini/imagen-4.0-fast-generate-001")
 # Cong tac gen anh AI (proposal + brief). Tat (false) khi test nhieu de khoi ton chi phi anh.

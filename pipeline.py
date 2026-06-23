@@ -25,7 +25,8 @@ from airtable_client import (airtable, append_note, fetch_items_of,
 from analysis import analyze_one
 from config import (AI_COST_LOG_TABLE, MAX_CLARIFY_ROUNDS, MAX_PROPOSAL_ROUNDS,
                     MAX_SUPPLEMENT_ROUNDS, PROJECTS_TABLE, PROPOSAL_APPROVAL_DAYS)
-from llm_client import estimate_cost_vnd, get_cost_summary, reset_cost
+from llm_client import (cost_breakdown_vnd, estimate_cost_vnd,
+                        get_cost_summary, reset_cost)
 from plan import build_plan, render_plan_xlsx
 from brief import build_brief_content, gather_brief_images, render_brief_pptx
 from proposal import game_insight, propose_items_for
@@ -78,6 +79,7 @@ def _log_cost(record_id: str, code: str, elapsed: float, step: str = "Proposal")
     Bang log -> cong don/thong ke chi phi trung binh moi project. step: Phan tich/Proposal/Plan/Brief."""
     s = get_cost_summary()
     cost = estimate_cost_vnd(s)
+    b = cost_breakdown_vnd(s)
     tok = s["chat_tok_in"] + s["chat_tok_out"]
     msg = (f"[Chi phí] {step} ~{cost:,}đ · {elapsed:.0f}s · {s['images']} ảnh · "
            f"{s['grounded_calls']} grounded · {s['chat_calls']} chat ({tok:,} tok)")
@@ -97,6 +99,9 @@ def _log_cost(record_id: str, code: str, elapsed: float, step: str = "Proposal")
             "Grounded calls": s["grounded_calls"],
             "Thời gian (s)": round(elapsed),
             "Models": " · ".join(s.get("models") or []),
+            "Chi phí chat (VND)": b["chat"],
+            "Chi phí ảnh (VND)": b["image"],
+            "Chi phí grounded (VND)": b["grounded"],
         }}]})
     except Exception as e:  # noqa: BLE001
         print(f"[pipeline] không ghi được AI Cost Log {code}: {e}")
@@ -239,8 +244,11 @@ def _reanalyze(record_id: str) -> None:
     rounds = int(rec["fields"].get(SUPPLEMENT_FIELD) or 0)
     # Con duoi cap thi cho gui mail bo sung; tu cap tro di -> im lang + escalate PIC
     notify = rounds < MAX_SUPPLEMENT_ROUNDS
+    t0 = time.monotonic()
+    reset_cost()  # do chi phi AI#1 re-analyze rieng
     result = analyze_one(rec, notify_missing=notify)
     code = result["project_code"]
+    _log_cost(record_id, code, time.monotonic() - t0, step="Phân tích")
     print(f"[webhook] re-analyzed {code} -> {result['new_status']} (lần bổ sung {rounds + 1})")
 
     if result["new_status"] == "Chờ duyệt items":
@@ -268,7 +276,10 @@ def _scan_new() -> None:
     records = fetch_projects("OR({Status} = 'Mới tiếp nhận', {Status} = BLANK())")
     for r in records:
         try:
+            t0 = time.monotonic()
+            reset_cost()  # do chi phi AI#1 phan tich rieng
             result = analyze_one(r)
+            _log_cost(r["id"], result["project_code"], time.monotonic() - t0, step="Phân tích")
             print(f"[webhook] analyzed {result['project_code']} -> {result['new_status']}")
             if result["new_status"] == "Chờ duyệt items":
                 first_send(r["id"])

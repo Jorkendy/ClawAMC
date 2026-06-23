@@ -15,7 +15,7 @@ from config import (AI_IMAGES_ENABLED, CF_ACCESS_CLIENT_ID,
                     COST_CHAT_PER_1K_OUT_VND, COST_GROUNDED_PER_CALL_VND,
                     COST_PER_IMAGE_VND, LLM_API_KEY, LLM_BASE_URL,
                     LLM_GROUNDING_MODEL, LLM_IMAGE_MODEL, LLM_MODEL,
-                    LLM_REASONING_EFFORT)
+                    LLM_MODEL_FALLBACK, LLM_REASONING_EFFORT)
 
 # --- Theo doi chi phi AI moi proposal ---
 # Thread-local: moi luong xu ly 1 project rieng -> tranh lan chi phi khi analyze & decide
@@ -54,14 +54,20 @@ def get_cost_summary() -> dict:
     return d
 
 
+def cost_breakdown_vnd(s: dict) -> dict:
+    """Tach chi phi VND theo loai (chat/image/grounded) — cho dashboard report. Don gia [GIA DINH] o config."""
+    return {
+        "chat": round(s.get("chat_tok_in", 0) / 1000 * COST_CHAT_PER_1K_IN_VND
+                      + s.get("chat_tok_out", 0) / 1000 * COST_CHAT_PER_1K_OUT_VND),
+        "image": round(s.get("images", 0) * COST_PER_IMAGE_VND),
+        "grounded": round(s.get("grounded_calls", 0) * COST_GROUNDED_PER_CALL_VND),
+    }
+
+
 def estimate_cost_vnd(s: dict) -> int:
-    """Uoc tinh chi phi VND tu so dem (don gia [GIA DINH] o config)."""
-    return round(
-        s.get("images", 0) * COST_PER_IMAGE_VND
-        + s.get("grounded_calls", 0) * COST_GROUNDED_PER_CALL_VND
-        + s.get("chat_tok_in", 0) / 1000 * COST_CHAT_PER_1K_IN_VND
-        + s.get("chat_tok_out", 0) / 1000 * COST_CHAT_PER_1K_OUT_VND
-    )
+    """Tong chi phi VND (= sum cost_breakdown_vnd)."""
+    b = cost_breakdown_vnd(s)
+    return b["chat"] + b["image"] + b["grounded"]
 
 # Loi API TAM THOI -> nen retry (Gemini 503 qua tai / 429 rate-limit / mat ket noi / timeout).
 # Loi vinh vien (BadRequest model sai, Auth 401/403) KHONG nam day -> raise ngay, khong retry.
@@ -79,9 +85,10 @@ llm = OpenAI(api_key=LLM_API_KEY, base_url=LLM_BASE_URL,
              default_headers=_headers or None)
 
 
-def ask_llm_json(prompt: str, max_tokens: int = 1500) -> dict:
+def _ask_json_once(model: str, prompt: str, max_tokens: int) -> dict:
+    """Goi 1 model -> JSON dict. Retry transient (503/429/mang) + parse loi 4 lan; het -> ValueError."""
     kwargs = dict(
-        model=LLM_MODEL,
+        model=model,
         messages=[{"role": "user", "content": prompt}],
         max_tokens=max_tokens,
         temperature=0.2,
@@ -89,15 +96,13 @@ def ask_llm_json(prompt: str, max_tokens: int = 1500) -> dict:
     if LLM_REASONING_EFFORT:
         kwargs["reasoning_effort"] = LLM_REASONING_EFFORT
 
-    # Retry: (a) lỗi API transient (503/429/mạng) -> chờ rồi thử lại; (b) JSON hỏng/rỗng/không object.
-    # Lỗi vĩnh viễn (model sai, auth) KHÔNG bắt -> raise ngay -> pipeline escalate PIC nhanh.
     last_err = None
     for attempt in range(4):
         try:
             resp = llm.chat.completions.create(**kwargs)
             tin, tout = _usage(resp)
             _add_cost(chat_calls=1, chat_tok_in=tin, chat_tok_out=tout)
-            _cost_d().setdefault("models", set()).add(getattr(resp, "model", "") or LLM_MODEL)
+            _cost_d().setdefault("models", set()).add(getattr(resp, "model", "") or model)
             raw = (resp.choices[0].message.content or "").strip()
             if not raw:
                 raise ValueError("LLM trả về rỗng (content None/empty)")
@@ -109,12 +114,24 @@ def ask_llm_json(prompt: str, max_tokens: int = 1500) -> dict:
             return data
         except _TRANSIENT_ERRORS as e:
             last_err = e
-            print(f"[llm] API transient (lần {attempt + 1}/4): {type(e).__name__} — chờ rồi thử lại")
+            print(f"[llm] {model} transient (lần {attempt + 1}/4): {type(e).__name__} — chờ rồi thử lại")
             time.sleep(2 * (attempt + 1))
         except (json.JSONDecodeError, ValueError) as e:
             last_err = e
-            print(f"[llm] parse lỗi (lần {attempt + 1}/4): {e}")
-    raise ValueError(f"LLM không trả JSON hợp lệ sau 4 lần: {last_err}")
+            print(f"[llm] {model} parse lỗi (lần {attempt + 1}/4): {e}")
+    raise ValueError(f"LLM không trả JSON hợp lệ sau 4 lần ({model}): {last_err}")
+
+
+def ask_llm_json(prompt: str, max_tokens: int = 1500) -> dict:
+    """Goi LLM_MODEL; neu fail (vd 503 do LiteLLM fallback hong) va co LLM_MODEL_FALLBACK -> thu model du phong.
+    Loi vinh vien (model sai, auth) khong retry o _ask_json_once -> raise ngay -> pipeline escalate PIC."""
+    try:
+        return _ask_json_once(LLM_MODEL, prompt, max_tokens)
+    except ValueError as e:
+        if LLM_MODEL_FALLBACK and LLM_MODEL_FALLBACK != LLM_MODEL:
+            print(f"[llm] {LLM_MODEL} fail ({e}) -> thử fallback model {LLM_MODEL_FALLBACK}")
+            return _ask_json_once(LLM_MODEL_FALLBACK, prompt, max_tokens)
+        raise
 
 
 def ask_llm_grounded(prompt: str, max_tokens: int = 3000) -> str:
