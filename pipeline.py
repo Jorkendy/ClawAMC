@@ -17,6 +17,7 @@ clear "Gui phan hoi" (chong retry loop), ghi log — khong de record kep im lang
 import json
 import threading
 import time
+import urllib.request
 from datetime import date, timedelta
 
 from airtable_client import (airtable, append_note, fetch_items_of,
@@ -26,8 +27,9 @@ from config import (MAX_CLARIFY_ROUNDS, MAX_PROPOSAL_ROUNDS, MAX_SUPPLEMENT_ROUN
                     PROJECTS_TABLE, PROPOSAL_APPROVAL_DAYS)
 from llm_client import estimate_cost_vnd, get_cost_summary, reset_cost
 from plan import build_plan, render_plan_xlsx
-from proposal import propose_items_for
-from proposal_render import build_proposal_html, upload_plan, upload_proposal
+from brief import build_brief_content, gather_images, render_brief_pptx
+from proposal import game_insight, propose_items_for
+from proposal_render import build_proposal_html, upload_brief, upload_plan, upload_proposal
 
 _analyze_lock = threading.Lock()
 _analyze_again = threading.Event()
@@ -300,6 +302,67 @@ def _generate_plan(record_id: str, code: str) -> None:
     print(f"[plan] {code} -> plan sản xuất uploaded (giao {plan['delivery']})")
 
 
+def _download_bytes(url: str) -> bytes | None:
+    """Tai 1 file ve bytes (logo asset). Loi -> None (khong chan brief)."""
+    if not url:
+        return None
+    try:
+        with urllib.request.urlopen(url, timeout=20) as r:
+            return r.read()
+    except Exception as e:
+        print(f"[brief] tải asset lỗi: {e}")
+        return None
+
+
+def _gather_brief_inputs(fields: dict, record_id: str):
+    """Gom input cho brief: items (Proposal JSON -> fallback Items), trang thai asset, insight, logo bytes."""
+    items = _plan_items_from_fields(fields, record_id)
+    asset_status = {
+        "logo": bool(fields.get("Logo game")),
+        "kv": bool(fields.get("Key Visual (KV)")),
+        "source": bool(fields.get("Source material")),
+    }
+    insight = game_insight(fields.get("Game") or "")
+    logo_atts = fields.get("Logo game") or []
+    logo_png = _download_bytes(logo_atts[0].get("url")) if logo_atts else None
+    return items, asset_status, insight, logo_png
+
+
+def _generate_brief(record_id: str, code: str) -> None:
+    """Buoc 5: sinh deck brief design -> upload -> clear co. Loi KHONG escalate PIC."""
+    rec = airtable("GET", f"{PROJECTS_TABLE}/{record_id}")
+    fields = rec.get("fields", {})
+    items, asset_status, insight, logo_png = _gather_brief_inputs(fields, record_id)
+    brief_data = build_brief_content(fields, items, asset_status, insight)
+    images = gather_images(items)
+    project = {
+        "code": fields.get("Mã project") or code, "name": fields.get("Tên project") or "",
+        "game": fields.get("Game") or "", "so_luong": fields.get("Số lượng (bộ/suất)") or "?",
+        "deadline": (str(fields.get("Deadline cần hàng"))[:10] if fields.get("Deadline cần hàng") else "?"),
+        "logo_png": logo_png,
+    }
+    pptx = render_brief_pptx(brief_data, images, project)
+    upload_brief(record_id, pptx, code)
+    update_project(record_id, {"Bắt đầu design": False})
+    append_note(record_id, f"[AI] Đã sinh brief design ({len(brief_data.get('items', []))} item).",
+                field=HISTORY_FIELD)
+    print(f"[brief] {code} -> brief design uploaded")
+
+
+def _scan_design_starts() -> None:
+    """Quet record bam nut 'Bat dau design' (co=TRUE + Da duyet items) -> sinh brief."""
+    for r in fetch_projects("AND({Bắt đầu design} = TRUE(), {Status} = 'Đã duyệt items')"):
+        f = r["fields"]
+        code = f.get("Mã project", r["id"])
+        try:
+            _generate_brief(r["id"], code)
+        except Exception as e:
+            update_project(r["id"], {"Bắt đầu design": False})
+            append_note(r["id"], f"[AI] Sinh brief design lỗi (đã clear cờ, bấm lại được): {e}",
+                        field=HISTORY_FIELD)
+            print(f"[brief] {code} sinh brief lỗi: {e}")
+
+
 def _approve_proposal(record_id: str, code: str) -> None:
     """Requester duyet: chot items + Status 'Da duyet items' + sinh plan san xuat (Buoc 4)."""
     updates = [{"id": it["id"], "fields": {"Status": "Đã duyệt"}}
@@ -400,7 +463,10 @@ def handle_proposal_decisions() -> None:
     Tuan tu (serialize): webhook ping don dap (ke ca do agent tu ghi lai Projects) khong
     gay chay song song -> tranh nhan ban items / dem round sai.
     """
-    _run_guarded(_decide_lock, _decide_again, _scan_decisions)
+    def _work():
+        _scan_decisions()
+        _scan_design_starts()
+    _run_guarded(_decide_lock, _decide_again, _work)
 
 
 def on_webhook() -> None:
