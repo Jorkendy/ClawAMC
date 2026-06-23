@@ -13,6 +13,9 @@ LLM_BASE_URL = os.environ.get("LLM_BASE_URL", "https://llm.vinhpham.com.vn/v1")
 LLM_MODEL = os.environ.get("LLM_MODEL", "")
 LLM_API_KEY = os.environ.get("LLM_API_KEY", "")
 LLM_IMAGE_MODEL = os.environ.get("LLM_IMAGE_MODEL", "gemini/imagen-4.0-fast-generate-001")
+# Cong tac gen anh AI (proposal + brief). Tat (false) khi test nhieu de khoi ton chi phi anh.
+# Default true (prod co anh); dat AI_IMAGES_ENABLED=false tren sandbox de test re.
+AI_IMAGES_ENABLED = os.environ.get("AI_IMAGES_ENABLED", "true").strip().lower() not in ("false", "0", "no", "off")
 # Model cho insight game (grounding Google Search) — can Gemini 2.x, tach khoi LLM_MODEL chinh.
 LLM_GROUNDING_MODEL = os.environ.get("LLM_GROUNDING_MODEL", "gemini-flash")
 

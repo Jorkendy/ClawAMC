@@ -10,10 +10,11 @@ import time
 from openai import (APIConnectionError, APITimeoutError, InternalServerError,
                     OpenAI, RateLimitError)
 
-from config import (CF_ACCESS_CLIENT_ID, CF_ACCESS_CLIENT_SECRET,
-                    COST_CHAT_PER_1K_IN_VND, COST_CHAT_PER_1K_OUT_VND,
-                    COST_GROUNDED_PER_CALL_VND, COST_PER_IMAGE_VND, LLM_API_KEY,
-                    LLM_BASE_URL, LLM_GROUNDING_MODEL, LLM_IMAGE_MODEL, LLM_MODEL,
+from config import (AI_IMAGES_ENABLED, CF_ACCESS_CLIENT_ID,
+                    CF_ACCESS_CLIENT_SECRET, COST_CHAT_PER_1K_IN_VND,
+                    COST_CHAT_PER_1K_OUT_VND, COST_GROUNDED_PER_CALL_VND,
+                    COST_PER_IMAGE_VND, LLM_API_KEY, LLM_BASE_URL,
+                    LLM_GROUNDING_MODEL, LLM_IMAGE_MODEL, LLM_MODEL,
                     LLM_REASONING_EFFORT)
 
 # --- Theo doi chi phi AI moi proposal ---
@@ -143,6 +144,9 @@ def generate_image(prompt: str, timeout: float | None = None) -> str | None:
     LUU Y: timeout cua SDK chi cap MOI HTTP attempt, ma SDK OpenAI mac dinh tu retry 2 lan
     khi APITimeoutError => 1 anh cham co the treo 3x timeout (vd 60s -> 180s). Phai dat
     max_retries=0 khi co timeout de timeout thanh cap cung that, tranh block pipeline."""
+    if not AI_IMAGES_ENABLED:
+        print("[llm] AI images TAT (AI_IMAGES_ENABLED=false) -> bo anh (tiet kiem chi phi test)")
+        return None
     client = llm.with_options(max_retries=0, timeout=timeout) if timeout else llm
     for attempt in range(3):
         try:
