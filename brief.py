@@ -24,7 +24,11 @@ QUY TẮC:
 - Trường nào requester đã ghi rõ (chất liệu, kích thước, yêu cầu đặc biệt) → giữ nguyên, đánh "requester".
 - "print_spec": gợi ý vùng in / số màu / định dạng file cần (vd "file vector AI", "file mockup") theo loại item.
 - "references": gom link requester đưa (trong yêu cầu/design_link) + loại tài liệu tham khảo nên có (đánh "ai").
-- Tiếng Việt, ngắn gọn, đúng trọng tâm cho designer.
+- "image_prompt": MÔ TẢ TIẾNG ANH ngắn (1 câu) sản phẩm vật lý cho công cụ sinh ảnh AI. PHẢI gọi đúng TÊN \
+sản phẩm bằng tiếng Anh (vd "acrylic keychain", "hardcover notebook with elastic band", "insulated stainless \
+steel water bottle", "enamel pin badge", "canvas tote bag") + hình dáng/chất liệu/màu chủ đạo. KHÔNG mô tả chữ/logo \
+cụ thể (bề mặt sản phẩm sẽ để trống, ảnh không render chữ).
+- Các trường khác Tiếng Việt, ngắn gọn, đúng trọng tâm cho designer.
 
 THÔNG TIN BỘ QUÀ:
 - Game: {game}
@@ -43,7 +47,7 @@ CÁC ITEM ĐÃ CHỐT:
 JSON schema (CHỈ trả JSON, không text thừa):
 {{"collection_name": str, "overview": str, "asset_status": str, "items": [{{"ten": str, "loai": str, \
 "idea": str, "design_direction": str, "chat_lieu": str, "kich_thuoc": str, "yeu_cau_dac_biet": [str], \
-"print_spec": str, "references": [str], "sources": {{"idea": "requester"|"ai", "design_direction": "requester"|"ai", \
+"print_spec": str, "image_prompt": str, "references": [str], "sources": {{"idea": "requester"|"ai", "design_direction": "requester"|"ai", \
 "chat_lieu": "requester"|"ai", "kich_thuoc": "requester"|"ai", "print_spec": "requester"|"ai"}}}}]}}"""
 
 
@@ -88,7 +92,7 @@ def build_brief_content(fields: dict, items: list, asset_status: dict, insight: 
     for it in data.get("items", []):
         it.setdefault("ten", "")
         it.setdefault("loai", "")
-        for k in ("idea", "design_direction", "chat_lieu", "kich_thuoc", "print_spec"):
+        for k in ("idea", "design_direction", "chat_lieu", "kich_thuoc", "print_spec", "image_prompt"):
             it.setdefault(k, "")
         if not isinstance(it.get("yeu_cau_dac_biet"), list):
             it["yeu_cau_dac_biet"] = []
@@ -108,11 +112,17 @@ _BRIEF_IMG_WORKERS = 3    # gen SONG SONG (giam wall-clock; nhe tay voi endpoint
 
 
 def _brief_img_prompt(it: dict, game: str) -> str:
-    direction = (it.get("design_direction") or it.get("idea") or "").strip()
-    return (f"Product mockup of '{it.get('ten', '')}' ({it.get('loai', '')}) as merchandise for the "
-            f"game '{game}'. Design direction: {direction}. "
-            "Style: clean concept mockup / product visualization, illustrative, plain background, "
-            "shows the design idea — NOT a final production-ready file.")
+    # Uu tien image_prompt (TIENG ANH, do LLM enrich sinh) — Imagen ve san pham ro hon han ten tieng Viet.
+    # Fallback khi thieu: ghep loai+ten+direction (kem hon nhung con hon khong).
+    desc = (it.get("image_prompt") or "").strip()
+    if not desc:
+        direction = (it.get("design_direction") or it.get("idea") or "").strip()
+        desc = f"{it.get('loai', '')} {it.get('ten', '')} — {direction}"
+    return (f"Photorealistic studio product photograph of a single physical product: {desc}. "
+            f"Merchandise concept inspired by the video game '{game}'. "
+            "Centered on a plain neutral background, soft even lighting, clean concept mockup. "
+            "IMPORTANT: the product surface must be BLANK — do NOT render any text, letters, words, "
+            "numbers, captions, labels or typography anywhere in the image.")
 
 
 def gather_brief_images(brief_items: list, game: str) -> dict:
