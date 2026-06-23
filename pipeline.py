@@ -23,8 +23,8 @@ from datetime import date, timedelta
 from airtable_client import (airtable, append_note, fetch_items_of,
                              fetch_projects, update_items, update_project)
 from analysis import analyze_one
-from config import (MAX_CLARIFY_ROUNDS, MAX_PROPOSAL_ROUNDS, MAX_SUPPLEMENT_ROUNDS,
-                    PROJECTS_TABLE, PROPOSAL_APPROVAL_DAYS)
+from config import (AI_COST_LOG_TABLE, MAX_CLARIFY_ROUNDS, MAX_PROPOSAL_ROUNDS,
+                    MAX_SUPPLEMENT_ROUNDS, PROJECTS_TABLE, PROPOSAL_APPROVAL_DAYS)
 from llm_client import estimate_cost_vnd, get_cost_summary, reset_cost
 from plan import build_plan, render_plan_xlsx
 from brief import build_brief_content, gather_brief_images, render_brief_pptx
@@ -73,19 +73,33 @@ def _mark_ai_error(record_id: str, stage: str, err: Exception) -> None:
         print(f"[pipeline] không ghi được trạng thái lỗi cho {record_id}: {e}")
 
 
-def _log_cost(record_id: str, code: str, elapsed: float) -> None:
-    """Ghi chi phi AI + thoi gian xu ly 1 proposal -> Lich su chinh sua + stdout (Coolify log).
-    De co so lieu THAT chung minh chi phi van hanh (thay vi uoc tinh). Cache anh -> lan revise re hon."""
+def _log_cost(record_id: str, code: str, elapsed: float, step: str = "Proposal") -> None:
+    """Ghi chi phi AI + thoi gian 1 lan dung AI -> Lich su (text) + bang 'AI Cost Log' (co cau truc).
+    Bang log -> cong don/thong ke chi phi trung binh moi project. step: Phan tich/Proposal/Plan/Brief."""
     s = get_cost_summary()
     cost = estimate_cost_vnd(s)
     tok = s["chat_tok_in"] + s["chat_tok_out"]
-    msg = (f"[Chi phí] ~{cost:,}đ · {elapsed:.0f}s · {s['images']} ảnh · "
+    msg = (f"[Chi phí] {step} ~{cost:,}đ · {elapsed:.0f}s · {s['images']} ảnh · "
            f"{s['grounded_calls']} grounded · {s['chat_calls']} chat ({tok:,} tok)")
-    print(f"[proposal] {code} {msg}")
+    print(f"[cost] {code} {msg}")
     try:
         append_note(record_id, msg, field=HISTORY_FIELD)
     except Exception as e:  # noqa: BLE001
-        print(f"[pipeline] không ghi được chi phí {code}: {e}")
+        print(f"[pipeline] không ghi được note chi phí {code}: {e}")
+    try:  # log co cau truc de thong ke (loi -> bo qua, khong chan flow)
+        airtable("POST", AI_COST_LOG_TABLE, {"records": [{"fields": {
+            "Log": f"{code} · {step}",
+            "Project": [record_id],
+            "Bước": step,
+            "Chi phí (VND)": cost,
+            "Chat tokens": tok,
+            "Số ảnh": s["images"],
+            "Grounded calls": s["grounded_calls"],
+            "Thời gian (s)": round(elapsed),
+            "Models": " · ".join(s.get("models") or []),
+        }}]})
+    except Exception as e:  # noqa: BLE001
+        print(f"[pipeline] không ghi được AI Cost Log {code}: {e}")
 
 
 def _make_proposal(record_id: str, feedback: str | None = None,
@@ -332,6 +346,8 @@ def _generate_brief(record_id: str, code: str) -> None:
     """Buoc 5: sinh deck brief design -> upload -> clear co. Loi KHONG escalate PIC."""
     rec = airtable("GET", f"{PROJECTS_TABLE}/{record_id}")
     fields = rec.get("fields", {})
+    reset_cost()  # do chi phi AI rieng cho brief (chat enrich + anh)
+    t0 = time.monotonic()
     items, asset_status, insight, logo_png = _gather_brief_inputs(fields, record_id)
     brief_data = build_brief_content(fields, items, asset_status, insight)
     images = gather_brief_images(brief_data["items"], fields.get("Game") or "")
@@ -347,6 +363,7 @@ def _generate_brief(record_id: str, code: str) -> None:
     update_project(record_id, {"Bắt đầu design": False})
     append_note(record_id, f"[AI] Đã sinh brief design ({len(brief_data.get('items', []))} item).",
                 field=HISTORY_FIELD)
+    _log_cost(record_id, code, time.monotonic() - t0, step="Brief")
     print(f"[brief] {code} -> brief design uploaded")
 
 

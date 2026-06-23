@@ -25,7 +25,8 @@ _cost = threading.local()
 
 def reset_cost() -> None:
     _cost.d = {"chat_calls": 0, "chat_tok_in": 0, "chat_tok_out": 0,
-               "grounded_calls": 0, "grounded_tok_in": 0, "grounded_tok_out": 0, "images": 0}
+               "grounded_calls": 0, "grounded_tok_in": 0, "grounded_tok_out": 0, "images": 0,
+               "models": set()}
 
 
 def _cost_d() -> dict:
@@ -48,7 +49,9 @@ def _usage(resp):
 
 
 def get_cost_summary() -> dict:
-    return dict(_cost_d())
+    d = dict(_cost_d())
+    d["models"] = sorted(d.get("models") or [])  # set -> list cho de dung/ghi
+    return d
 
 
 def estimate_cost_vnd(s: dict) -> int:
@@ -94,6 +97,7 @@ def ask_llm_json(prompt: str, max_tokens: int = 1500) -> dict:
             resp = llm.chat.completions.create(**kwargs)
             tin, tout = _usage(resp)
             _add_cost(chat_calls=1, chat_tok_in=tin, chat_tok_out=tout)
+            _cost_d().setdefault("models", set()).add(getattr(resp, "model", "") or LLM_MODEL)
             raw = (resp.choices[0].message.content or "").strip()
             if not raw:
                 raise ValueError("LLM trả về rỗng (content None/empty)")
@@ -128,6 +132,7 @@ def ask_llm_grounded(prompt: str, max_tokens: int = 3000) -> str:
             )
             tin, tout = _usage(resp)
             _add_cost(grounded_calls=1, grounded_tok_in=tin, grounded_tok_out=tout)
+            _cost_d().setdefault("models", set()).add(getattr(resp, "model", "") or LLM_GROUNDING_MODEL)
             return (resp.choices[0].message.content or "").strip()
         except _TRANSIENT_ERRORS as e:
             print(f"[llm] grounded transient (lần {attempt + 1}/3): {type(e).__name__}")
@@ -152,6 +157,7 @@ def generate_image(prompt: str, timeout: float | None = None) -> str | None:
         try:
             resp = client.images.generate(model=LLM_IMAGE_MODEL, prompt=prompt)
             _add_cost(images=1)
+            _cost_d().setdefault("models", set()).add(getattr(resp, "model", "") or LLM_IMAGE_MODEL)
             return resp.data[0].b64_json
         except APITimeoutError:
             print(f"[llm] generate_image timeout ({timeout}s) -> bỏ ảnh")

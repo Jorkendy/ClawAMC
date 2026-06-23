@@ -8,6 +8,8 @@ load_dotenv()
 # --- Config ---
 AIRTABLE_BASE_ID = os.environ.get("AIRTABLE_BASE_ID", "app46fhZ5wAv9LSzC")
 PROJECTS_TABLE = os.environ.get("AIRTABLE_PROJECTS_TABLE", "Projects")
+# Bang log chi phi AI (1 dong/lan dung AI). Dung table ID (ten co dau cach -> tranh encode).
+AI_COST_LOG_TABLE = os.environ.get("AI_COST_LOG_TABLE", "tblssSLXoyXZiEjwG")
 AIRTABLE_TOKEN = os.environ.get("AIRTABLE_TOKEN", "")
 LLM_BASE_URL = os.environ.get("LLM_BASE_URL", "https://llm.vinhpham.com.vn/v1")
 LLM_MODEL = os.environ.get("LLM_MODEL", "")
@@ -47,7 +49,7 @@ MAX_SUPPLEMENT_ROUNDS = 3    # so lan re-analyze (bo sung thong tin) toi da -> e
 
 # Don gia uoc tinh chi phi AI (VND) — [GIA DINH] cap nhat theo bang gia thuc te de "chung minh"
 # chi phi van hanh. Anh + grounding la phan dat; chat self-host re.
-COST_PER_IMAGE_VND = 1000          # gemini image ~ $0.039
+COST_PER_IMAGE_VND = 520           # imagen-4-fast ~ $0.02 (truoc gemini-flash-image ~$0.039=1000)
 COST_GROUNDED_PER_CALL_VND = 900   # grounding Google Search ~ $0.035/call (gop ca token)
 COST_CHAT_PER_1K_IN_VND = 2        # chat input (gemini-flash) ~
 COST_CHAT_PER_1K_OUT_VND = 8       # chat output ~
