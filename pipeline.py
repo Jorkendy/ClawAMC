@@ -357,10 +357,13 @@ def _scan_design_starts() -> None:
         try:
             _generate_brief(r["id"], code)
         except Exception as e:
-            update_project(r["id"], {"Bắt đầu design": False})
-            append_note(r["id"], f"[AI] Sinh brief design lỗi (đã clear cờ, bấm lại được): {e}",
-                        field=HISTORY_FIELD)
             print(f"[brief] {code} sinh brief lỗi: {e}")
+            try:  # nuot loi ghi (Airtable hiccup) de 1 record loi khong bo qua record con lai
+                update_project(r["id"], {"Bắt đầu design": False})
+                append_note(r["id"], f"[AI] Sinh brief design lỗi (đã clear cờ, bấm lại được): {e}",
+                            field=HISTORY_FIELD)
+            except Exception as e2:  # noqa: BLE001
+                print(f"[brief] {code} không ghi được trạng thái lỗi: {e2}")
 
 
 def _approve_proposal(record_id: str, code: str) -> None:
