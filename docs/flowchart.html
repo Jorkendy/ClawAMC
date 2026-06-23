@@ -41,8 +41,8 @@
   <header>
     <span class="tag">VNGGames · Merch Automation</span>
     <h1>Logic xử lý của Merch Agent</h1>
-    <p>Mô hình mục tiêu — cách agent tiếp nhận đề bài, thẩm định tính khả thi và ra đề xuất (proposal). Mỗi khung là một giai đoạn; hình thoi là điểm quyết định <i>nếu… thì…</i>.</p>
-    <div class="meta">Cập nhật: 19/06/2026 · Phiên bản mô hình mục tiêu (sẽ update khi có quyết định mới)</div>
+    <p>Mô hình mục tiêu — cách agent tiếp nhận đề bài, thẩm định khả thi, ra đề xuất (proposal), rồi <b>plan sản xuất</b> (Bước 4) và <b>brief design</b> (Bước 5). Mỗi khung là một giai đoạn; hình thoi là điểm quyết định <i>nếu… thì…</i>.</p>
+    <div class="meta">Cập nhật: 23/06/2026 · Phiên bản mô hình mục tiêu (sẽ update khi có quyết định mới)</div>
   </header>
 
   <div class="legend">
@@ -72,10 +72,13 @@ flowchart TD
   ADJ -- "Requester chỉnh budget / deadline / yêu cầu" --> P2
   P2 -- "KHẢ THI" --> PROP["Proposal chạy được thực tế"]:::built
   PROP --> D3{"PHASE 3 - Requester duyệt?"}
-  D3 -- "Duyệt" --> DONE["Chốt items → sản xuất"]:::built
+  D3 -- "Duyệt" --> DONE["Chốt items (Đã duyệt items)"]:::built
   D3 -- "Cần sửa ITEM" --> REV["Sửa theo feedback"]:::built
   REV -- "Phá khả thi" --> P2
   REV -- "Vẫn khả thi" --> D3
+  DONE --> PLAN["Bước 4 · Plan sản xuất (Excel)<br/>timeline + ngân sách → mail PIC"]:::built
+  PLAN --> BRIEF["Bước 5 · Brief Design (PPTX)<br/>nút 'Bắt đầu design' → enrich AI → mail requester"]:::planned
+  BRIEF --> VEND(["→ M&D design final → Vendor lên mẫu"])
   classDef built fill:#e6f4ea,stroke:#1a7f37,color:#11532a;
   classDef planned fill:#fff4e0,stroke:#d97706,color:#92400e,stroke-dasharray:4 3;
   classDef pic fill:#fdecec,stroke:#b91c1c,color:#7f1d1d,font-weight:bold;
@@ -203,6 +206,41 @@ flowchart TD
         <li><b>2 bộ đếm độc lập:</b> đếm <i>khả thi</i> (Phase 2, chung mọi lever) và đếm <i>sửa item</i> (Phase 3) — vượt cái nào cũng → PIC.</li>
         <li><b>Re-trigger</b> (đã build): bất kỳ lúc nào PIC sửa gốc xong → untick "Cần PIC" + Status = "Mới tiếp nhận" → chạy lại từ Phase 1 (reset các bộ đếm).</li>
         <li><b>Cập nhật &amp; tính lại</b> <span class="assum">SẼ LÀM</span>: requester sửa field cốt lõi (budget/deadline/số lượng) sau khi đã có proposal → đi qua nút này (tái dùng đường re-trigger), không sửa ngầm.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ===================== PHASE 4-5 (SAU KHI CHỐT) ===================== -->
+  <section>
+    <div class="shead">
+      <h2>⑤ Sau khi chốt — Plan sản xuất (Bước 4) &amp; Brief Design (Bước 5)</h2>
+      <div class="sub">Chốt items → tự sinh plan (Excel) cho PIC → bấm nút → sinh brief design (PPTX) cho requester.</div>
+    </div>
+    <div class="diagram">
+<pre class="mermaid">
+flowchart TD
+  A(["Đã duyệt items"]) --> P4["BƯỚC 4 · Plan sản xuất (tự động)<br/>Excel: timeline critical-path + phân bổ ngân sách + đợt chi"]:::built
+  P4 --> P4M["Upload 'File plan sản xuất' → Automation mail PIC kèm file"]:::built
+  P4M --> REVIEW{"PIC xem plan OK?"}
+  REVIEW -- "Bấm nút 'Bắt đầu design'" --> P5A["Gom input: items (Proposal JSON) + insight game<br/>+ asset project (Logo/KV/Source)<br/>thiếu asset → chạy bằng text + insight"]:::planned
+  P5A --> P5B["LLM enrich nội dung brief mỗi item<br/>IDEA · design direction · chất liệu · kích thước · yêu cầu · references<br/>fill gap + gắn nhãn (AI gợi ý) / (Từ requester)"]:::planned
+  P5B --> P5C["Render .pptx: cover + 1 slide/item<br/>+ ảnh mockup (tái dùng cache, item mới mới sinh)"]:::planned
+  P5C --> P5M["Upload 'File brief design' → clear cờ → Automation mail requester kèm deck"]:::planned
+  P5M --> NEXT(["→ Requester đưa M&D hoàn thiện design final → Vendor lên mẫu"])
+  P5B -. "LLM/ảnh lỗi" .-> ERR["Ghi log + clear cờ (cho bấm lại)<br/>KHÔNG chặn luồng chính"]:::planned
+  classDef built fill:#e6f4ea,stroke:#1a7f37,color:#11532a;
+  classDef planned fill:#fff4e0,stroke:#d97706,color:#92400e,stroke-dasharray:4 3;
+  classDef pic fill:#fdecec,stroke:#b91c1c,color:#7f1d1d,font-weight:bold;
+</pre>
+    </div>
+    <div class="notes">
+      <ul>
+        <li><b>Bước 4 — Plan sản xuất</b> (đã code): chạy <b>tự động</b> ngay sau Duyệt items. Excel 2 sheet (kế hoạch tổng + chi tiết items), timeline = <code>27 + max(lên mẫu) + max(sản xuất)</code> ×1.4. Item creative chưa có giá → "—" + chờ vendor.</li>
+        <li><b>Bước 5 — Brief Design</b> <span class="assum">SẼ LÀM</span>: kích hoạt bằng <b>nút "Bắt đầu design"</b> (PIC bấm sau khi xem plan) — không tự động để tránh sinh ảnh sớm.</li>
+        <li><b>AI nháp → M&amp;D hoàn thiện:</b> deck do <b>code sinh (python-pptx)</b> → sạch/đúng cấu trúc nhưng <b>không "designer-grade"</b>; là bản nháp để M&amp;D bê vào hoàn thiện, KHÔNG phải file giao vendor.</li>
+        <li><b>Lõi chất lượng = bước enrich:</b> input thực tế thường nghèo (chỉ text, thiếu asset) → AI <b>chủ động đề xuất + gắn nhãn</b> để brief luôn rõ ràng, chống "brief mơ hồ làm vỡ timeline".</li>
+        <li><b>Asset đi theo project</b> (field attachment Logo/KV/Source trên Projects), requester nạp khi cần — không có kho asset chung.</li>
+        <li><b>Duyệt brief / Duyệt file design:</b> <span class="assum">ĐỂ SAU</span> — MVP chỉ ra link/deck trước; vòng duyệt feedback bổ sung sau.</li>
       </ul>
     </div>
   </section>
