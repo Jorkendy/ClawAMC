@@ -98,6 +98,15 @@ def flowchart() -> FileResponse:
     return FileResponse(_FLOWCHART, media_type="text/html")
 
 
+_RULES = os.path.join(os.path.dirname(__file__), "docs", "proposal-rules.html")
+
+
+@app.get("/rules")
+def rules() -> FileResponse:
+    """Quy tac ra proposal (deadline + item/creative) — tham chieu giai trinh cho stakeholder."""
+    return FileResponse(_RULES, media_type="text/html")
+
+
 def _feedback_button(record_id: str) -> str:
     """Nut noi (link sang form Fillout phan hoi, kem ?id=) — chi hien neu da set FILLOUT_FORM_URL."""
     if not FILLOUT_FORM_URL:
