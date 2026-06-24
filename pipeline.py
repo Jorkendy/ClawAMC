@@ -191,7 +191,7 @@ def _publish_from_snapshot(record_id: str, code: str, snapshot_items: list) -> N
     log.info(f"[deadline] {code} restored full option from snapshot")
 
 
-def _request_adjust(record_id: str, status: str, message: str, pic_reason: str, log: str) -> None:
+def _request_adjust(record_id: str, status: str, message: str, pic_reason: str, log_note: str) -> None:
     """VONG DIEU CHINH/LAM RO HOP NHAT (yeu cau dac biet / budget / deadline) — 1 BO DEM CHUNG
     (CLARIFY_ROUND_FIELD). Tang bo dem; qua MAX -> escalate PIC; else set status + cau hoi + co mail,
     cho requester chinh (text answer / sua Budget|Deadline) roi tick 'Gui phan hoi' -> tinh lai."""
@@ -217,7 +217,7 @@ def _request_adjust(record_id: str, status: str, message: str, pic_reason: str, 
         "Gửi phản hồi": False, "Feedback proposal": None, "Duyệt proposal?": None,
         CLARIFY_ANSWER_FIELD: None,
     })
-    append_note(record_id, f"[AI] Vòng điều chỉnh {rounds} — {log}; đã hỏi requester.", field=HISTORY_FIELD)
+    append_note(record_id, f"[AI] Vòng điều chỉnh {rounds} — {log_note}; đã hỏi requester.", field=HISTORY_FIELD)
     log.info(f"[proposal] {code} -> {status} (vòng điều chỉnh {rounds})")
 
 
