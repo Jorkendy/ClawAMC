@@ -4,11 +4,14 @@ Backend: LiteLLM self-host (llm.vinhpham.com.vn). Neu endpoint dat sau Cloudflar
 Access thi gui kem 2 header service token (CF-Access-Client-Id / CF-Access-Client-Secret).
 """
 import json
+import logging
 import threading
 import time
 
 from openai import (APIConnectionError, APITimeoutError, InternalServerError,
                     OpenAI, RateLimitError)
+
+log = logging.getLogger("merch")
 
 from config import (AI_IMAGES_ENABLED, CF_ACCESS_CLIENT_ID,
                     CF_ACCESS_CLIENT_SECRET, COST_CHAT_PER_1K_IN_VND,
@@ -114,11 +117,11 @@ def _ask_json_once(model: str, prompt: str, max_tokens: int) -> dict:
             return data
         except _TRANSIENT_ERRORS as e:
             last_err = e
-            print(f"[llm] {model} transient (lần {attempt + 1}/4): {type(e).__name__} — chờ rồi thử lại")
+            log.warning(f"[llm] {model} transient (lần {attempt + 1}/4): {type(e).__name__} — chờ rồi thử lại")
             time.sleep(2 * (attempt + 1))
         except (json.JSONDecodeError, ValueError) as e:
             last_err = e
-            print(f"[llm] {model} parse lỗi (lần {attempt + 1}/4): {e}")
+            log.warning(f"[llm] {model} parse lỗi (lần {attempt + 1}/4): {e}")
     raise ValueError(f"LLM không trả JSON hợp lệ sau 4 lần ({model}): {last_err}")
 
 
@@ -129,7 +132,7 @@ def ask_llm_json(prompt: str, max_tokens: int = 1500) -> dict:
         return _ask_json_once(LLM_MODEL, prompt, max_tokens)
     except ValueError as e:
         if LLM_MODEL_FALLBACK and LLM_MODEL_FALLBACK != LLM_MODEL:
-            print(f"[llm] {LLM_MODEL} fail ({e}) -> thử fallback model {LLM_MODEL_FALLBACK}")
+            log.warning(f"[llm] {LLM_MODEL} fail ({e}) -> thử fallback model {LLM_MODEL_FALLBACK}")
             return _ask_json_once(LLM_MODEL_FALLBACK, prompt, max_tokens)
         raise
 
@@ -152,10 +155,10 @@ def ask_llm_grounded(prompt: str, max_tokens: int = 3000) -> str:
             _cost_d().setdefault("models", set()).add(getattr(resp, "model", "") or LLM_GROUNDING_MODEL)
             return (resp.choices[0].message.content or "").strip()
         except _TRANSIENT_ERRORS as e:
-            print(f"[llm] grounded transient (lần {attempt + 1}/3): {type(e).__name__}")
+            log.warning(f"[llm] grounded transient (lần {attempt + 1}/3): {type(e).__name__}")
             time.sleep(2 * (attempt + 1))
         except Exception as e:  # noqa: BLE001
-            print(f"[llm] ask_llm_grounded lỗi: {e}")
+            log.error(f"[llm] ask_llm_grounded lỗi: {e}")
             return ""
     return ""
 
@@ -167,7 +170,7 @@ def generate_image(prompt: str, timeout: float | None = None) -> str | None:
     khi APITimeoutError => 1 anh cham co the treo 3x timeout (vd 60s -> 180s). Phai dat
     max_retries=0 khi co timeout de timeout thanh cap cung that, tranh block pipeline."""
     if not AI_IMAGES_ENABLED:
-        print("[llm] AI images TAT (AI_IMAGES_ENABLED=false) -> bo anh (tiet kiem chi phi test)")
+        log.warning("[llm] AI images TAT (AI_IMAGES_ENABLED=false) -> bo anh (tiet kiem chi phi test)")
         return None
     client = llm.with_options(max_retries=0, timeout=timeout) if timeout else llm
     for attempt in range(3):
@@ -177,12 +180,12 @@ def generate_image(prompt: str, timeout: float | None = None) -> str | None:
             _cost_d().setdefault("models", set()).add(getattr(resp, "model", "") or LLM_IMAGE_MODEL)
             return resp.data[0].b64_json
         except APITimeoutError:
-            print(f"[llm] generate_image timeout ({timeout}s) -> bỏ ảnh")
+            log.warning(f"[llm] generate_image timeout ({timeout}s) -> bỏ ảnh")
             return None
         except _TRANSIENT_ERRORS as e:
-            print(f"[llm] generate_image transient (lần {attempt + 1}/3): {type(e).__name__}")
+            log.warning(f"[llm] generate_image transient (lần {attempt + 1}/3): {type(e).__name__}")
             time.sleep(2 * (attempt + 1))
         except Exception as e:  # noqa: BLE001
-            print(f"[llm] generate_image lỗi: {e}")
+            log.error(f"[llm] generate_image lỗi: {e}")
             return None
     return None

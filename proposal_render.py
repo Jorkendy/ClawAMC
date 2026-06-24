@@ -6,11 +6,14 @@ So tien tong do code tinh — khong lay so model tu cong.
 import base64
 import html
 import json
+import logging
 import re
 import time
 import urllib.error
 import urllib.request
 from datetime import date
+
+log = logging.getLogger("merch")
 
 from config import (AIRTABLE_BASE_ID, AIRTABLE_TOKEN, BRIEF_FILE_FIELD_ID,
                     PLAN_FILE_FIELD_ID, PROPOSAL_FILE_FIELD_ID)
@@ -227,7 +230,7 @@ def _upload_attachment(record_id: str, field_id: str, content_type: str,
                 return json.loads(r.read().decode())
         except (urllib.error.HTTPError, urllib.error.URLError) as e:
             last_err = e
-            print(f"[upload] lỗi {filename} (lần {attempt + 1}/3): {e}")
+            log.error(f"[upload] lỗi {filename} (lần {attempt + 1}/3): {e}")
             if attempt < 2:
                 time.sleep(2 * (attempt + 1))
     raise last_err

@@ -15,11 +15,14 @@ Loi AI/LLM khong hop le (JSON hong/rong/thieu key) -> _mark_ai_error: tick Can P
 clear "Gui phan hoi" (chong retry loop), ghi log — khong de record kep im lang.
 """
 import json
+import logging
 import threading
 import time
 import traceback
 import urllib.request
 from datetime import date, timedelta
+
+log = logging.getLogger("merch")
 
 from airtable_client import (airtable, append_note, fetch_items_of,
                              fetch_projects, update_items, update_project)
@@ -67,7 +70,7 @@ def _run_guarded(lock: threading.Lock, again: threading.Event, work) -> None:
 def _log_exc(context: str) -> None:
     """In full stack trace (file:line) ra stdout -> Coolify logs trace bug nhanh.
     Goi TRONG except block. Field Airtable van giu message goi (human) cho PIC."""
-    print(f"[trace] {context}:\n{traceback.format_exc()}")
+    log.error("[trace] %s:\n%s", context, traceback.format_exc())
 
 
 def _mark_ai_error(record_id: str, stage: str, err: Exception) -> None:
@@ -80,7 +83,7 @@ def _mark_ai_error(record_id: str, stage: str, err: Exception) -> None:
         append_note(record_id, f"[AI] Lỗi xử lý ({stage}): {err} — cần PIC kiểm tra.",
                     field=HISTORY_FIELD)
     except Exception as e:  # noqa: BLE001
-        print(f"[pipeline] không ghi được trạng thái lỗi cho {record_id}: {e}")
+        log.error(f"[pipeline] không ghi được trạng thái lỗi cho {record_id}: {e}")
 
 
 def _log_cost(record_id: str, code: str, elapsed: float, step: str = "Proposal") -> None:
@@ -92,11 +95,11 @@ def _log_cost(record_id: str, code: str, elapsed: float, step: str = "Proposal")
     tok = s["chat_tok_in"] + s["chat_tok_out"]
     msg = (f"[Chi phí] {step} ~{cost:,}đ · {elapsed:.0f}s · {s['images']} ảnh · "
            f"{s['grounded_calls']} grounded · {s['chat_calls']} chat ({tok:,} tok)")
-    print(f"[cost] {code} {msg}")
+    log.info(f"[cost] {code} {msg}")
     try:
         append_note(record_id, msg, field=HISTORY_FIELD)
     except Exception as e:  # noqa: BLE001
-        print(f"[pipeline] không ghi được note chi phí {code}: {e}")
+        log.error(f"[pipeline] không ghi được note chi phí {code}: {e}")
     try:  # log co cau truc de thong ke (loi -> bo qua, khong chan flow)
         airtable("POST", AI_COST_LOG_TABLE, {"records": [{"fields": {
             "Log": f"{code} · {step}",
@@ -113,7 +116,7 @@ def _log_cost(record_id: str, code: str, elapsed: float, step: str = "Proposal")
             "Chi phí grounded (VND)": b["grounded"],
         }}]})
     except Exception as e:  # noqa: BLE001
-        print(f"[pipeline] không ghi được AI Cost Log {code}: {e}")
+        log.error(f"[pipeline] không ghi được AI Cost Log {code}: {e}")
 
 
 def _make_proposal(record_id: str, feedback: str | None = None,
@@ -154,9 +157,9 @@ def _publish_proposal(record_id: str, result: dict, html: str, *, reset_round: b
         fields["Số round proposal"] = 0
     update_project(record_id, fields)
     upload_proposal(record_id, html, result["project_code"])  # upload CUOI -> trigger Automation gui mail
-    print(f"[proposal] {result['project_code']} sent: "
-          f"{result['n_catalogue']} catalogue + {result['n_creative']} creative, "
-          f"{result['total']:,}đ / {result['budget']:,}đ -> Chờ duyệt items")
+    log.info(f"[proposal] {result['project_code']} sent: "
+             f"{result['n_catalogue']} catalogue + {result['n_creative']} creative, "
+             f"{result['total']:,}đ / {result['budget']:,}đ -> Chờ duyệt items")
 
 
 def _publish_from_snapshot(record_id: str, code: str, snapshot_items: list) -> None:
@@ -185,7 +188,7 @@ def _publish_from_snapshot(record_id: str, code: str, snapshot_items: list) -> N
     upload_proposal(record_id, html, code)
     append_note(record_id, "[AI] Requester dời deadline → khôi phục bộ đầy đủ như đã đề xuất.",
                 field=HISTORY_FIELD)
-    print(f"[deadline] {code} restored full option from snapshot")
+    log.info(f"[deadline] {code} restored full option from snapshot")
 
 
 def _request_adjust(record_id: str, status: str, message: str, pic_reason: str, log: str) -> None:
@@ -204,7 +207,7 @@ def _request_adjust(record_id: str, status: str, message: str, pic_reason: str, 
         })
         append_note(record_id, f"[AI] {pic_reason} (sau {MAX_CLARIFY_ROUNDS} vòng điều chỉnh) — chuyển Merch PIC.",
                     field=HISTORY_FIELD)
-        print(f"[proposal] {code} quá {MAX_CLARIFY_ROUNDS} vòng điều chỉnh -> Cần PIC xử lý")
+        log.info(f"[proposal] {code} quá {MAX_CLARIFY_ROUNDS} vòng điều chỉnh -> Cần PIC xử lý")
         return
     update_project(record_id, {
         "Status": status,
@@ -215,7 +218,7 @@ def _request_adjust(record_id: str, status: str, message: str, pic_reason: str, 
         CLARIFY_ANSWER_FIELD: None,
     })
     append_note(record_id, f"[AI] Vòng điều chỉnh {rounds} — {log}; đã hỏi requester.", field=HISTORY_FIELD)
-    print(f"[proposal] {code} -> {status} (vòng điều chỉnh {rounds})")
+    log.info(f"[proposal] {code} -> {status} (vòng điều chỉnh {rounds})")
 
 
 def _enter_clarify(record_id: str, result: dict) -> None:
@@ -319,7 +322,7 @@ def _reevaluate_adjust(record_id: str, code: str) -> None:
         return
     result, html = _make_proposal(record_id)
     _route_result(record_id, result, html, reset_round=True)
-    print(f"[proposal] {code} tính lại sau điều chỉnh")
+    log.info(f"[proposal] {code} tính lại sau điều chỉnh")
 
 
 SUPPLEMENT_FIELD = "Số lần bổ sung"  # dem so lan re-analyze (chong spam mail / escalate khi qua cap)
@@ -337,7 +340,7 @@ def _reanalyze(record_id: str) -> None:
     result = analyze_one(rec, notify_missing=notify)
     code = result["project_code"]
     _log_cost(record_id, code, time.monotonic() - t0, step="Phân tích")
-    print(f"[webhook] re-analyzed {code} -> {result['new_status']} (lần bổ sung {rounds + 1})")
+    log.info(f"[webhook] re-analyzed {code} -> {result['new_status']} (lần bổ sung {rounds + 1})")
 
     if result["new_status"] == "Chờ duyệt items":
         update_project(record_id, {"Gửi phản hồi": False, SUPPLEMENT_FIELD: 0})
@@ -355,7 +358,7 @@ def _reanalyze(record_id: str) -> None:
         })
         append_note(record_id, f"[AI] Bổ sung quá {MAX_SUPPLEMENT_ROUNDS} lần vẫn thiếu thông tin "
                                f"({', '.join(result['missing'])}) — chuyển Merch PIC.", field=HISTORY_FIELD)
-        print(f"[webhook] {code} bổ sung quá {MAX_SUPPLEMENT_ROUNDS} lần -> Cần PIC xử lý")
+        log.info(f"[webhook] {code} bổ sung quá {MAX_SUPPLEMENT_ROUNDS} lần -> Cần PIC xử lý")
     else:
         update_project(record_id, {"Gửi phản hồi": False, SUPPLEMENT_FIELD: rounds})
 
@@ -368,11 +371,11 @@ def _scan_new() -> None:
             reset_cost()  # do chi phi AI#1 phan tich rieng
             result = analyze_one(r)
             _log_cost(r["id"], result["project_code"], time.monotonic() - t0, step="Phân tích")
-            print(f"[webhook] analyzed {result['project_code']} -> {result['new_status']}")
+            log.info(f"[webhook] analyzed {result['project_code']} -> {result['new_status']}")
             if result["new_status"] == "Chờ duyệt items":
                 first_send(r["id"])
         except Exception as e:  # noqa: BLE001
-            print(f"[webhook] pipeline error {r['id']}: {e}")
+            log.error(f"[webhook] pipeline error {r['id']}: {e}")
             _mark_ai_error(r["id"], "phân tích / proposal", e)
 
 
@@ -412,7 +415,7 @@ def _generate_plan(record_id: str, code: str) -> None:
     upload_plan(record_id, render_plan_xlsx(plan), code)
     append_note(record_id, f"[AI] Đã sinh plan sản xuất — giao dự kiến {plan['delivery']} "
                            f"({plan['total_cal']} ngày lịch). {plan['feasible']}", field=HISTORY_FIELD)
-    print(f"[plan] {code} -> plan sản xuất uploaded (giao {plan['delivery']})")
+    log.info(f"[plan] {code} -> plan sản xuất uploaded (giao {plan['delivery']})")
 
 
 def _download_bytes(url: str) -> bytes | None:
@@ -423,7 +426,7 @@ def _download_bytes(url: str) -> bytes | None:
         with urllib.request.urlopen(url, timeout=20) as r:
             return r.read()
     except Exception as e:
-        print(f"[brief] tải asset lỗi: {e}")
+        log.error(f"[brief] tải asset lỗi: {e}")
         return None
 
 
@@ -463,7 +466,7 @@ def _generate_brief(record_id: str, code: str) -> None:
     append_note(record_id, f"[AI] Đã sinh brief design ({len(brief_data.get('items', []))} item).",
                 field=HISTORY_FIELD)
     _log_cost(record_id, code, time.monotonic() - t0, step="Brief")
-    print(f"[brief] {code} -> brief design uploaded")
+    log.info(f"[brief] {code} -> brief design uploaded")
 
 
 def _scan_design_starts() -> None:
@@ -475,13 +478,13 @@ def _scan_design_starts() -> None:
             _generate_brief(r["id"], code)
         except Exception as e:
             _log_exc(f"_generate_brief {code}")
-            print(f"[brief] {code} sinh brief lỗi: {e}")
+            log.error(f"[brief] {code} sinh brief lỗi: {e}")
             try:  # nuot loi ghi (Airtable hiccup) de 1 record loi khong bo qua record con lai
                 update_project(r["id"], {"Bắt đầu design": False})
                 append_note(r["id"], f"[AI] Sinh brief design lỗi (đã clear cờ, bấm lại được): {e}",
                             field=HISTORY_FIELD)
             except Exception as e2:  # noqa: BLE001
-                print(f"[brief] {code} không ghi được trạng thái lỗi: {e2}")
+                log.error(f"[brief] {code} không ghi được trạng thái lỗi: {e2}")
 
 
 def _approve_proposal(record_id: str, code: str) -> None:
@@ -493,14 +496,14 @@ def _approve_proposal(record_id: str, code: str) -> None:
         update_items(updates)
     update_project(record_id, {"Status": "Đã duyệt items", "Duyệt proposal?": None, "Gửi phản hồi": False})
     append_note(record_id, "[AI] Requester đã DUYỆT — chốt đề xuất.", field=HISTORY_FIELD)
-    print(f"[proposal] {code} DUYỆT -> chốt {len(updates)} items -> Đã duyệt items")
+    log.info(f"[proposal] {code} DUYỆT -> chốt {len(updates)} items -> Đã duyệt items")
     try:
         _generate_plan(record_id, code)
     except Exception as e:
         _log_exc(f"_generate_plan {code}")
         append_note(record_id, f"[AI] Sinh plan sản xuất lỗi (không ảnh hưởng chốt items): {e}",
                     field=HISTORY_FIELD)
-        print(f"[plan] {code} sinh plan lỗi: {e}")
+        log.error(f"[plan] {code} sinh plan lỗi: {e}")
 
 
 def _revise_or_escalate(record_id: str, code: str, fields: dict) -> None:
@@ -514,7 +517,7 @@ def _revise_or_escalate(record_id: str, code: str, fields: dict) -> None:
                                                     f"duyệt. Feedback gần nhất: {feedback}"})
         append_note(record_id, f"[AI] Proposal đã sửa {MAX_PROPOSAL_ROUNDS} round vẫn chưa duyệt "
                                f"— chuyển Merch PIC xử lý. Feedback gần nhất: {feedback}", field=HISTORY_FIELD)
-        print(f"[proposal] {code} vượt {MAX_PROPOSAL_ROUNDS} round -> Cần PIC xử lý")
+        log.info(f"[proposal] {code} vượt {MAX_PROPOSAL_ROUNDS} round -> Cần PIC xử lý")
         return
     result, html = _make_proposal(record_id, feedback=feedback)
     if result.get("blocked") or result.get("over_budget") or result.get("adjust_deadline"):
@@ -523,7 +526,7 @@ def _revise_or_escalate(record_id: str, code: str, fields: dict) -> None:
     append_note(record_id, f"[AI] Round {rounds} — sửa proposal theo feedback: {feedback}", field=HISTORY_FIELD)
     update_project(record_id, {"Số round proposal": rounds})
     _publish_proposal(record_id, result, html, reset_round=False)
-    print(f"[proposal] {code} CẦN SỬA -> round {rounds} đã gửi lại")
+    log.info(f"[proposal] {code} CẦN SỬA -> round {rounds} đã gửi lại")
 
 
 def _reevaluate_clarify(record_id: str, code: str, answer: str) -> None:
@@ -544,14 +547,14 @@ def _scan_decisions() -> None:
             # da chot / da chuyen PIC -> bo qua phan hoi (tranh mo lai proposal da duyet / re-escalate)
             if f.get("Status") == "Đã duyệt items" or f.get("Cần PIC xử lý"):
                 update_project(r["id"], {"Gửi phản hồi": False, "Duyệt proposal?": None})
-                print(f"[proposal] {code} đã chốt/đã chuyển PIC -> bỏ qua phản hồi")
+                log.info(f"[proposal] {code} đã chốt/đã chuyển PIC -> bỏ qua phản hồi")
                 continue
             # dang cho lam ro yeu cau dac biet -> doc 'Tra loi lam ro' (chua co proposal nen KHONG dung Feedback proposal)
             if f.get("Status") == CLARIFY_STATUS:
                 answer = (f.get(CLARIFY_ANSWER_FIELD) or "").strip()
                 if not answer:
                     update_project(r["id"], {"Gửi phản hồi": False})
-                    print(f"[proposal] {code} tick Gửi nhưng chưa trả lời làm rõ -> bỏ qua")
+                    log.info(f"[proposal] {code} tick Gửi nhưng chưa trả lời làm rõ -> bỏ qua")
                     continue
                 _reevaluate_clarify(r["id"], code, answer)
                 continue
@@ -575,9 +578,9 @@ def _scan_decisions() -> None:
                 _nag_extend_more(r["id"], f)  # có snapshot treo, deadline chưa đủ, không Duyệt
             else:
                 update_project(r["id"], {"Gửi phản hồi": False})
-                print(f"[proposal] {code} tick Gửi nhưng thiếu decision/feedback -> bỏ qua (không tốn round)")
+                log.info(f"[proposal] {code} tick Gửi nhưng thiếu decision/feedback -> bỏ qua (không tốn round)")
         except Exception as e:  # noqa: BLE001
-            print(f"[proposal] decision error {code}: {e}")
+            log.error(f"[proposal] decision error {code}: {e}")
             _mark_ai_error(r["id"], "xử lý phản hồi", e)
 
 

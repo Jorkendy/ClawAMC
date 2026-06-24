@@ -1,9 +1,13 @@
 """Cau hinh chung: env vars + hang so nghiep vu."""
+import logging
 import os
 
 from dotenv import load_dotenv
 
 load_dotenv()
+
+logging.basicConfig(level=logging.INFO,
+                    format="%(asctime)s [%(levelname)s] %(message)s", datefmt="%H:%M:%S")
 
 # --- Config ---
 AIRTABLE_BASE_ID = os.environ.get("AIRTABLE_BASE_ID", "app46fhZ5wAv9LSzC")

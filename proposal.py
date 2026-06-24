@@ -6,9 +6,12 @@ tin số model tự cộng) + vòng tự sửa budget. Phân loại merch (proje
 """
 import base64
 import json
+import logging
 import re
 import urllib.request
 from datetime import date, timedelta
+
+log = logging.getLogger("merch")
 
 from airtable_client import airtable, fetch_all, fetch_items_of, update_project
 from analysis import build_brief, days_to_deadline_of, deadline_status_of
@@ -110,7 +113,7 @@ def _resolve_catalogue_row(it: dict, by_name: dict, norm_lookup: dict) -> dict |
 
 def _demote_to_creative(it: dict) -> None:
     """Ten khong khop catalogue -> ha xuong creative (gia null) + LOG (khong am tham bien hang co san)."""
-    print(f"[proposal] tên '{it.get('ten', '')}' không khớp catalogue -> hạ thành creative (cần hỏi vendor)")
+    log.info(f"[proposal] tên '{it.get('ten', '')}' không khớp catalogue -> hạ thành creative (cần hỏi vendor)")
     it["nguon"] = "creative"
     it["don_gia"] = None
     it["can_cu_gia"] = "Tên không khớp catalogue — coi như sáng tạo, cần hỏi vendor"
@@ -235,7 +238,7 @@ def _url_to_data_uri(url: str) -> str | None:
             ctype = r.headers.get("Content-Type", "image/png")
         return f"data:{ctype};base64,{base64.b64encode(data).decode('ascii')}"
     except Exception as e:  # noqa: BLE001
-        print(f"[proposal] tải ảnh catalogue lỗi: {e}")
+        log.error(f"[proposal] tải ảnh catalogue lỗi: {e}")
         return None
 
 
