@@ -157,7 +157,12 @@ def build_proposal_html(fields: dict, proposal: dict, total: int, images: dict |
     warn_txt = (fields.get("Cảnh báo deadline") or "").strip()
     nhan_xet = _md_inline(proposal.get("nhan_xet", ""))
     if warn_txt:
-        sev = "intro-crit" if warn_txt.startswith("🔴") else "intro-warn"
+        if warn_txt.startswith("🔴"):
+            sev = "intro-crit"
+        elif warn_txt.startswith("✅"):
+            sev = "intro"        # nhe, khong canh bao do/cam
+        else:
+            sev = "intro-warn"
         intro_block = (f'<div class="intro {sev}"><div class="wline">{_md_inline(warn_txt)}</div>{nhan_xet}</div>')
     else:
         intro_block = f'<p class="intro">{nhan_xet}</p>'
