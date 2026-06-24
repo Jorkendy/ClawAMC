@@ -117,7 +117,7 @@ def _make_proposal(record_id: str, feedback: str | None = None,
     t0 = time.monotonic()
     result = propose_items_for(rec, feedback=feedback, clarify=clarify)
     _log_cost(record_id, result.get("project_code", record_id), time.monotonic() - t0)
-    if result.get("blocked") or result.get("over_budget") or result.get("infeasible_deadline"):
+    if result.get("blocked") or result.get("over_budget") or result.get("adjust_deadline"):
         return result, None
     html = build_proposal_html(rec["fields"], result["proposal"], result["total"],
                                images=result.get("images"),
@@ -257,8 +257,6 @@ def _route_result(record_id: str, result: dict, html: str | None, *, reset_round
         _enter_clarify(record_id, result)
     elif result.get("over_budget"):
         _enter_adjust_budget(record_id, result)
-    elif result.get("infeasible_deadline"):
-        _enter_adjust_deadline(record_id, result)
     else:
         _publish_proposal(record_id, result, html, reset_round=reset_round)
 
@@ -498,7 +496,7 @@ def _revise_or_escalate(record_id: str, code: str, fields: dict) -> None:
         print(f"[proposal] {code} vượt {MAX_PROPOSAL_ROUNDS} round -> Cần PIC xử lý")
         return
     result, html = _make_proposal(record_id, feedback=feedback)
-    if result.get("blocked") or result.get("over_budget") or result.get("infeasible_deadline"):
+    if result.get("blocked") or result.get("over_budget") or result.get("adjust_deadline"):
         _route_result(record_id, result, html, reset_round=False)  # feedback gây không khả thi -> vòng điều chỉnh
         return
     append_note(record_id, f"[AI] Round {rounds} — sửa proposal theo feedback: {feedback}", field=HISTORY_FIELD)
@@ -510,7 +508,7 @@ def _revise_or_escalate(record_id: str, code: str, fields: dict) -> None:
 def _reevaluate_clarify(record_id: str, code: str, answer: str) -> None:
     """Requester tra loi cau hoi lam ro -> cham lai; thoa thi gui proposal, chua thi vao vong dieu chinh tiep."""
     result, html = _make_proposal(record_id, clarify=answer)
-    if not (result.get("blocked") or result.get("over_budget") or result.get("infeasible_deadline")):
+    if not (result.get("blocked") or result.get("over_budget") or result.get("adjust_deadline")):
         append_note(record_id, f"[AI] Đã làm rõ yêu cầu đặc biệt theo trả lời requester: {answer}",
                     field=HISTORY_FIELD)
     _route_result(record_id, result, html, reset_round=True)
