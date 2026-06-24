@@ -8,6 +8,7 @@ import base64
 import json
 import re
 import urllib.request
+from datetime import date, timedelta
 
 from airtable_client import airtable, fetch_all, fetch_items_of, update_project
 from analysis import build_brief, days_to_deadline_of, deadline_status_of
@@ -487,10 +488,28 @@ def propose_items_for(record: dict, feedback: str | None = None,
     proposal, revisions = _revise_until_budget(base_prompt, proposal, budget, by_name)
 
     # Cong chan DEADLINE theo LEAD-TIME ITEM (tinh sau khi co item) -> warn / infeasible.
-    deadline_warn, infeasible = _resolve_deadline(proposal, fields, by_name, code)
-    if infeasible:
-        return infeasible
-    fields["Cảnh báo deadline"] = deadline_warn  # accurate hoa (de-override canh bao generic cua Buoc 1)
+    dl = _resolve_deadline(proposal, fields, by_name, code)
+    if dl["kind"] == "adjust":
+        need_date = (date.today() + timedelta(days=dl["needed_full"])).isoformat()
+        fields["Cảnh báo deadline"] = (
+            f"🔴 Deadline KHÔNG đủ: bộ đề xuất cần ~{dl['needed_full']} ngày, còn {dl['days_left']} ngày. "
+            f"Kể cả món nhanh nhất trong kho ({dl['floor_name']}) cần tối thiểu ~{dl['floor']} ngày."
+            if dl["floor"] and dl["days_left"] < dl["floor"]
+            else f"🔴 Deadline gấp: các món phù hợp cần ~{dl['needed_full']} ngày, còn {dl['days_left']} ngày.")
+        return {"project_code": code, "adjust_deadline": True,
+                "full_snapshot": dl["full"], "needed": dl["needed_full"],
+                "days_left": dl["days_left"], "floor": dl["floor"],
+                "floor_name": dl["floor_name"], "need_date": need_date, "proposal": proposal}
+    deadline_fast = (dl["kind"] == "fast")
+    if deadline_fast:
+        proposal["items"] = dl["fast"]
+        need_date = (date.today() + timedelta(days=dl["needed_full"])).isoformat()
+        slow_names = ", ".join(it.get("ten", "") for it in dl["slow"])
+        fields["Cảnh báo deadline"] = (
+            f"✅ Phương án nhanh kịp deadline hiện tại. 💡 Bộ đầy đủ (thêm: {slow_names}) "
+            f"cần dời 'Deadline cần hàng' tới ≥ {need_date} (~{dl['needed_full']} ngày).")
+    else:
+        fields["Cảnh báo deadline"] = dl["warn"]
 
     # Cong chan: con yeu cau dac biet chua dap ung -> KHONG chot proposal, hoi lai requester
     unmet = [r for r in (proposal.get("yeu_cau_dac_biet") or [])
@@ -527,6 +546,8 @@ def propose_items_for(record: dict, feedback: str | None = None,
         confirmed_req = proposal.get("yeu_cau_dac_biet_chot")
         proj_updates["Yêu cầu đặc biệt"] = (
             confirmed_req if confirmed_req is not None else f"{special}\n[Điều chỉnh theo trả lời] {clarify}")
+    if deadline_fast:
+        proj_updates["Phương án đầy đủ (JSON)"] = json.dumps(dl["full"], ensure_ascii=False)
     update_project(record["id"], proj_updates)
 
     images = _build_images(proposal["items"], by_name)
@@ -534,4 +555,8 @@ def propose_items_for(record: dict, feedback: str | None = None,
     return {"project_code": code, "blocked": False, "items_created": len(item_records),
             "total": total, "budget": budget, "revisions": revisions,
             "n_catalogue": n_cat, "n_creative": n_cre, "proposal": proposal, "images": images,
-            "tier": tier, "per_unit": per_unit, "insight": insight}
+            "tier": tier, "per_unit": per_unit, "insight": insight,
+            "deadline_fast": deadline_fast,
+            "full_snapshot": dl["full"] if deadline_fast else None,
+            "slow": dl["slow"] if deadline_fast else None,
+            "needed_full": dl.get("needed_full") if deadline_fast else None}
