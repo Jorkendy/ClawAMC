@@ -22,14 +22,15 @@ from datetime import date, timedelta
 
 from airtable_client import (airtable, append_note, fetch_items_of,
                              fetch_projects, update_items, update_project)
-from analysis import analyze_one
+from analysis import analyze_one, days_to_deadline_of
 from config import (AI_COST_LOG_TABLE, MAX_CLARIFY_ROUNDS, MAX_PROPOSAL_ROUNDS,
                     MAX_SUPPLEMENT_ROUNDS, PROJECTS_TABLE, PROPOSAL_APPROVAL_DAYS)
 from llm_client import (cost_breakdown_vnd, estimate_cost_vnd,
                         get_cost_summary, reset_cost)
 from plan import build_plan, render_plan_xlsx
 from brief import build_brief_content, gather_brief_images, render_brief_pptx
-from proposal import game_insight, propose_items_for
+from proposal import (game_insight, propose_items_for, _build_item_records,
+                      _build_images, proposal_total, catalogue_data, deadline_days_needed)
 from proposal_render import build_proposal_html, upload_brief, upload_plan, upload_proposal
 
 _analyze_lock = threading.Lock()
@@ -116,7 +117,7 @@ def _make_proposal(record_id: str, feedback: str | None = None,
     t0 = time.monotonic()
     result = propose_items_for(rec, feedback=feedback, clarify=clarify)
     _log_cost(record_id, result.get("project_code", record_id), time.monotonic() - t0)
-    if result.get("blocked") or result.get("over_budget") or result.get("infeasible_deadline"):
+    if result.get("blocked") or result.get("over_budget") or result.get("adjust_deadline"):
         return result, None
     html = build_proposal_html(rec["fields"], result["proposal"], result["total"],
                                images=result.get("images"),
@@ -148,6 +149,35 @@ def _publish_proposal(record_id: str, result: dict, html: str, *, reset_round: b
     print(f"[proposal] {result['project_code']} sent: "
           f"{result['n_catalogue']} catalogue + {result['n_creative']} creative, "
           f"{result['total']:,}đ / {result['budget']:,}đ -> Chờ duyệt items")
+
+
+def _publish_from_snapshot(record_id: str, code: str, snapshot_items: list) -> None:
+    """Restore bộ đầy đủ ĐÚNG y snapshot (KHÔNG gọi LLM) khi requester dời deadline đủ.
+    Xoá items 'Đề xuất' cũ -> tạo lại từ snapshot -> render -> upload -> clear snapshot."""
+    rec = airtable("GET", f"{PROJECTS_TABLE}/{record_id}")
+    fields = rec["fields"]
+    for it in fetch_items_of(record_id):
+        if it["fields"].get("Status") == "Đề xuất":
+            airtable("DELETE", f"Items/{it['id']}")
+    item_records, merch_categories = _build_item_records({"items": snapshot_items}, record_id)
+    airtable("POST", "Items", {"records": item_records, "typecast": True})
+    _, by_name = catalogue_data()
+    images = _build_images(snapshot_items, by_name)
+    total = proposal_total({"items": snapshot_items})
+    html = build_proposal_html(fields, {"items": snapshot_items, "nhan_xet": "",
+                                        "co_so_quyet_dinh": ""}, total, images=images)
+    deadline = (date.today() + timedelta(days=PROPOSAL_APPROVAL_DAYS)).isoformat()
+    update_project(record_id, {
+        "Status": "Chờ duyệt items", "Deadline phê duyệt": deadline,
+        "File proposal": [], "Duyệt proposal?": None, "Gửi phản hồi": False,
+        "Feedback proposal": None, "Phân loại merch": sorted(merch_categories),
+        "Proposal JSON": json.dumps(snapshot_items, ensure_ascii=False),
+        "Phương án đầy đủ (JSON)": "", "Cảnh báo deadline": "",
+    })
+    upload_proposal(record_id, html, code)
+    append_note(record_id, "[AI] Requester dời deadline → khôi phục bộ đầy đủ như đã đề xuất.",
+                field=HISTORY_FIELD)
+    print(f"[deadline] {code} restored full option from snapshot")
 
 
 def _request_adjust(record_id: str, status: str, message: str, pic_reason: str, log: str) -> None:
@@ -200,23 +230,33 @@ def _enter_adjust_budget(record_id: str, result: dict) -> None:
 
 def _enter_adjust_deadline(record_id: str, result: dict) -> None:
     """Deadline khong du ke ca hang co san nhanh nhat -> hoi requester doi deadline (thay vi PIC ngay)."""
-    need, left = result.get("needed_days", "?"), result.get("days_left", "?")
-    msg = (f"Deadline hiện KHÔNG đủ thời gian sản xuất: cần ~{need} ngày kể cả hàng có sẵn nhanh nhất, "
-           f"còn {left} ngày. Vui lòng DỜI 'Deadline cần hàng' (hoặc xác nhận chấp nhận rủi ro) "
-           "rồi tick \"Gửi phản hồi\" để tính lại.")
+    need, left = result.get("needed", "?"), result.get("days_left", "?")
+    nd = result.get("need_date", "?")
+    floor, floor_name = result.get("floor"), result.get("floor_name")
+    extra = (f" Kể cả món nhanh nhất trong kho ({floor_name}) cần tối thiểu ~{floor} ngày."
+             if floor and isinstance(left, int) and left < floor else "")
+    msg = (f"Deadline hiện KHÔNG đủ: bộ đề xuất cần ~{need} ngày, còn {left} ngày.{extra} "
+           f"Vui lòng dời 'Deadline cần hàng' tới ≥ {nd} rồi tick \"Gửi phản hồi\" để lấy bộ đầy đủ "
+           f"(hoặc xác nhận chấp nhận rủi ro).")
     _request_adjust(record_id, ADJUST_STATUS, msg,
-                    f"Deadline không khả thi kể cả hàng có sẵn (cần ~{need}d/còn {left}d).",
+                    f"Deadline không khả thi (cần ~{need}d/còn {left}d).",
                     f"deadline không đủ (cần ~{need}d/còn {left}d)")
 
 
 def _route_result(record_id: str, result: dict, html: str | None, *, reset_round: bool) -> None:
     """Dispatch ket qua _make_proposal: 3 nhanh khong kha thi -> vong dieu chinh hop nhat; else publish."""
+    if result.get("adjust_deadline"):
+        _enter_adjust_deadline(record_id, result)
+        update_project(record_id, {"Phương án đầy đủ (JSON)":
+                                   json.dumps(result["full_snapshot"], ensure_ascii=False)})
+        return
+    if result.get("deadline_fast"):
+        _publish_proposal(record_id, result, html, reset_round=reset_round)
+        return
     if result.get("blocked"):
         _enter_clarify(record_id, result)
     elif result.get("over_budget"):
         _enter_adjust_budget(record_id, result)
-    elif result.get("infeasible_deadline"):
-        _enter_adjust_deadline(record_id, result)
     else:
         _publish_proposal(record_id, result, html, reset_round=reset_round)
 
@@ -227,8 +267,48 @@ def first_send(record_id: str) -> None:
     _route_result(record_id, result, html, reset_round=True)
 
 
+def _try_restore_full(record_id: str, code: str, fields: dict) -> bool:
+    """Nếu có snapshot bộ đầy đủ & deadline mới ĐỦ -> restore (no LLM). Tra True nếu đã restore.
+    Snapshot không có / deadline chưa đủ -> False (caller xử lý Duyệt/nag)."""
+    raw = fields.get("Phương án đầy đủ (JSON)")
+    if not raw:
+        return False
+    try:
+        snap = json.loads(raw)
+    except Exception:
+        return False
+    if not snap:
+        return False
+    days_left = days_to_deadline_of(fields)
+    if days_left is None:
+        return False
+    _, by_name = catalogue_data()
+    if deadline_days_needed(snap, by_name) > days_left:
+        return False
+    _publish_from_snapshot(record_id, code, snap)
+    return True
+
+
+def _nag_extend_more(record_id: str, fields: dict) -> None:
+    """Có snapshot bộ đầy đủ treo nhưng deadline chưa đủ -> nhắc dời thêm; bỏ tick."""
+    raw = fields.get("Phương án đầy đủ (JSON)")
+    snap = json.loads(raw) if raw else []
+    _, by_name = catalogue_data()
+    need = deadline_days_needed(snap, by_name) if snap else "?"
+    update_project(record_id, {"Gửi phản hồi": False,
+        "Trao đổi yêu cầu": f"Deadline hiện chưa đủ cho bộ đầy đủ (cần ~{need} ngày). "
+                            f"Dời 'Deadline cần hàng' thêm rồi gửi lại, hoặc chọn Duyệt để chốt phương án nhanh."})
+
+
 def _reevaluate_adjust(record_id: str, code: str) -> None:
-    """Requester da SUA Budget/Deadline (hoac bo yeu cau) roi tick -> tinh lai (KHONG can text answer)."""
+    """Requester sửa Budget/Deadline rồi tick. Có snapshot đủ -> restore; chưa đủ -> nhắc; else tính lại."""
+    rec = airtable("GET", f"{PROJECTS_TABLE}/{record_id}")
+    fields = rec["fields"]
+    if _try_restore_full(record_id, code, fields):
+        return
+    if fields.get("Phương án đầy đủ (JSON)"):
+        _nag_extend_more(record_id, fields)
+        return
     result, html = _make_proposal(record_id)
     _route_result(record_id, result, html, reset_round=True)
     print(f"[proposal] {code} tính lại sau điều chỉnh")
@@ -427,7 +507,7 @@ def _revise_or_escalate(record_id: str, code: str, fields: dict) -> None:
         print(f"[proposal] {code} vượt {MAX_PROPOSAL_ROUNDS} round -> Cần PIC xử lý")
         return
     result, html = _make_proposal(record_id, feedback=feedback)
-    if result.get("blocked") or result.get("over_budget") or result.get("infeasible_deadline"):
+    if result.get("blocked") or result.get("over_budget") or result.get("adjust_deadline"):
         _route_result(record_id, result, html, reset_round=False)  # feedback gây không khả thi -> vòng điều chỉnh
         return
     append_note(record_id, f"[AI] Round {rounds} — sửa proposal theo feedback: {feedback}", field=HISTORY_FIELD)
@@ -439,7 +519,7 @@ def _revise_or_escalate(record_id: str, code: str, fields: dict) -> None:
 def _reevaluate_clarify(record_id: str, code: str, answer: str) -> None:
     """Requester tra loi cau hoi lam ro -> cham lai; thoa thi gui proposal, chua thi vao vong dieu chinh tiep."""
     result, html = _make_proposal(record_id, clarify=answer)
-    if not (result.get("blocked") or result.get("over_budget") or result.get("infeasible_deadline")):
+    if not (result.get("blocked") or result.get("over_budget") or result.get("adjust_deadline")):
         append_note(record_id, f"[AI] Đã làm rõ yêu cầu đặc biệt theo trả lời requester: {answer}",
                     field=HISTORY_FIELD)
     _route_result(record_id, result, html, reset_round=True)
@@ -475,13 +555,15 @@ def _scan_decisions() -> None:
                 continue
             feedback = (f.get("Feedback proposal") or "").strip()
             decision = f.get("Duyệt proposal?")
-            if decision == "Duyệt":
-                _approve_proposal(r["id"], code)
-            elif decision == "Cần sửa" and feedback:
+            if decision == "Cần sửa" and feedback:
                 _revise_or_escalate(r["id"], code, f)
+            elif _try_restore_full(r["id"], code, f):
+                pass  # deadline đủ -> đã restore bộ đầy đủ
+            elif decision == "Duyệt":
+                _approve_proposal(r["id"], code)
+            elif f.get("Phương án đầy đủ (JSON)"):
+                _nag_extend_more(r["id"], f)  # có snapshot treo, deadline chưa đủ, không Duyệt
             else:
-                # tick som: chua chon decision, hoac Can sua ma chua nhap feedback
-                # -> bo tick, KHONG lam gi, KHONG ton round
                 update_project(r["id"], {"Gửi phản hồi": False})
                 print(f"[proposal] {code} tick Gửi nhưng thiếu decision/feedback -> bỏ qua (không tốn round)")
         except Exception as e:  # noqa: BLE001

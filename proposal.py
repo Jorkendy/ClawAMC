@@ -8,11 +8,12 @@ import base64
 import json
 import re
 import urllib.request
+from datetime import date, timedelta
 
 from airtable_client import airtable, fetch_all, fetch_items_of, update_project
 from analysis import build_brief, days_to_deadline_of, deadline_status_of
 from config import (CREATIVE_LEADTIME_LEN_MAU, CREATIVE_LEADTIME_SAN_XUAT,
-                    DEADLINE_BUFFER, DEADLINE_OVERHEAD_WORKDAYS, WORKDAYS_TO_CALENDAR)
+                    DEADLINE_BUFFER, DEADLINE_OVERHEAD_WORKDAYS, WORKDAYS_TO_CALENDAR, MIN_FAST_ITEMS)
 from llm_client import ask_llm_grounded, ask_llm_json, generate_image
 
 # Loai item — dung de map sang field "Loai" (singleSelect) cua bang Items khi khop
@@ -162,6 +163,32 @@ def deadline_days_needed(items: list, by_name: dict) -> int:
     workdays = DEADLINE_OVERHEAD_WORKDAYS + (max(lm for lm, _ in leads) if leads else 0) \
         + (max(sx for _, sx in leads) if leads else 0)
     return round(workdays * WORKDAYS_TO_CALENDAR)
+
+
+def _fit_within_deadline(items: list, by_name: dict, days_left: int) -> tuple[list, list]:
+    """Bo dan item cham nhat (max lm+sx) toi khi bo kip deadline.
+    Tra (fast=giu lai kip, slow=bi bo). fast giu thu tu goc."""
+    keep, slow = list(items), []
+    while keep and deadline_days_needed(keep, by_name) > days_left:
+        slowest = max(keep, key=lambda it: sum(item_leadtime(it, by_name)))
+        keep.remove(slowest)
+        slow.append(slowest)
+    return keep, slow
+
+
+def catalogue_floor_days(by_name: dict) -> tuple[int, str]:
+    """San tuyet doi: so ngay LICH toi thieu de lam 1 mon catalogue NHANH NHAT
+    (bo lay max nen >= san nay). Tra (so_ngay, ten_mon). Kho rong -> (0, '')."""
+    best = None
+    for name, cat in by_name.items():
+        lm = _parse_int(cat.get("Thời gian lên mẫu"))
+        sx = _parse_int(cat.get("Thời gian sản xuất"))
+        lm = lm if lm is not None else 8
+        sx = sx if sx is not None else 18
+        days = round((DEADLINE_OVERHEAD_WORKDAYS + lm + sx) * WORKDAYS_TO_CALENDAR)
+        if best is None or days < best[0]:
+            best = (days, name)
+    return best if best else (0, "")
 
 
 # BIZ RULE: phan khuc gia tri suy tu ngan sach MOI BO qua = Budget / So luong.
@@ -360,33 +387,28 @@ def _revise_until_budget(base_prompt: str, proposal: dict, budget: int, by_name:
     return proposal, revisions
 
 
-def _resolve_deadline(proposal: dict, fields: dict, by_name: dict, code: str):
-    """Cong chan DEADLINE theo lead-time item. Tra (deadline_warn, infeasible_or_None).
-    MEM: full khong kip -> thu catalogue-only (kip thi dung + canh bao); CUNG: ca catalogue-only tre -> infeasible."""
+def _resolve_deadline(proposal: dict, fields: dict, by_name: dict, code: str) -> dict:
+    """Cong chan DEADLINE (deterministic). Tra dict kind=ok|fast|adjust (xem spec)."""
+    full = proposal.get("items", [])
     days_left = days_to_deadline_of(fields)
     if days_left is None:
-        return "", None
-    needed = deadline_days_needed(proposal.get("items", []), by_name)
-    if needed > days_left:
-        cats = [it for it in proposal.get("items", []) if it.get("nguon") == "catalogue"]
-        needed_cats = deadline_days_needed(cats, by_name) if cats else None
-        if cats and needed_cats is not None and needed_cats <= days_left:
-            if not any(it.get("item_key") for it in cats):
-                cats[0]["item_key"] = True
-            proposal["items"] = cats
-            return (f"🔴 Deadline gấp: phương án đầy đủ cần ~{needed} ngày > còn {days_left} ngày "
-                    f"→ chỉ đề xuất HÀNG CÓ SẴN (cần ~{needed_cats} ngày) để kịp, bỏ item sáng tạo; "
-                    f"vẫn nên theo sát tiến độ."), None
-        fields["Cảnh báo deadline"] = (
-            f"🔴 Deadline KHÔNG khả thi: cần ~{needed_cats or needed} ngày kể cả hàng có sẵn nhanh nhất, "
-            f"còn {days_left} ngày.")
-        return "", {"project_code": code, "infeasible_deadline": True,
-                    "needed_days": needed_cats or needed, "days_left": days_left,
-                    "proposal": proposal}
-    if days_left < needed * DEADLINE_BUFFER:
-        return (f"⚠️ Deadline sát: cần ~{needed} ngày, còn {days_left} ngày — "
-                f"rủi ro nếu duyệt mẫu chậm / mùa cao điểm."), None
-    return "", None
+        return {"kind": "ok", "warn": ""}
+    needed_full = deadline_days_needed(full, by_name)
+    if needed_full <= days_left:
+        warn = ""
+        if days_left < needed_full * DEADLINE_BUFFER:
+            warn = (f"⚠️ Deadline sát: cần ~{needed_full} ngày, còn {days_left} ngày — "
+                    f"rủi ro nếu duyệt mẫu chậm / mùa cao điểm.")
+        return {"kind": "ok", "warn": warn}
+    fast, slow = _fit_within_deadline(full, by_name, days_left)
+    if len(fast) >= MIN_FAST_ITEMS:
+        if not any(it.get("item_key") for it in fast):
+            fast[0]["item_key"] = True
+        return {"kind": "fast", "fast": fast, "full": full, "slow": slow,
+                "needed_full": needed_full}
+    floor, floor_name = catalogue_floor_days(by_name)
+    return {"kind": "adjust", "full": full, "needed_full": needed_full,
+            "days_left": days_left, "floor": floor, "floor_name": floor_name, "fast": fast}
 
 
 def _build_item_records(proposal: dict, record_id: str):
@@ -466,10 +488,28 @@ def propose_items_for(record: dict, feedback: str | None = None,
     proposal, revisions = _revise_until_budget(base_prompt, proposal, budget, by_name)
 
     # Cong chan DEADLINE theo LEAD-TIME ITEM (tinh sau khi co item) -> warn / infeasible.
-    deadline_warn, infeasible = _resolve_deadline(proposal, fields, by_name, code)
-    if infeasible:
-        return infeasible
-    fields["Cảnh báo deadline"] = deadline_warn  # accurate hoa (de-override canh bao generic cua Buoc 1)
+    dl = _resolve_deadline(proposal, fields, by_name, code)
+    if dl["kind"] == "adjust":
+        need_date = (date.today() + timedelta(days=dl["needed_full"])).isoformat()
+        fields["Cảnh báo deadline"] = (
+            f"🔴 Deadline KHÔNG đủ: bộ đề xuất cần ~{dl['needed_full']} ngày, còn {dl['days_left']} ngày. "
+            f"Kể cả món nhanh nhất trong kho ({dl['floor_name']}) cần tối thiểu ~{dl['floor']} ngày."
+            if dl["floor"] and dl["days_left"] < dl["floor"]
+            else f"🔴 Deadline gấp: các món phù hợp cần ~{dl['needed_full']} ngày, còn {dl['days_left']} ngày.")
+        return {"project_code": code, "adjust_deadline": True,
+                "full_snapshot": dl["full"], "needed": dl["needed_full"],
+                "days_left": dl["days_left"], "floor": dl["floor"],
+                "floor_name": dl["floor_name"], "need_date": need_date, "proposal": proposal}
+    deadline_fast = (dl["kind"] == "fast")
+    if deadline_fast:
+        proposal["items"] = dl["fast"]
+        need_date = (date.today() + timedelta(days=dl["needed_full"])).isoformat()
+        slow_names = ", ".join(it.get("ten", "") for it in dl["slow"])
+        fields["Cảnh báo deadline"] = (
+            f"✅ Phương án nhanh kịp deadline hiện tại. 💡 Bộ đầy đủ (thêm: {slow_names}) "
+            f"cần dời 'Deadline cần hàng' tới ≥ {need_date} (~{dl['needed_full']} ngày).")
+    else:
+        fields["Cảnh báo deadline"] = dl["warn"]
 
     # Cong chan: con yeu cau dac biet chua dap ung -> KHONG chot proposal, hoi lai requester
     unmet = [r for r in (proposal.get("yeu_cau_dac_biet") or [])
@@ -506,6 +546,8 @@ def propose_items_for(record: dict, feedback: str | None = None,
         confirmed_req = proposal.get("yeu_cau_dac_biet_chot")
         proj_updates["Yêu cầu đặc biệt"] = (
             confirmed_req if confirmed_req is not None else f"{special}\n[Điều chỉnh theo trả lời] {clarify}")
+    if deadline_fast:
+        proj_updates["Phương án đầy đủ (JSON)"] = json.dumps(dl["full"], ensure_ascii=False)
     update_project(record["id"], proj_updates)
 
     images = _build_images(proposal["items"], by_name)
@@ -513,4 +555,8 @@ def propose_items_for(record: dict, feedback: str | None = None,
     return {"project_code": code, "blocked": False, "items_created": len(item_records),
             "total": total, "budget": budget, "revisions": revisions,
             "n_catalogue": n_cat, "n_creative": n_cre, "proposal": proposal, "images": images,
-            "tier": tier, "per_unit": per_unit, "insight": insight}
+            "tier": tier, "per_unit": per_unit, "insight": insight,
+            "deadline_fast": deadline_fast,
+            "full_snapshot": dl["full"] if deadline_fast else None,
+            "slow": dl["slow"] if deadline_fast else None,
+            "needed_full": dl.get("needed_full") if deadline_fast else None}
