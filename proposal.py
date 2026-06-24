@@ -12,7 +12,7 @@ import urllib.request
 from airtable_client import airtable, fetch_all, fetch_items_of, update_project
 from analysis import build_brief, days_to_deadline_of, deadline_status_of
 from config import (CREATIVE_LEADTIME_LEN_MAU, CREATIVE_LEADTIME_SAN_XUAT,
-                    DEADLINE_BUFFER, DEADLINE_OVERHEAD_WORKDAYS, WORKDAYS_TO_CALENDAR)
+                    DEADLINE_BUFFER, DEADLINE_OVERHEAD_WORKDAYS, WORKDAYS_TO_CALENDAR, MIN_FAST_ITEMS)
 from llm_client import ask_llm_grounded, ask_llm_json, generate_image
 
 # Loai item — dung de map sang field "Loai" (singleSelect) cua bang Items khi khop
@@ -386,33 +386,28 @@ def _revise_until_budget(base_prompt: str, proposal: dict, budget: int, by_name:
     return proposal, revisions
 
 
-def _resolve_deadline(proposal: dict, fields: dict, by_name: dict, code: str):
-    """Cong chan DEADLINE theo lead-time item. Tra (deadline_warn, infeasible_or_None).
-    MEM: full khong kip -> thu catalogue-only (kip thi dung + canh bao); CUNG: ca catalogue-only tre -> infeasible."""
+def _resolve_deadline(proposal: dict, fields: dict, by_name: dict, code: str) -> dict:
+    """Cong chan DEADLINE (deterministic). Tra dict kind=ok|fast|adjust (xem spec)."""
+    full = proposal.get("items", [])
     days_left = days_to_deadline_of(fields)
     if days_left is None:
-        return "", None
-    needed = deadline_days_needed(proposal.get("items", []), by_name)
-    if needed > days_left:
-        cats = [it for it in proposal.get("items", []) if it.get("nguon") == "catalogue"]
-        needed_cats = deadline_days_needed(cats, by_name) if cats else None
-        if cats and needed_cats is not None and needed_cats <= days_left:
-            if not any(it.get("item_key") for it in cats):
-                cats[0]["item_key"] = True
-            proposal["items"] = cats
-            return (f"🔴 Deadline gấp: phương án đầy đủ cần ~{needed} ngày > còn {days_left} ngày "
-                    f"→ chỉ đề xuất HÀNG CÓ SẴN (cần ~{needed_cats} ngày) để kịp, bỏ item sáng tạo; "
-                    f"vẫn nên theo sát tiến độ."), None
-        fields["Cảnh báo deadline"] = (
-            f"🔴 Deadline KHÔNG khả thi: cần ~{needed_cats or needed} ngày kể cả hàng có sẵn nhanh nhất, "
-            f"còn {days_left} ngày.")
-        return "", {"project_code": code, "infeasible_deadline": True,
-                    "needed_days": needed_cats or needed, "days_left": days_left,
-                    "proposal": proposal}
-    if days_left < needed * DEADLINE_BUFFER:
-        return (f"⚠️ Deadline sát: cần ~{needed} ngày, còn {days_left} ngày — "
-                f"rủi ro nếu duyệt mẫu chậm / mùa cao điểm."), None
-    return "", None
+        return {"kind": "ok", "warn": ""}
+    needed_full = deadline_days_needed(full, by_name)
+    if needed_full <= days_left:
+        warn = ""
+        if days_left < needed_full * DEADLINE_BUFFER:
+            warn = (f"⚠️ Deadline sát: cần ~{needed_full} ngày, còn {days_left} ngày — "
+                    f"rủi ro nếu duyệt mẫu chậm / mùa cao điểm.")
+        return {"kind": "ok", "warn": warn}
+    fast, slow = _fit_within_deadline(full, by_name, days_left)
+    if len(fast) >= MIN_FAST_ITEMS:
+        if not any(it.get("item_key") for it in fast):
+            fast[0]["item_key"] = True
+        return {"kind": "fast", "fast": fast, "full": full, "slow": slow,
+                "needed_full": needed_full}
+    floor, floor_name = catalogue_floor_days(by_name)
+    return {"kind": "adjust", "full": full, "needed_full": needed_full,
+            "days_left": days_left, "floor": floor, "floor_name": floor_name, "fast": fast}
 
 
 def _build_item_records(proposal: dict, record_id: str):
