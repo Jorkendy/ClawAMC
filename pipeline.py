@@ -268,7 +268,8 @@ def first_send(record_id: str) -> None:
 
 
 def _try_restore_full(record_id: str, code: str, fields: dict) -> bool:
-    """Nếu có snapshot bộ đầy đủ & deadline mới đủ -> restore. Tra True nếu đã restore."""
+    """Nếu có snapshot bộ đầy đủ & deadline mới ĐỦ -> restore (no LLM). Tra True nếu đã restore.
+    Snapshot không có / deadline chưa đủ -> False (caller xử lý Duyệt/nag)."""
     raw = fields.get("Phương án đầy đủ (JSON)")
     if not raw:
         return False
@@ -278,25 +279,35 @@ def _try_restore_full(record_id: str, code: str, fields: dict) -> bool:
         return False
     if not snap:
         return False
-    _, by_name = catalogue_data()
-    if days_to_deadline_of(fields) is None:
+    days_left = days_to_deadline_of(fields)
+    if days_left is None:
         return False
-    if deadline_days_needed(snap, by_name) > days_to_deadline_of(fields):
-        # doi chua du
-        need = deadline_days_needed(snap, by_name)
-        update_project(record_id, {"Gửi phản hồi": False,
-            "Trao đổi yêu cầu": f"Deadline mới vẫn chưa đủ cho bộ đầy đủ (cần ~{need} ngày, "
-                                f"còn {days_to_deadline_of(fields)} ngày). Vui lòng dời thêm."})
-        print(f"[deadline] {code} dời chưa đủ cho bộ đầy đủ")
-        return True   # đã xử lý (báo lại), không chạy nhánh khác
+    _, by_name = catalogue_data()
+    if deadline_days_needed(snap, by_name) > days_left:
+        return False
     _publish_from_snapshot(record_id, code, snap)
     return True
 
 
+def _nag_extend_more(record_id: str, fields: dict) -> None:
+    """Có snapshot bộ đầy đủ treo nhưng deadline chưa đủ -> nhắc dời thêm; bỏ tick."""
+    raw = fields.get("Phương án đầy đủ (JSON)")
+    snap = json.loads(raw) if raw else []
+    _, by_name = catalogue_data()
+    need = deadline_days_needed(snap, by_name) if snap else "?"
+    update_project(record_id, {"Gửi phản hồi": False,
+        "Trao đổi yêu cầu": f"Deadline hiện chưa đủ cho bộ đầy đủ (cần ~{need} ngày). "
+                            f"Dời 'Deadline cần hàng' thêm rồi gửi lại, hoặc chọn Duyệt để chốt phương án nhanh."})
+
+
 def _reevaluate_adjust(record_id: str, code: str) -> None:
-    """Requester da SUA Budget/Deadline (hoac bo yeu cau) roi tick -> tinh lai (KHONG can text answer)."""
+    """Requester sửa Budget/Deadline rồi tick. Có snapshot đủ -> restore; chưa đủ -> nhắc; else tính lại."""
     rec = airtable("GET", f"{PROJECTS_TABLE}/{record_id}")
-    if _try_restore_full(record_id, code, rec["fields"]):
+    fields = rec["fields"]
+    if _try_restore_full(record_id, code, fields):
+        return
+    if fields.get("Phương án đầy đủ (JSON)"):
+        _nag_extend_more(record_id, fields)
         return
     result, html = _make_proposal(record_id)
     _route_result(record_id, result, html, reset_round=True)
@@ -544,16 +555,17 @@ def _scan_decisions() -> None:
                 continue
             feedback = (f.get("Feedback proposal") or "").strip()
             decision = f.get("Duyệt proposal?")
-            # precedence: Cần sửa + feedback -> revise (re-roll); else dời deadline đủ -> restore full
             if decision == "Cần sửa" and feedback:
                 _revise_or_escalate(r["id"], code, f)
             elif _try_restore_full(r["id"], code, f):
-                pass  # đã restore hoặc báo "dời chưa đủ"
+                pass  # deadline đủ -> đã restore bộ đầy đủ
             elif decision == "Duyệt":
                 _approve_proposal(r["id"], code)
+            elif f.get("Phương án đầy đủ (JSON)"):
+                _nag_extend_more(r["id"], f)  # có snapshot treo, deadline chưa đủ, không Duyệt
             else:
                 update_project(r["id"], {"Gửi phản hồi": False})
-                print(f"[proposal] {code} tick Gửi nhưng thiếu decision/feedback -> bỏ qua")
+                print(f"[proposal] {code} tick Gửi nhưng thiếu decision/feedback -> bỏ qua (không tốn round)")
         except Exception as e:  # noqa: BLE001
             print(f"[proposal] decision error {code}: {e}")
             _mark_ai_error(r["id"], "xử lý phản hồi", e)
