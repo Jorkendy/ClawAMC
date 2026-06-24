@@ -164,6 +164,21 @@ def deadline_days_needed(items: list, by_name: dict) -> int:
     return round(workdays * WORKDAYS_TO_CALENDAR)
 
 
+def catalogue_floor_days(by_name: dict) -> tuple[int, str]:
+    """San tuyet doi: so ngay LICH toi thieu de lam 1 mon catalogue NHANH NHAT
+    (bo lay max nen >= san nay). Tra (so_ngay, ten_mon). Kho rong -> (0, '')."""
+    best = None
+    for name, cat in by_name.items():
+        lm = _parse_int(cat.get("Thời gian lên mẫu"))
+        sx = _parse_int(cat.get("Thời gian sản xuất"))
+        lm = lm if lm is not None else 8
+        sx = sx if sx is not None else 18
+        days = round((DEADLINE_OVERHEAD_WORKDAYS + lm + sx) * WORKDAYS_TO_CALENDAR)
+        if best is None or days < best[0]:
+            best = (days, name)
+    return best if best else (0, "")
+
+
 # BIZ RULE: phan khuc gia tri suy tu ngan sach MOI BO qua = Budget / So luong.
 # Nguong [GIA DINH 19/06 — can validate thuc te VNGGames]: xem BUSINESS_RULES.md.
 def value_tier(budget: int, quantity: int) -> tuple[str, int]:
