@@ -164,6 +164,17 @@ def deadline_days_needed(items: list, by_name: dict) -> int:
     return round(workdays * WORKDAYS_TO_CALENDAR)
 
 
+def _fit_within_deadline(items: list, by_name: dict, days_left: int) -> tuple[list, list]:
+    """Bo dan item cham nhat (max lm+sx) toi khi bo kip deadline.
+    Tra (fast=giu lai kip, slow=bi bo). fast giu thu tu goc."""
+    keep, slow = list(items), []
+    while keep and deadline_days_needed(keep, by_name) > days_left:
+        slowest = max(keep, key=lambda it: sum(item_leadtime(it, by_name)))
+        keep.remove(slowest)
+        slow.append(slowest)
+    return keep, slow
+
+
 def catalogue_floor_days(by_name: dict) -> tuple[int, str]:
     """San tuyet doi: so ngay LICH toi thieu de lam 1 mon catalogue NHANH NHAT
     (bo lay max nen >= san nay). Tra (so_ngay, ten_mon). Kho rong -> (0, '')."""
