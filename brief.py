@@ -125,6 +125,16 @@ def _brief_img_prompt(it: dict, game: str) -> str:
             "numbers, captions, labels or typography anywhere in the image.")
 
 
+def _b64_to_bytes(b64: str | None) -> bytes | None:
+    """Decode base64 -> PNG bytes; None/loi decode -> None."""
+    if not b64:
+        return None
+    try:
+        return base64.b64decode(b64)
+    except Exception:
+        return None
+
+
 def gather_brief_images(brief_items: list, game: str) -> dict:
     """Map {ten item -> PNG bytes}: AI generate concept mockup theo GAME cho MOI item
     (catalogue + creative), dua tren design_direction da enrich — KHONG dung anh catalogue goc.
@@ -135,30 +145,31 @@ def gather_brief_images(brief_items: list, game: str) -> dict:
         name = (it.get("ten") or "").strip()
         if not name:
             continue
-        key = " ".join(_brief_img_prompt(it, game).lower().split())
+        prompt = _brief_img_prompt(it, game)
+        key = " ".join(prompt.lower().split())
         cached = _BRIEF_IMG_CACHE.get(key)
         if cached:
-            try:
-                out[name] = base64.b64decode(cached)
-            except Exception:
-                pass
+            img = _b64_to_bytes(cached)
+            if img:
+                out[name] = img
         else:
-            todo.append((name, key, _brief_img_prompt(it, game)))
-    if todo:
-        with concurrent.futures.ThreadPoolExecutor(max_workers=_BRIEF_IMG_WORKERS) as ex:
-            futs = {ex.submit(generate_image, p, _BRIEF_IMG_TIMEOUT): (n, k) for (n, k, p) in todo}
-            for f in concurrent.futures.as_completed(futs):
-                name, key = futs[f]
-                try:
-                    b64 = f.result()
-                except Exception:
-                    b64 = None
-                if b64:
-                    _BRIEF_IMG_CACHE[key] = b64  # chi cache khi gen thanh cong
-                    try:
-                        out[name] = base64.b64decode(b64)
-                    except Exception:
-                        pass
+            todo.append((name, key, prompt))
+    if not todo:
+        return out
+    with concurrent.futures.ThreadPoolExecutor(max_workers=_BRIEF_IMG_WORKERS) as ex:
+        futs = {ex.submit(generate_image, p, _BRIEF_IMG_TIMEOUT): (n, k) for (n, k, p) in todo}
+        for f in concurrent.futures.as_completed(futs):
+            name, key = futs[f]
+            try:
+                b64 = f.result()
+            except Exception:
+                b64 = None
+            if not b64:
+                continue
+            _BRIEF_IMG_CACHE[key] = b64  # chi cache khi gen thanh cong
+            img = _b64_to_bytes(b64)
+            if img:
+                out[name] = img
     return out
 
 
@@ -169,6 +180,10 @@ _C_REQ = RGBColor(0x1A, 0x7F, 0x37)     # xanh = requester
 _C_AI = RGBColor(0xD9, 0x77, 0x06)      # cam = AI goi y
 _C_TEXT = RGBColor(0x1A, 0x1A, 0x2E)
 _C_MUTE = RGBColor(0x6B, 0x72, 0x80)
+
+# python-pptx magic number -> dat ten cho de doc (gia tri KHONG doi)
+_BLANK_LAYOUT = 6   # slide_layouts[6] = layout "Blank"
+_SHAPE_RECT = 1     # add_shape(1) = MSO_AUTO_SHAPE_TYPE.RECTANGLE
 
 
 def _tag(source: str) -> tuple:
@@ -191,8 +206,8 @@ def _section(tf, heading: str, body: str, source: str | None, first: bool = Fals
 
 
 def _cover(prs, brief_data: dict, project: dict):
-    s = prs.slides.add_slide(prs.slide_layouts[6])
-    band = s.shapes.add_shape(1, 0, 0, prs.slide_width, Inches(2.2))
+    s = prs.slides.add_slide(prs.slide_layouts[_BLANK_LAYOUT])
+    band = s.shapes.add_shape(_SHAPE_RECT, 0, 0, prs.slide_width, Inches(2.2))
     band.fill.solid(); band.fill.fore_color.rgb = _C_BG; band.line.fill.background()
     tf = band.text_frame; tf.word_wrap = True
     tf.margin_left = Inches(0.6); tf.margin_top = Inches(0.4)
@@ -226,8 +241,8 @@ def _cover(prs, brief_data: dict, project: dict):
 
 
 def _item_slide(prs, it: dict, img: bytes | None):
-    s = prs.slides.add_slide(prs.slide_layouts[6])
-    bar = s.shapes.add_shape(1, 0, 0, prs.slide_width, Inches(0.9))
+    s = prs.slides.add_slide(prs.slide_layouts[_BLANK_LAYOUT])
+    bar = s.shapes.add_shape(_SHAPE_RECT, 0, 0, prs.slide_width, Inches(0.9))
     bar.fill.solid(); bar.fill.fore_color.rgb = _C_ACCENT; bar.line.fill.background()
     tf = bar.text_frame; tf.margin_left = Inches(0.5)
     p = tf.paragraphs[0]; r = p.add_run()
@@ -243,8 +258,8 @@ def _item_slide(prs, it: dict, img: bytes | None):
     _section(bt, "ĐỊNH HƯỚNG DESIGN", it.get("design_direction", ""), src.get("design_direction"))
     _section(bt, "Chất liệu", it.get("chat_lieu", ""), src.get("chat_lieu"))
     _section(bt, "Kích thước", it.get("kich_thuoc", ""), src.get("kich_thuoc"))
-    yc = it.get("yeu_cau_dac_biet") or []
-    _section(bt, "Yêu cầu đặc biệt", ("; ".join(yc) if yc else "Không"), None)
+    special_reqs = it.get("yeu_cau_dac_biet") or []
+    _section(bt, "Yêu cầu đặc biệt", ("; ".join(special_reqs) if special_reqs else "Không"), None)
     _section(bt, "Print spec / file cần", it.get("print_spec", ""), src.get("print_spec"))
     refs = it.get("references") or []
     _section(bt, "References", ("\n".join(refs) if refs else "—"), None)

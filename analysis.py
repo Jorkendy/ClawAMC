@@ -150,14 +150,14 @@ def analyze_one(record: dict, notify_missing: bool = True) -> dict:
         # Du field: deadline gap/khong kha thi -> canh bao GOP vao mail proposal (banner + body),
         # KHONG gui mail rieng (tranh requester nhan 2 mail). Rong -> clear.
         # Marker: 🔴 = nghiem trong (khong kha thi / qua han / hom nay) -> render banner do; ⚠️ = gap (cam).
-        ly_do = analysis.get("ly_do_deadline", "")
+        deadline_reason = analysis.get("ly_do_deadline", "")
         if isinstance(days_to_deadline, int) and days_to_deadline <= 0:
             when = "ĐÃ QUA HẠN" if days_to_deadline < 0 else "là HÔM NAY"
-            update_fields["Cảnh báo deadline"] = f"🔴 Deadline {when} — không kịp sản xuất: {ly_do}"
+            update_fields["Cảnh báo deadline"] = f"🔴 Deadline {when} — không kịp sản xuất: {deadline_reason}"
         elif deadline_status == "không khả thi":
-            update_fields["Cảnh báo deadline"] = f"🔴 Deadline KHÔNG khả thi: {ly_do}"
+            update_fields["Cảnh báo deadline"] = f"🔴 Deadline KHÔNG khả thi: {deadline_reason}"
         elif deadline_status == "gấp":
-            update_fields["Cảnh báo deadline"] = f"⚠️ Deadline gấp/rủi ro: {ly_do}"
+            update_fields["Cảnh báo deadline"] = f"⚠️ Deadline gấp/rủi ro: {deadline_reason}"
         else:
             update_fields["Cảnh báo deadline"] = ""
     update_project(record["id"], update_fields)

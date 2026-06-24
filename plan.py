@@ -55,12 +55,12 @@ def build_plan(fields: dict, items: list, start: date) -> dict:
         leads.append((lm, sx))
         is_cat = it.get("nguon") == "catalogue"
         dg = it.get("don_gia") if is_cat else None
-        so_luong = int(it.get("so_luong") or 0)
-        thanh_tien = (dg or 0) * so_luong
+        item_qty = int(it.get("so_luong") or 0)
+        line_total = (dg or 0) * item_qty
         rows.append({
             "ten": it.get("ten") or "", "loai": it.get("loai") or "",
             "nguon": "Catalogue" if is_cat else "Creative",
-            "so_luong": so_luong, "don_gia": dg, "thanh_tien": thanh_tien,
+            "so_luong": item_qty, "don_gia": dg, "thanh_tien": line_total,
             "len_mau": lm, "san_xuat": sx,
             "ghi_chu": "" if is_cat else "Giá & timeline DỰ KIẾN — chốt sau khi có design + báo giá vendor",
         })
@@ -89,13 +89,13 @@ def build_plan(fields: dict, items: list, start: date) -> dict:
     delivery = start + timedelta(days=total_cal)
 
     # cua so len mau / san xuat (de ve checklist tung item)
-    len_mau_phase = next(p for p in phases if p["label"] == "Lên mẫu")
-    san_xuat_phase = next(p for p in phases if p["label"] == "Sản xuất")
+    sampling_phase = next(p for p in phases if p["label"] == "Lên mẫu")
+    production_phase = next(p for p in phases if p["label"] == "Sản xuất")
     for r in rows:
-        r["len_mau_start"] = len_mau_phase["start"]
-        r["len_mau_end"] = len_mau_phase["start"] + timedelta(days=_wd_to_cal(r["len_mau"]))
-        r["san_xuat_start"] = san_xuat_phase["start"]
-        r["san_xuat_end"] = san_xuat_phase["start"] + timedelta(days=_wd_to_cal(r["san_xuat"]))
+        r["len_mau_start"] = sampling_phase["start"]
+        r["len_mau_end"] = sampling_phase["start"] + timedelta(days=_wd_to_cal(r["len_mau"]))
+        r["san_xuat_start"] = production_phase["start"]
+        r["san_xuat_end"] = production_phase["start"] + timedelta(days=_wd_to_cal(r["san_xuat"]))
 
     # --- kha thi deadline ---
     if deadline is None:
@@ -106,9 +106,9 @@ def build_plan(fields: dict, items: list, start: date) -> dict:
         feasible = f"🔴 TRỄ {(delivery - deadline).days} ngày so với deadline"
 
     # --- phan bo ngan sach ---
-    tong_co_gia = sum(r["thanh_tien"] for r in rows if r["don_gia"])
+    priced_total = sum(r["thanh_tien"] for r in rows if r["don_gia"])
     has_creative_no_price = any(r["nguon"] == "Creative" for r in rows)
-    advance = round(tong_co_gia * ADVANCE_RATIO)
+    advance = round(priced_total * ADVANCE_RATIO)
 
     return {
         "code": code, "name": name, "qty": qty, "budget": budget,
@@ -116,9 +116,9 @@ def build_plan(fields: dict, items: list, start: date) -> dict:
         "start": _fmt_d(start), "delivery": _fmt_d(delivery),
         "total_cal": total_cal, "feasible": feasible,
         "phases": phases, "rows": rows,
-        "tong_co_gia": tong_co_gia, "con_lai": budget - tong_co_gia,
+        "tong_co_gia": priced_total, "con_lai": budget - priced_total,
         "has_creative_no_price": has_creative_no_price,
-        "advance": advance, "final_pay": tong_co_gia - advance,
+        "advance": advance, "final_pay": priced_total - advance,
     }
 
 
