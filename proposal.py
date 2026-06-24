@@ -39,9 +39,10 @@ def catalogue_data() -> tuple[str, dict]:
             continue
         by_name[name] = f
         price = f.get("Đơn giá")
+        price_txt = f"{price:,}đ" if isinstance(price, (int, float)) else "? (chưa có giá)"
         desc = (f.get("Miêu tả sản phẩm") or "").replace("\n", " ")[:90]
         lines.append(
-            f"- {name} | {price:,}đ | MOQ {f.get('Số lượng tối thiểu', '?')} | "
+            f"- {name} | {price_txt} | MOQ {f.get('Số lượng tối thiểu', '?')} | "
             f"mẫu {f.get('Thời gian lên mẫu', '?')} | sx {f.get('Thời gian sản xuất', '?')} | "
             f"{f.get('Xuất xứ', '?')} | {desc}"
         )
