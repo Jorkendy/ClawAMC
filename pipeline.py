@@ -17,6 +17,7 @@ clear "Gui phan hoi" (chong retry loop), ghi log — khong de record kep im lang
 import json
 import threading
 import time
+import traceback
 import urllib.request
 from datetime import date, timedelta
 
@@ -63,9 +64,16 @@ def _run_guarded(lock: threading.Lock, again: threading.Event, work) -> None:
         lock.release()
 
 
+def _log_exc(context: str) -> None:
+    """In full stack trace (file:line) ra stdout -> Coolify logs trace bug nhanh.
+    Goi TRONG except block. Field Airtable van giu message goi (human) cho PIC."""
+    print(f"[trace] {context}:\n{traceback.format_exc()}")
+
+
 def _mark_ai_error(record_id: str, stage: str, err: Exception) -> None:
     """AI/LLM trả về không hợp lệ -> đừng để record kẹt im lặng: tick Cần PIC xử lý,
     clear 'Gửi phản hồi' (chống retry loop mỗi webhook ping), ghi log cho PIC."""
+    _log_exc(f"_mark_ai_error [{stage}] {record_id}")
     try:
         update_project(record_id, {"Status": PIC_STATUS, "Cần PIC xử lý": True, "Gửi phản hồi": False,
                                    "Lý do cần PIC": f"Lỗi AI ({stage}): {err}"})
@@ -466,6 +474,7 @@ def _scan_design_starts() -> None:
         try:
             _generate_brief(r["id"], code)
         except Exception as e:
+            _log_exc(f"_generate_brief {code}")
             print(f"[brief] {code} sinh brief lỗi: {e}")
             try:  # nuot loi ghi (Airtable hiccup) de 1 record loi khong bo qua record con lai
                 update_project(r["id"], {"Bắt đầu design": False})
@@ -488,6 +497,7 @@ def _approve_proposal(record_id: str, code: str) -> None:
     try:
         _generate_plan(record_id, code)
     except Exception as e:
+        _log_exc(f"_generate_plan {code}")
         append_note(record_id, f"[AI] Sinh plan sản xuất lỗi (không ảnh hưởng chốt items): {e}",
                     field=HISTORY_FIELD)
         print(f"[plan] {code} sinh plan lỗi: {e}")
