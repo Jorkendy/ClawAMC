@@ -73,6 +73,7 @@ OVERHEAD_DELIVERY_WORKDAYS = 2        # giao hang & nghiem thu
 CREATIVE_LEADTIME_LEN_MAU = 8     # item creative (chua co trong catalogue) -> gia dinh thoi gian len mau
 CREATIVE_LEADTIME_SAN_XUAT = 25   # ... san xuat (lay dau phuc tap vi creative thuong lau)
 DEADLINE_BUFFER = 1.15            # con lai < ngay_can*buffer -> canh bao "sat nut" (van chay)
+MIN_FAST_ITEMS = 3               # so item toi thieu de "phuong an nhanh" du tot (else -> hoi doi deadline)
 
 REQUIRED_FIELDS = {
     "Mục đích": "Mục đích sản xuất",
