@@ -25,7 +25,7 @@ from datetime import date, timedelta
 log = logging.getLogger("merch")
 
 from airtable_client import (airtable, append_note, fetch_items_of,
-                             fetch_projects, update_items, update_project)
+                             fetch_projects, log_event, update_items, update_project)
 from analysis import analyze_one, days_to_deadline_of
 from config import (AI_COST_LOG_TABLE, MAX_CLARIFY_ROUNDS, MAX_PROPOSAL_ROUNDS,
                     MAX_SUPPLEMENT_ROUNDS, PROJECTS_TABLE, PROPOSAL_APPROVAL_DAYS)
@@ -415,6 +415,7 @@ def _generate_plan(record_id: str, code: str) -> None:
     upload_plan(record_id, render_plan_xlsx(plan), code)
     append_note(record_id, f"[AI] Đã sinh plan sản xuất — giao dự kiến {plan['delivery']} "
                            f"({plan['total_cal']} ngày lịch). {plan['feasible']}", field=HISTORY_FIELD)
+    log_event(record_id, code, "Tạo plan sản xuất")
     log.info(f"[plan] {code} -> plan sản xuất uploaded (giao {plan['delivery']})")
 
 
@@ -465,6 +466,7 @@ def _generate_brief(record_id: str, code: str) -> None:
     update_project(record_id, {"Bắt đầu design": False})
     append_note(record_id, f"[AI] Đã sinh brief design ({len(brief_data.get('items', []))} item).",
                 field=HISTORY_FIELD)
+    log_event(record_id, code, "Tạo brief design")
     _log_cost(record_id, code, time.monotonic() - t0, step="Brief")
     log.info(f"[brief] {code} -> brief design uploaded")
 
@@ -526,6 +528,7 @@ def _revise_or_escalate(record_id: str, code: str, fields: dict) -> None:
     append_note(record_id, f"[AI] Round {rounds} — sửa proposal theo feedback: {feedback}", field=HISTORY_FIELD)
     update_project(record_id, {"Số round proposal": rounds})
     _publish_proposal(record_id, result, html, reset_round=False)
+    log_event(record_id, code, f"Sửa proposal round {rounds} (theo feedback)")
     log.info(f"[proposal] {code} CẦN SỬA -> round {rounds} đã gửi lại")
 
 

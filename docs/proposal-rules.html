@@ -70,9 +70,21 @@ Ngày cần (lịch) = ( <b>27</b> + max(Thời gian lên mẫu) + max(Thời gi
     </div>
   </section>
 
+  <!-- HẠN DUYỆT PROPOSAL -->
+  <section>
+    <div class="shead"><h2>② Hạn DUYỆT proposal — "bao lâu phải duyệt?"</h2>
+      <div class="sub">Khác deadline sản xuất ở trên — đây là hạn requester phản hồi / duyệt đề xuất.</div></div>
+    <div class="body"><ul>
+      <li><b>Hạn duyệt = ngày GỬI proposal + 3 ngày</b> — <u>không</u> tính từ ngày tạo project.</li>
+      <li><b>Mỗi lần sửa &amp; gửi lại</b> proposal (feedback / làm rõ / điều chỉnh / khôi phục bộ đầy đủ) → hạn duyệt <b>reset = ngày gửi mới + 3</b>. Requester luôn có 3 ngày cho bản mới nhất.</li>
+      <li><b>Quá 3 ngày chưa duyệt</b> → tự đánh dấu <span class="pill crit">Quá hạn duyệt</span> + gửi mail nhắc requester (quét tự động mỗi sáng).</li>
+      <li>Phản hồi "Cần sửa" còn trong hạn → <b>không bị tính quá hạn</b> (gửi lại làm mới hạn).</li>
+    </ul></div>
+  </section>
+
   <!-- ITEM / CREATIVE -->
   <section>
-    <div class="shead"><h2>② Quy tắc CHỌN ITEM &amp; CREATIVE — "vì sao bộ này / sao không creative?"</h2></div>
+    <div class="shead"><h2>③ Quy tắc CHỌN ITEM &amp; CREATIVE — "vì sao bộ này / sao không creative?"</h2></div>
     <div class="body">
       <ul>
         <li><b>Catalogue-first:</b> ưu tiên hàng có sẵn (giá thật, sản xuất nhanh). <b>Creative chỉ thêm để LẤP món catalogue còn thiếu</b> cho hợp đối tượng → nếu catalogue đã phủ đủ nhu cầu thì <b>có thể 0 creative</b> (hợp lệ).</li>
@@ -95,7 +107,7 @@ Ngày cần (lịch) = ( <b>27</b> + max(Thời gian lên mẫu) + max(Thời gi
 
   <!-- BUDGET -->
   <section>
-    <div class="shead"><h2>③ Quy tắc NGÂN SÁCH</h2></div>
+    <div class="shead"><h2>④ Quy tắc NGÂN SÁCH</h2></div>
     <div class="body"><ul>
       <li>Tổng (đơn giá × số lượng, bỏ qua món chưa giá) <b>≤ Budget</b>.</li>
       <li>Vượt budget → AI tự điều chỉnh (giảm/đổi món rẻ hơn) <b>≤ 2 vòng</b>; vẫn vượt → chuyển vòng <b>điều chỉnh</b> (xin tăng budget / nới yêu cầu).</li>
@@ -105,7 +117,7 @@ Ngày cần (lịch) = ( <b>27</b> + max(Thời gian lên mẫu) + max(Thời gi
 
   <!-- FAQ -->
   <section>
-    <div class="shead"><h2>④ Giải trình nhanh (khi được hỏi)</h2></div>
+    <div class="shead"><h2>⑤ Giải trình nhanh (khi được hỏi)</h2></div>
     <div class="body">
       <div class="faq"><q>Vì sao proposal này không có item creative?</q><p>Một trong hai: (a) <b>catalogue đã phủ đủ</b> nhu cầu nên không cần thêm creative (creative là tùy chọn theo quy tắc); hoặc (b) <b>deadline gấp</b> → ưu tiên hàng có sẵn để kịp, creative (cần thêm thời gian thiết kế) được dời sang "phương án đầy đủ" — chỉ cần dời deadline là agent thêm lại đúng các món creative đã đề xuất.</p></div>
       <div class="faq"><q>Deadline bao nhiêu mới hợp lệ?</q><p>Không có con số cứng — tính theo lead-time món thật: <b>(27 + lên mẫu + sản xuất) ×1.4</b>. Bộ làm mới hoàn toàn ~136 ngày, chỉ hàng có sẵn ~56 ngày. Agent luôn báo "cần ~X ngày, còn Y ngày" để requester quyết.</p></div>

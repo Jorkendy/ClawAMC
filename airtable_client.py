@@ -1,9 +1,16 @@
 """Airtable REST helpers — moi truy cap data deu di qua day."""
 import json
+import logging
 import urllib.parse
 import urllib.request
+from datetime import datetime, timedelta, timezone
 
 from config import AIRTABLE_BASE_ID, AIRTABLE_TOKEN, PROJECTS_TABLE
+
+log = logging.getLogger("merch")
+
+VN_TZ = timezone(timedelta(hours=7))  # gio Viet Nam, dung cho timestamp log
+STEP_LOG_TABLE = "tblG4OGkyKAfUEfsj"  # bang Step Log (nhat ky tien do)
 
 
 def airtable(method: str, path: str, payload: dict | None = None) -> dict:
@@ -42,7 +49,23 @@ def update_items(records: list[dict]) -> None:
 def append_note(record_id: str, note: str, field: str = "Phân tích AI") -> None:
     rec = airtable("GET", f"{PROJECTS_TABLE}/{record_id}")
     old = rec.get("fields", {}).get(field, "")
-    update_project(record_id, {field: f"{old}\n\n{note}".strip()})
+    stamp = datetime.now(VN_TZ).strftime("[%d/%m %H:%M]")
+    update_project(record_id, {field: f"{old}\n\n{stamp} {note}".strip()})
+
+
+def log_event(record_id: str, code: str, label: str) -> None:
+    """Ghi 1 dong Step Log cho su kien KHONG doi Status (feedback round / plan / brief...).
+    Cac lan doi Status da co Automation Airtable lo. Loi KHONG duoc chan nghiep vu."""
+    try:
+        airtable("POST", STEP_LOG_TABLE, {"records": [{"fields": {
+            "Mã log": f"{code} · {label}",
+            "Project": [record_id],
+            "Bước": label,
+            "start": datetime.now(VN_TZ).isoformat(),
+            "Mã project (text)": code,
+        }}]})
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[step-log] không ghi được '{label}' cho {code}: {e}")
 
 
 def fetch_items_of(record_id: str) -> list[dict]:
