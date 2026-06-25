@@ -28,7 +28,8 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 
 from airtable_client import airtable, fetch_projects
-from config import FILLOUT_FORM_URL, PROJECTS_TABLE
+from config import (FILLOUT_FORM_URL, MAX_BRIEF_ROUNDS, MAX_CLARIFY_ROUNDS,
+                    MAX_PROPOSAL_ROUNDS, PROJECTS_TABLE, PROPOSAL_APPROVAL_DAYS)
 from analysis import analyze_one
 from pipeline import first_send, handle_proposal_decisions, on_webhook
 from proposal import propose_items_for
@@ -111,10 +112,12 @@ def _doc_nav(active: str) -> str:
             f'align-items:center;position:sticky;top:0;z-index:9998">{links}</nav>')
 
 
-def _serve_doc(filename: str, active: str) -> HTMLResponse:
-    """Doc file HTML tinh + chen thanh nav chung ngay sau <body>."""
+def _serve_doc(filename: str, active: str, subs: dict | None = None) -> HTMLResponse:
+    """Doc file HTML tinh + thay placeholder {{key}} tu subs + chen thanh nav chung sau <body>."""
     with open(os.path.join(_DOC_DIR, filename), encoding="utf-8") as f:
         html = f.read()
+    for key, val in (subs or {}).items():
+        html = html.replace("{{" + key + "}}", str(val))
     return HTMLResponse(html.replace("<body>", "<body>" + _doc_nav(active), 1))
 
 
@@ -138,8 +141,14 @@ def email_guide() -> HTMLResponse:
 
 @app.get("/guide")
 def guide() -> HTMLResponse:
-    """Huong dan su dung agent theo quy trinh (Buoc 1->5) cho requester + PO/PIC."""
-    return _serve_doc("guide.html", "/guide")
+    """Huong dan su dung agent theo quy trinh (Buoc 1->5) cho requester + PIC.
+    So nguong (lan/ngay) lay tu config de guide luon khop cau hinh thuc te."""
+    return _serve_doc("guide.html", "/guide", subs={
+        "MAX_CLARIFY_ROUNDS": MAX_CLARIFY_ROUNDS,
+        "MAX_PROPOSAL_ROUNDS": MAX_PROPOSAL_ROUNDS,
+        "MAX_BRIEF_ROUNDS": MAX_BRIEF_ROUNDS,
+        "PROPOSAL_APPROVAL_DAYS": PROPOSAL_APPROVAL_DAYS,
+    })
 
 
 def _feedback_button(record_id: str) -> str:

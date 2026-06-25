@@ -53,11 +53,11 @@
   <header>
     <span class="tag">VNGGames · Merch Automation</span>
     <h1>Hướng dẫn sử dụng Merch Agent</h1>
-    <p>Hướng dẫn dành cho <b>người đặt merch</b>: đi hết quy trình từ lúc gửi yêu cầu đến khi bàn giao thiết kế (<b>Bước 1 → 5</b>) — ở mỗi bước bạn cần làm gì và sẽ nhận được gì. Mọi thao tác của bạn đều qua <b>form / link trong email</b>, không cần tài khoản hay vào hệ thống nội bộ.</p>
+    <p>Hướng dẫn dành cho <b>Requester</b> (người đặt merch): đi hết quy trình từ lúc gửi yêu cầu đến khi bàn giao thiết kế (<b>Bước 1 → 5</b>) — ở mỗi bước bạn cần làm gì và sẽ nhận được gì. Mọi thao tác của Requester đều qua <b>form / link trong email</b>.</p>
     <p class="legend" style="margin-top:10px">
-      <span class="role r-req">🟢 Việc của bạn (người đặt)</span>
-      <span class="role r-bot">🤖 Hệ thống tự làm</span>
-      <span class="role r-pic">🔵 Đội Merch</span>
+      <span class="role r-req">🟢 Requester (việc của bạn)</span>
+      <span class="role r-bot">🤖 Agent (hệ thống tự động)</span>
+      <span class="role r-pic">🔵 Merch PIC</span>
       <span class="role r-mail">✉️ Email bạn nhận</span>
       <span class="role r-warn">⚠️ Lưu ý</span>
     </p>
@@ -67,7 +67,7 @@
   <nav class="toc">
     <b>Mục lục</b>
     <a href="#buoc1">① Gửi yêu cầu</a>
-    <a href="#buoc2">② Hệ thống lên đề xuất</a>
+    <a href="#buoc2">② Agent lên đề xuất</a>
     <a href="#buoc3">③ Bạn duyệt đề xuất</a>
     <a href="#buoc4">④ Lên kế hoạch sản xuất</a>
     <a href="#buoc5">⑤ Brief &amp; bàn giao</a>
@@ -78,51 +78,50 @@
   <!-- BƯỚC 1 -->
   <section id="buoc1">
     <div class="shead"><h2>① Bước 1 — Gửi yêu cầu</h2>
-      <div class="sub">Bạn gửi yêu cầu làm merch; hệ thống kiểm tra đã đủ thông tin để lên đề xuất chưa.</div></div>
+      <div class="sub">Requester gửi yêu cầu làm merch; Agent kiểm tra đã đủ thông tin để lên đề xuất chưa.</div></div>
     <div class="body">
       <div class="box">
-        <span class="role r-req">🟢 Người đặt</span> <b>Việc của bạn:</b> Điền và <b>gửi form đặt merch</b> với các thông tin: mục đích sản xuất, chủ đề, định vị, đối tượng khách hàng, số lượng, ngày cần hàng và ngân sách. Bạn chỉ thao tác trên form — không cần vào hệ thống nội bộ.
+        <span class="role r-req">🟢 Requester</span> <b>Việc của bạn:</b> Điền và <b>gửi form đặt merch</b> với các thông tin: mục đích sản xuất, chủ đề, định vị, đối tượng khách hàng, số lượng, ngày cần hàng và ngân sách.
       </div>
-      <p><span class="role r-bot">🤖 Hệ thống</span> Tự kiểm tra yêu cầu đã đủ thông tin để lên đề xuất chưa.</p>
+      <p><span class="role r-bot">🤖 Agent</span> Tự kiểm tra yêu cầu đã đủ thông tin để lên đề xuất chưa.</p>
       <p><span class="role r-mail">✉️ Email</span> Nếu còn thiếu, bạn nhận email mời bổ sung — <b>bấm link trong email</b> để cập nhật và gửi lại.</p>
-      <p><span class="role r-warn">⚠️ Lưu ý:</span> Nếu trao đổi qua lại vài lần mà vẫn chưa đủ thông tin, yêu cầu sẽ được chuyển cho <b>đội Merch hỗ trợ trực tiếp</b> và bạn sẽ được liên hệ.</p>
+      <p><span class="role r-warn">⚠️ Lưu ý:</span> Nếu sau <b>{{MAX_CLARIFY_ROUNDS}} lần</b> trao đổi mà vẫn chưa đủ thông tin, yêu cầu sẽ được chuyển cho <b>Merch PIC</b> xử lý trực tiếp và bạn sẽ được liên hệ.</p>
     </div>
   </section>
 
   <!-- BƯỚC 2 -->
   <section id="buoc2">
-    <div class="shead"><h2>② Bước 2 — Hệ thống lên đề xuất</h2>
-      <div class="sub">Hệ thống tự chọn sản phẩm phù hợp, cân đối ngân sách và thời gian.</div></div>
+    <div class="shead"><h2>② Bước 2 — Agent lên đề xuất</h2>
+      <div class="sub">Agent tự chọn sản phẩm phù hợp, cân đối ngân sách và thời gian.</div></div>
     <div class="body">
-      <p><span class="role r-bot">🤖 Hệ thống</span> Chọn sản phẩm phù hợp với game và đối tượng, tính chi phí cùng thời gian giao hàng, rồi tự điều chỉnh để vừa ngân sách và kịp ngày cần hàng.</p>
+      <p><span class="role r-bot">🤖 Agent</span> Chọn sản phẩm phù hợp với game và đối tượng, tính chi phí cùng thời gian giao hàng, rồi tự điều chỉnh để vừa ngân sách và kịp ngày cần hàng.</p>
       <div class="box">
-        <span class="role r-req">🟢 Người đặt</span> <b>Khi cần bạn quyết:</b> Nếu không thể vừa ngân sách hoặc không kịp deadline, bạn nhận email và <b>bấm link để chọn một hướng</b>: tăng ngân sách · dời ngày cần hàng · hoặc bớt / đổi sản phẩm.
+        <span class="role r-req">🟢 Requester</span> <b>Khi cần bạn quyết:</b> Nếu không thể vừa ngân sách hoặc không kịp deadline, bạn nhận email và <b>bấm link để chọn một hướng</b>: tăng ngân sách · dời ngày cần hàng · hoặc bớt / đổi sản phẩm.
       </div>
-      <p><span class="role r-warn">⚠️ Lưu ý:</span> Bạn chỉ chọn trên form trong email; không cần chỉnh gì trong hệ thống nội bộ.</p>
     </div>
   </section>
 
   <!-- BƯỚC 3 -->
   <section id="buoc3">
-    <div class="shead"><h2>③ Bước 3 — Bạn duyệt đề xuất</h2>
+    <div class="shead"><h2>③ Bước 3 — Requester duyệt đề xuất</h2>
       <div class="sub">Xem đề xuất và quyết định duyệt hay chỉnh.</div></div>
     <div class="body">
       <p><span class="role r-mail">✉️ Email</span> Bạn nhận email <b>“Mời duyệt proposal”</b> kèm link xem đề xuất và hạn duyệt.</p>
       <div class="box">
-        <span class="role r-req">🟢 Người đặt</span> <b>Việc của bạn:</b> Mở link trong email để xem đề xuất, rồi ngay trên trang đó chọn <b>Duyệt</b> (đồng ý) hoặc <b>Cần sửa</b> và nhập góp ý của bạn.
+        <span class="role r-req">🟢 Requester</span> <b>Việc của bạn:</b> Mở link trong email để xem đề xuất, rồi ngay trên trang đó chọn <b>Duyệt</b> (đồng ý) hoặc <b>Cần sửa</b> và nhập góp ý của bạn.
       </div>
-      <p><span class="role r-warn">⚠️ Lưu ý:</span> Nếu quá hạn mà bạn chưa phản hồi, hệ thống sẽ gửi email nhắc. Nếu chỉnh qua lại nhiều lần vẫn chưa chốt được, đội Merch sẽ hỗ trợ.</p>
+      <p><span class="role r-warn">⚠️ Lưu ý:</span> Nếu quá <b>{{PROPOSAL_APPROVAL_DAYS}} ngày</b> bạn chưa phản hồi, Agent sẽ gửi email nhắc. Nếu chỉnh qua lại quá <b>{{MAX_PROPOSAL_ROUNDS}} lần</b> vẫn chưa chốt được, Merch PIC sẽ hỗ trợ.</p>
     </div>
   </section>
 
   <!-- BƯỚC 4 -->
   <section id="buoc4">
     <div class="shead"><h2>④ Bước 4 — Lên kế hoạch sản xuất</h2>
-      <div class="sub">Sau khi bạn duyệt, hệ thống tự lập kế hoạch sản xuất.</div></div>
+      <div class="sub">Sau khi bạn duyệt, Agent tự lập kế hoạch sản xuất.</div></div>
     <div class="body">
-      <p><span class="role r-bot">🤖 Hệ thống</span> Tự tạo <b>bản kế hoạch sản xuất</b>: danh sách sản phẩm, nhà cung cấp dự kiến và các mốc thời gian.</p>
-      <p><span class="role r-pic">🔵 Đội Merch</span> Nhận kế hoạch để theo dõi và chuẩn bị sản xuất.</p>
-      <p><span class="role r-req">🟢 Người đặt</span> Không cần làm gì ở bước này — bạn có thể theo dõi tiến độ (xem mục bên dưới).</p>
+      <p><span class="role r-bot">🤖 Agent</span> Tự tạo <b>bản kế hoạch sản xuất</b>: danh sách sản phẩm, nhà cung cấp dự kiến và các mốc thời gian.</p>
+      <p><span class="role r-pic">🔵 Merch PIC</span> Nhận kế hoạch để theo dõi và chuẩn bị sản xuất.</p>
+      <p><span class="role r-req">🟢 Requester</span> Không cần làm gì ở bước này — bạn có thể theo dõi tiến độ (xem mục bên dưới).</p>
     </div>
   </section>
 
@@ -131,18 +130,18 @@
     <div class="shead"><h2>⑤ Bước 5 — Brief thiết kế &amp; bàn giao</h2>
       <div class="sub">Tạo brief cho đội thiết kế, bạn duyệt, rồi bàn giao.</div></div>
     <div class="body">
-      <p><span class="role r-pic">🔵 Đội Merch</span> Khởi động bước thiết kế (bấm nút <b>“Bắt đầu design”</b>).</p>
-      <p><span class="role r-bot">🤖 Hệ thống</span> Tạo <b>brief thiết kế</b> và gửi cho bạn xem qua email.</p>
+      <p><span class="role r-pic">🔵 Merch PIC</span> Khởi động bước thiết kế (bấm nút <b>“Bắt đầu design”</b>).</p>
+      <p><span class="role r-bot">🤖 Agent</span> Tạo <b>brief thiết kế</b> và gửi cho bạn xem qua email.</p>
       <div class="box">
-        <span class="role r-req">🟢 Người đặt</span> <b>Việc của bạn:</b> Mở link trong email brief để xem, rồi chọn 1 trong 3 ngay trên form:
+        <span class="role r-req">🟢 Requester</span> <b>Việc của bạn:</b> Mở link trong email brief để xem, rồi chọn 1 trong 3 ngay trên form:
         <ul>
           <li><b>Duyệt</b> — đồng ý với brief.</li>
-          <li><b>Cần sửa</b> — nhập góp ý, hệ thống sẽ tạo lại brief theo ý bạn.</li>
+          <li><b>Cần sửa</b> — nhập góp ý, Agent sẽ tạo lại brief theo ý bạn.</li>
           <li><b>Tự gửi brief của bạn</b> — tải lên file brief riêng (vẫn cần bấm Duyệt để bàn giao).</li>
         </ul>
       </div>
       <p><span class="role r-mail">✉️ Email</span> Sau khi bạn duyệt, brief được gửi cho <b>đội thiết kế và bạn</b> để cùng nắm thông tin.</p>
-      <p><span class="role r-warn">⚠️ Lưu ý:</span> Nếu chỉnh nhiều lần vẫn chưa duyệt được, đội Merch sẽ hỗ trợ. <span class="assum">Sắp có</span> bước duyệt bản thiết kế (sau khi đội thiết kế hoàn thiện) — hiện chưa áp dụng.</p>
+      <p><span class="role r-warn">⚠️ Lưu ý:</span> Nếu chỉnh quá <b>{{MAX_BRIEF_ROUNDS}} lần</b> vẫn chưa duyệt được, Merch PIC sẽ hỗ trợ. <span class="assum">Sắp có</span> bước duyệt bản thiết kế (sau khi đội thiết kế hoàn thiện) — hiện chưa áp dụng.</p>
     </div>
   </section>
 
@@ -151,11 +150,7 @@
     <div class="shead"><h2>📊 Theo dõi tiến độ</h2>
       <div class="sub">Xem dự án đang ở bước nào.</div></div>
     <div class="body">
-      <ul>
-        <li><b>Bảng tiến độ:</b> Bạn có thể xem dự án đang ở bước nào — dạng cột trạng thái hoặc dòng thời gian — để biết đã đi tới đâu.</li>
-        <li><b>Lưu trữ tài liệu:</b> Mọi bản đề xuất, kế hoạch và brief (kể cả file bạn tự gửi) đều được lưu lại theo từng phiên bản — xem lại bất cứ lúc nào.</li>
-      </ul>
-      <p style="font-size:13px;color:#6b7280">Các bảng theo dõi này ở chế độ xem (read-only) — bạn xem tiến độ, không cần chỉnh gì.</p>
+      <p>Bạn có thể xem dự án đang ở bước nào — dạng cột trạng thái hoặc dòng thời gian — để biết tiến độ. Các bảng này ở chế độ chỉ xem (read-only), bạn không cần chỉnh gì.</p>
     </div>
   </section>
 
@@ -165,13 +160,13 @@
       <div class="sub">Một số tình huống hay gặp.</div></div>
     <div class="body">
       <div class="faq"><q>Tôi không nhận được email?</q>
-        <p>Kiểm tra cả hộp thư rác (spam). Nếu vẫn không thấy email mời bổ sung / mời duyệt, hãy liên hệ đội Merch để được hỗ trợ.</p></div>
+        <p>Kiểm tra cả hộp thư rác (spam). Nếu vẫn không thấy email mời bổ sung / mời duyệt, hãy liên hệ Merch PIC để được hỗ trợ.</p></div>
       <div class="faq"><q>Tôi cần phản hồi ở đâu?</q>
         <p>Mọi phản hồi (bổ sung thông tin, duyệt đề xuất, duyệt brief) đều làm <b>ngay trên link trong email</b> gửi cho bạn. Bạn không cần tài khoản hay vào hệ thống nội bộ.</p></div>
       <div class="faq"><q>Mở link duyệt nhưng không thấy đúng dự án?</q>
-        <p>Hãy dùng đúng <b>link trong email mới nhất</b> của dự án đó. Nếu vẫn không đúng, báo đội Merch để gửi lại link.</p></div>
-      <div class="faq"><q>Hệ thống chưa phản hồi / có vẻ đứng?</q>
-        <p>Khi gặp trục trặc, dự án sẽ <b>tự được chuyển cho đội Merch xử lý</b> — bạn không phải làm gì, sẽ được liên hệ khi có cập nhật.</p></div>
+        <p>Hãy dùng đúng <b>link trong email mới nhất</b> của dự án đó. Nếu vẫn không đúng, báo Merch PIC để gửi lại link.</p></div>
+      <div class="faq"><q>Agent chưa phản hồi / có vẻ đứng?</q>
+        <p>Khi gặp trục trặc, dự án sẽ <b>tự được chuyển cho Merch PIC xử lý</b> — bạn không phải làm gì, sẽ được liên hệ khi có cập nhật.</p></div>
       <div class="faq"><q>Các trạng thái dự án nghĩa là gì?</q>
         <p>Một số trạng thái bạn có thể thấy trên bảng tiến độ:</p>
         <ul>
@@ -180,7 +175,7 @@
           <li><b>Đã duyệt đề xuất</b> — đề xuất đã chốt, chuyển sang chuẩn bị sản xuất.</li>
           <li><b>Chờ bạn duyệt brief</b> — brief thiết kế đã sẵn sàng, đang chờ bạn duyệt.</li>
           <li><b>Đang thiết kế</b> — đã bàn giao cho đội thiết kế.</li>
-          <li><b>Đội Merch đang xử lý</b> — dự án đang được đội Merch hỗ trợ trực tiếp.</li>
+          <li><b>Merch PIC đang xử lý</b> — dự án đang được Merch PIC hỗ trợ trực tiếp.</li>
         </ul></div>
     </div>
   </section>

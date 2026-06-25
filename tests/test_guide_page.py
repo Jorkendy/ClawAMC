@@ -12,8 +12,10 @@ REQUIRED = [
     'id="theo-doi"', 'id="faq"',
     # tiêu đề 5 bước
     'Bước 1', 'Bước 2', 'Bước 3', 'Bước 4', 'Bước 5',
+    # thuật ngữ vai giữ tiếng Anh
+    'Requester', 'Agent', 'Merch PIC',
     # hành động user-facing chính
-    'gửi form', 'Duyệt', 'Cần sửa', 'đội Merch', 'brief',
+    'gửi form', 'Duyệt', 'Cần sửa', 'brief',
 ]
 
 # Chi tiết kỹ thuật KHÔNG được lọt vào trang hướng dẫn end-user.
@@ -21,6 +23,9 @@ FORBIDDEN = [
     'MAX_CLARIFY_ROUNDS', 'MAX_PROPOSAL_ROUNDS', 'MAX_BRIEF_ROUNDS',
     'PROPOSAL_APPROVAL_DAYS', 'bo_sung', 'handoff_design', 'qua_han',
     'Gửi phản hồi', 'Duyệt proposal?', 'Brief tự upload', '?id=',
+    '{{',  # mọi placeholder phải được thay bằng số thật từ config
+    'Lưu trữ tài liệu',  # tính năng nội bộ, không đưa vào guide
+    'Người đặt',  # dùng "Requester", không dịch
 ]
 
 
