@@ -29,6 +29,7 @@ from airtable_client import (airtable, append_note, fetch_items_of,
 from analysis import analyze_one, days_to_deadline_of
 from config import (AI_COST_LOG_TABLE, MAX_CLARIFY_ROUNDS, MAX_PROPOSAL_ROUNDS,
                     MAX_SUPPLEMENT_ROUNDS, PROJECTS_TABLE, PROPOSAL_APPROVAL_DAYS)
+from email_templates import render_email
 from llm_client import (cost_breakdown_vnd, estimate_cost_vnd,
                         get_cost_summary, reset_cost)
 from plan import build_plan, render_plan_xlsx
@@ -78,8 +79,12 @@ def _mark_ai_error(record_id: str, stage: str, err: Exception) -> None:
     clear 'Gửi phản hồi' (chống retry loop mỗi webhook ping), ghi log cho PIC."""
     _log_exc(f"_mark_ai_error [{stage}] {record_id}")
     try:
+        reason = f"Lỗi AI ({stage}): {err}"
+        rec = airtable("GET", f"{PROJECTS_TABLE}/{record_id}").get("fields", {})
+        e_subject, e_body = render_email("pic", rec, core=reason)
         update_project(record_id, {"Status": PIC_STATUS, "Cần PIC xử lý": True, "Gửi phản hồi": False,
-                                   "Lý do cần PIC": f"Lỗi AI ({stage}): {err}"})
+                                   "Lý do cần PIC": reason,
+                                   "Email subject": e_subject, "Email body": e_body})
         append_note(record_id, f"[AI] Lỗi xử lý ({stage}): {err} — cần PIC kiểm tra.",
                     field=HISTORY_FIELD)
     except Exception as e:  # noqa: BLE001
@@ -141,6 +146,9 @@ def _make_proposal(record_id: str, feedback: str | None = None,
 def _publish_proposal(record_id: str, result: dict, html: str, *, reset_round: bool) -> None:
     """Chot 1 ban proposal: set Status 'Cho duyet items' + don sach co phan hoi/clarify -> upload CUOI (trigger mail)."""
     deadline = (date.today() + timedelta(days=PROPOSAL_APPROVAL_DAYS)).isoformat()
+    fields_now = airtable("GET", f"{PROJECTS_TABLE}/{record_id}").get("fields", {})
+    fields_now["Deadline phê duyệt"] = deadline  # vua set, GET cu chua co
+    e_subject, e_body = render_email("proposal", fields_now)
     fields = {
         "Status": "Chờ duyệt items",
         "Deadline phê duyệt": deadline,
@@ -152,6 +160,7 @@ def _publish_proposal(record_id: str, result: dict, html: str, *, reset_round: b
         CLARIFY_ANSWER_FIELD: None,  # don cau tra loi lam ro
         CLARIFY_MAIL_FLAG: False,  # don co (truong hop con sot)
         CLARIFY_ROUND_FIELD: 0,  # publish thanh cong = da kha thi -> reset bo dem dieu chinh chung
+        "Email subject": e_subject, "Email body": e_body,
     }
     if reset_round:
         fields["Số round proposal"] = 0
@@ -178,12 +187,15 @@ def _publish_from_snapshot(record_id: str, code: str, snapshot_items: list) -> N
     html = build_proposal_html(fields, {"items": snapshot_items, "nhan_xet": "",
                                         "co_so_quyet_dinh": ""}, total, images=images)
     deadline = (date.today() + timedelta(days=PROPOSAL_APPROVAL_DAYS)).isoformat()
+    e_subject, e_body = render_email(
+        "proposal", {**fields, "Deadline phê duyệt": deadline, "Cảnh báo deadline": ""})
     update_project(record_id, {
         "Status": "Chờ duyệt items", "Deadline phê duyệt": deadline,
         "File proposal": [], "Duyệt proposal?": None, "Gửi phản hồi": False,
         "Feedback proposal": None, "Phân loại merch": sorted(merch_categories),
         "Proposal JSON": json.dumps(snapshot_items, ensure_ascii=False),
         "Phương án đầy đủ (JSON)": "", "Cảnh báo deadline": "",
+        "Email subject": e_subject, "Email body": e_body,
     })
     upload_proposal(record_id, html, code)
     append_note(record_id, "[AI] Requester dời deadline → khôi phục bộ đầy đủ như đã đề xuất.",
@@ -200,15 +212,18 @@ def _request_adjust(record_id: str, status: str, message: str, pic_reason: str, 
     code = f.get("Mã project", record_id)
     rounds = int(f.get(CLARIFY_ROUND_FIELD) or 0) + 1
     if rounds > MAX_CLARIFY_ROUNDS:
+        pe_subject, pe_body = render_email("pic", f, core=pic_reason)
         update_project(record_id, {
             "Status": PIC_STATUS, CLARIFY_ROUND_FIELD: rounds, "Cần PIC xử lý": True,
             "Gửi phản hồi": False, "Feedback proposal": None, "Duyệt proposal?": None,
             "Lý do cần PIC": pic_reason,
+            "Email subject": pe_subject, "Email body": pe_body,
         })
         append_note(record_id, f"[AI] {pic_reason} (sau {MAX_CLARIFY_ROUNDS} vòng điều chỉnh) — chuyển Merch PIC.",
                     field=HISTORY_FIELD)
         log.info(f"[proposal] {code} quá {MAX_CLARIFY_ROUNDS} vòng điều chỉnh -> Cần PIC xử lý")
         return
+    e_subject, e_body = render_email("clarify", f, core=message)
     update_project(record_id, {
         "Status": status,
         CLARIFY_FIELD: message,
@@ -216,6 +231,7 @@ def _request_adjust(record_id: str, status: str, message: str, pic_reason: str, 
         CLARIFY_MAIL_FLAG: True,  # bat co -> Automation gui mail requester (tu untick sau khi gui)
         "Gửi phản hồi": False, "Feedback proposal": None, "Duyệt proposal?": None,
         CLARIFY_ANSWER_FIELD: None,
+        "Email subject": e_subject, "Email body": e_body,
     })
     append_note(record_id, f"[AI] Vòng điều chỉnh {rounds} — {log_note}; đã hỏi requester.", field=HISTORY_FIELD)
     log.info(f"[proposal] {code} -> {status} (vòng điều chỉnh {rounds})")
@@ -349,12 +365,15 @@ def _reanalyze(record_id: str) -> None:
 
     rounds += 1
     if rounds > MAX_SUPPLEMENT_ROUNDS:
+        reason = (f"Requester bổ sung {MAX_SUPPLEMENT_ROUNDS} lần vẫn thiếu: "
+                  f"{', '.join(result['missing'])}")
+        pe_subject, pe_body = render_email("pic", rec["fields"], core=reason)
         update_project(record_id, {
             "Status": PIC_STATUS,
             SUPPLEMENT_FIELD: rounds, "Gửi phản hồi": False, "Gửi mail bổ sung": False,
             "Cần PIC xử lý": True,
-            "Lý do cần PIC": f"Requester bổ sung {MAX_SUPPLEMENT_ROUNDS} lần vẫn thiếu: "
-                             f"{', '.join(result['missing'])}",
+            "Lý do cần PIC": reason,
+            "Email subject": pe_subject, "Email body": pe_body,
         })
         append_note(record_id, f"[AI] Bổ sung quá {MAX_SUPPLEMENT_ROUNDS} lần vẫn thiếu thông tin "
                                f"({', '.join(result['missing'])}) — chuyển Merch PIC.", field=HISTORY_FIELD)
@@ -412,6 +431,8 @@ def _generate_plan(record_id: str, code: str) -> None:
     fields = rec.get("fields", {})
     items = _plan_items_from_fields(fields, record_id)
     plan = build_plan(fields, items, date.today())
+    e_subject, e_body = render_email("plan", fields)
+    update_project(record_id, {"Email subject": e_subject, "Email body": e_body})
     upload_plan(record_id, render_plan_xlsx(plan), code)
     append_note(record_id, f"[AI] Đã sinh plan sản xuất — giao dự kiến {plan['delivery']} "
                            f"({plan['total_cal']} ngày lịch). {plan['feasible']}", field=HISTORY_FIELD)
@@ -461,7 +482,9 @@ def _generate_brief(record_id: str, code: str) -> None:
         "logo_png": logo_png,
     }
     pptx = render_brief_pptx(brief_data, images, project)
-    update_project(record_id, {"File brief design": []})  # clear ban cu -> re-trigger thay vi cong don
+    e_subject, e_body = render_email("brief", fields)
+    update_project(record_id, {"File brief design": [],  # clear ban cu -> re-trigger thay vi cong don
+                               "Email subject": e_subject, "Email body": e_body})
     upload_brief(record_id, pptx, code)
     update_project(record_id, {"Bắt đầu design": False})
     append_note(record_id, f"[AI] Đã sinh brief design ({len(brief_data.get('items', []))} item).",
@@ -513,10 +536,12 @@ def _revise_or_escalate(record_id: str, code: str, fields: dict) -> None:
     feedback = fields.get("Feedback proposal", "") or ""
     rounds = int(fields.get("Số round proposal") or 0) + 1
     if rounds > MAX_PROPOSAL_ROUNDS:
+        reason = (f"Sửa proposal {MAX_PROPOSAL_ROUNDS} round vẫn chưa duyệt. "
+                  f"Feedback gần nhất: {feedback}")
+        pe_subject, pe_body = render_email("pic", fields, core=reason)
         update_project(record_id, {"Status": PIC_STATUS, "Cần PIC xử lý": True, "Duyệt proposal?": None,
-                                   "Gửi phản hồi": False,
-                                   "Lý do cần PIC": f"Sửa proposal {MAX_PROPOSAL_ROUNDS} round vẫn chưa "
-                                                    f"duyệt. Feedback gần nhất: {feedback}"})
+                                   "Gửi phản hồi": False, "Lý do cần PIC": reason,
+                                   "Email subject": pe_subject, "Email body": pe_body})
         append_note(record_id, f"[AI] Proposal đã sửa {MAX_PROPOSAL_ROUNDS} round vẫn chưa duyệt "
                                f"— chuyển Merch PIC xử lý. Feedback gần nhất: {feedback}", field=HISTORY_FIELD)
         log.info(f"[proposal] {code} vượt {MAX_PROPOSAL_ROUNDS} round -> Cần PIC xử lý")

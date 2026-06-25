@@ -3,6 +3,7 @@ from datetime import date, datetime
 
 from airtable_client import airtable, update_project
 from config import PIPELINE_WORKDAYS, PROJECTS_TABLE, REQUIRED_FIELDS, WORKDAYS_TO_CALENDAR
+from email_templates import render_email
 from llm_client import ask_llm_json
 
 ANALYSIS_PROMPT = """Bạn là chuyên gia sản xuất merchandise cho game với 10 năm kinh nghiệm tại VNGGames.
@@ -23,7 +24,7 @@ YÊU CẦU PHÂN TÍCH:
 1. "tom_tat": 2-3 câu tóm tắt đề bài + nhận định chuyên môn (gợi ý hướng item phù hợp target audience).
 2. "muc_do_uu_tien": "cao" | "trung bình" | "thấp" — dựa trên độ gấp của deadline và quy mô budget.
 3. "ly_do_deadline": 1-2 câu (tiếng Việt) giải thích đánh giá deadline ở trên (vì sao gấp / không khả thi / ổn). KHÔNG tự tính lại số ngày — dùng đúng đánh giá máy đã đưa.
-4. "mail_bo_sung": nếu missing_fields không rỗng HOẶC deadline "gấp"/"không khả thi" → soạn email tiếng Việt ngắn gọn, chuyên nghiệp gửi requester: chào theo tên, nêu rõ từng thông tin thiếu cần bổ sung (giải thích vì sao cần); nếu deadline gấp/không khả thi thì cảnh báo và đề xuất hướng (lùi deadline / ưu tiên hàng có sẵn cho nhanh). Kết thúc bằng chữ ký "Merch Agent — VNGGames". Nếu đủ thông tin và deadline ổn → null.
+4. "mail_bo_sung": nếu missing_fields không rỗng HOẶC deadline "gấp"/"không khả thi" → soạn PHẦN NỘI DUNG LÕI (tiếng Việt, ngắn gọn, chuyên nghiệp): nêu rõ từng thông tin thiếu cần bổ sung (giải thích vì sao cần); nếu deadline gấp/không khả thi thì cảnh báo và đề xuất hướng (lùi deadline / ưu tiên hàng có sẵn cho nhanh). KHÔNG viết lời chào ("Chào…") và KHÔNG viết chữ ký — hệ thống tự thêm. Nếu đủ thông tin và deadline ổn → null.
 
 JSON schema: {{"tom_tat": str, "muc_do_uu_tien": str, "ly_do_deadline": str, "mail_bo_sung": str|null}}"""
 
@@ -144,7 +145,9 @@ def analyze_one(record: dict, notify_missing: bool = True) -> dict:
         # Fallback thieu field -> mail bo sung. CHI gui khi notify_missing=True (re-analyze qua cap
         # se tat de chong spam mail vo han — xem _reanalyze).
         if notify_missing and analysis.get("mail_bo_sung"):
-            update_fields["Mail bổ sung"] = analysis["mail_bo_sung"]
+            subject, body = render_email("bo_sung", fields, core=analysis["mail_bo_sung"])
+            update_fields["Email subject"] = subject
+            update_fields["Email body"] = body
             update_fields["Gửi mail bổ sung"] = True
     else:
         # Du field: deadline gap/khong kha thi -> canh bao GOP vao mail proposal (banner + body),
