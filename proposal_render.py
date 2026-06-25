@@ -17,6 +17,7 @@ log = logging.getLogger("merch")
 
 from config import (AIRTABLE_BASE_ID, AIRTABLE_TOKEN, BRIEF_FILE_FIELD_ID,
                     PLAN_FILE_FIELD_ID, PROPOSAL_FILE_FIELD_ID)
+from airtable_client import log_document
 
 
 def _esc(s) -> str:
@@ -236,23 +237,35 @@ def _upload_attachment(record_id: str, field_id: str, content_type: str,
     raise last_err
 
 
+def _attachments_from_resp(resp: dict, field_id: str) -> list[dict]:
+    """Lay [{url, filename}] cua file vua upload tu response uploadAttachment."""
+    atts = (resp.get("fields", {}) or {}).get(field_id, []) or []
+    return [{"url": a["url"], "filename": a.get("filename", "file")} for a in atts if a.get("url")]
+
+
 def upload_proposal(record_id: str, html: str, code: str) -> dict:
-    """Upload HTML vao field 'File proposal'."""
-    return _upload_attachment(record_id, PROPOSAL_FILE_FIELD_ID, "text/html",
+    """Upload HTML vao field 'File proposal' + ghi kho tai lieu (AI)."""
+    resp = _upload_attachment(record_id, PROPOSAL_FILE_FIELD_ID, "text/html",
                               f"proposal_{code}.html", html.encode("utf-8"))
+    log_document(record_id, code, "Proposal", "AI", _attachments_from_resp(resp, PROPOSAL_FILE_FIELD_ID))
+    return resp
 
 
 def upload_plan(record_id: str, xlsx: bytes, code: str) -> dict:
-    """Upload file Excel plan san xuat (Buoc 4) vao field 'File plan san xuat'."""
-    return _upload_attachment(
+    """Upload file Excel plan san xuat (Buoc 4) vao field 'File plan san xuat' + ghi kho (AI)."""
+    resp = _upload_attachment(
         record_id, PLAN_FILE_FIELD_ID,
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         f"plan_san_xuat_{code}.xlsx", xlsx)
+    log_document(record_id, code, "Plan", "AI", _attachments_from_resp(resp, PLAN_FILE_FIELD_ID))
+    return resp
 
 
 def upload_brief(record_id: str, pptx: bytes, code: str) -> dict:
-    """Upload deck brief design (.pptx) vao field 'File brief design' (Buoc 5)."""
-    return _upload_attachment(
+    """Upload deck brief design (.pptx) vao field 'File brief design' (Buoc 5) + ghi kho (AI)."""
+    resp = _upload_attachment(
         record_id, BRIEF_FILE_FIELD_ID,
         "application/vnd.openxmlformats-officedocument.presentationml.presentation",
         f"brief_design_{code}.pptx", pptx)
+    log_document(record_id, code, "Brief", "AI", _attachments_from_resp(resp, BRIEF_FILE_FIELD_ID))
+    return resp

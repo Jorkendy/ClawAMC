@@ -68,6 +68,36 @@ def log_event(record_id: str, code: str, label: str) -> None:
         log.warning(f"[step-log] không ghi được '{label}' cho {code}: {e}")
 
 
+DOCS_TABLE = "Tài liệu dự án"  # kho tai lieu chung (proposal/plan/brief + requester upload)
+
+
+def _next_doc_version(records: list[dict], loai: str) -> int:
+    """So phien ban ke tiep cho 1 loai trong project = (so dong cung Loai) + 1."""
+    return sum(1 for r in records if r.get("fields", {}).get("Loại") == loai) + 1
+
+
+def log_document(record_id: str, code: str, loai: str, nguon: str,
+                 attachments: list[dict], note: str = "") -> None:
+    """Ghi 1 ban tai lieu vao kho 'Tai lieu du an'. attachments = list {url, filename}
+    (copy file). Loi KHONG chan nghiep vu."""
+    try:
+        qs = urllib.parse.urlencode({"filterByFormula": f"{{Mã project (text)}}='{code}'"})
+        existing = airtable("GET", f"{urllib.parse.quote(DOCS_TABLE)}?{qs}").get("records", [])
+        version = _next_doc_version(existing, loai)
+        airtable("POST", urllib.parse.quote(DOCS_TABLE), {"records": [{"fields": {
+            "Mã tài liệu": f"{code} · {loai} v{version}",
+            "Loại": loai,
+            "Project": [record_id],
+            "Mã project (text)": code,
+            "Nguồn": nguon,
+            "Phiên bản": version,
+            "File": [{"url": a["url"], "filename": a["filename"]} for a in attachments],
+            "Ghi chú": note,
+        }}], "typecast": True})
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[docs] không ghi được kho '{loai}/{nguon}' cho {code}: {e}")
+
+
 def fetch_items_of(record_id: str) -> list[dict]:
     rows = fetch_all("Items", ["Tên item", "Project", "Số lượng",
                                "Đơn giá dự kiến (VND)", "Status"])
