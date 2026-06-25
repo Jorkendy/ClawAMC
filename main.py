@@ -107,6 +107,15 @@ def rules() -> FileResponse:
     return FileResponse(_RULES, media_type="text/html")
 
 
+_EMAIL_GUIDE = os.path.join(os.path.dirname(__file__), "docs", "email-guide.html")
+
+
+@app.get("/email-guide")
+def email_guide() -> FileResponse:
+    """Huong dan Email Templates (PO sua noi dung + admin setup automation)."""
+    return FileResponse(_EMAIL_GUIDE, media_type="text/html")
+
+
 def _feedback_button(record_id: str) -> str:
     """Nut noi (link sang form Fillout phan hoi, kem ?id=) — chi hien neu da set FILLOUT_FORM_URL."""
     if not FILLOUT_FORM_URL:
