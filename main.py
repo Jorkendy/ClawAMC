@@ -25,7 +25,7 @@ import threading
 import urllib.request
 
 from fastapi import FastAPI, Request
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import HTMLResponse
 
 from airtable_client import airtable, fetch_projects
 from config import FILLOUT_FORM_URL, PROJECTS_TABLE
@@ -89,40 +89,57 @@ def health() -> dict:
     return {"status": "healthy"}
 
 
-_FLOWCHART = os.path.join(os.path.dirname(__file__), "docs", "flowchart.html")
+_DOC_DIR = os.path.join(os.path.dirname(__file__), "docs")
+# Thanh nav chung cho moi trang doc — 1 nguon duy nhat, them trang moi chi can them 1 dong.
+_DOC_NAV_ITEMS = [
+    ("/guide", "📘 Hướng dẫn"),
+    ("/flowchart", "📊 Sơ đồ logic"),
+    ("/rules", "📐 Quy tắc & ngưỡng"),
+    ("/email-guide", "✉️ Chỉnh email"),
+]
+
+
+def _doc_nav(active: str) -> str:
+    """Render thanh nav (inline-style de hien thi nhat quan tren moi trang du CSS khac nhau)."""
+    links = ""
+    for path, label in _DOC_NAV_ITEMS:
+        bg = "#ff3d57" if path == active else "rgba(255,255,255,.12)"
+        links += (f'<a href="{path}" style="color:#fff;background:{bg};padding:6px 13px;border-radius:7px;'
+                  "text-decoration:none;font:600 13px -apple-system,'Segoe UI',Roboto,Arial;"
+                  f'white-space:nowrap">{label}</a>')
+    return ('<nav style="background:#0f172a;padding:9px 16px;display:flex;gap:7px;flex-wrap:wrap;'
+            f'align-items:center;position:sticky;top:0;z-index:9998">{links}</nav>')
+
+
+def _serve_doc(filename: str, active: str) -> HTMLResponse:
+    """Doc file HTML tinh + chen thanh nav chung ngay sau <body>."""
+    with open(os.path.join(_DOC_DIR, filename), encoding="utf-8") as f:
+        html = f.read()
+    return HTMLResponse(html.replace("<body>", "<body>" + _doc_nav(active), 1))
 
 
 @app.get("/flowchart")
-def flowchart() -> FileResponse:
+def flowchart() -> HTMLResponse:
     """So do logic Merch Agent (demo cho stakeholder) — update file docs/flowchart.html roi redeploy."""
-    return FileResponse(_FLOWCHART, media_type="text/html")
-
-
-_RULES = os.path.join(os.path.dirname(__file__), "docs", "proposal-rules.html")
+    return _serve_doc("flowchart.html", "/flowchart")
 
 
 @app.get("/rules")
-def rules() -> FileResponse:
+def rules() -> HTMLResponse:
     """Quy tac ra proposal (deadline + item/creative) — tham chieu giai trinh cho stakeholder."""
-    return FileResponse(_RULES, media_type="text/html")
-
-
-_EMAIL_GUIDE = os.path.join(os.path.dirname(__file__), "docs", "email-guide.html")
+    return _serve_doc("proposal-rules.html", "/rules")
 
 
 @app.get("/email-guide")
-def email_guide() -> FileResponse:
+def email_guide() -> HTMLResponse:
     """Huong dan Email Templates (PO sua noi dung + admin setup automation)."""
-    return FileResponse(_EMAIL_GUIDE, media_type="text/html")
-
-
-_GUIDE = os.path.join(os.path.dirname(__file__), "docs", "guide.html")
+    return _serve_doc("email-guide.html", "/email-guide")
 
 
 @app.get("/guide")
-def guide() -> FileResponse:
+def guide() -> HTMLResponse:
     """Huong dan su dung agent theo quy trinh (Buoc 1->5) cho requester + PO/PIC."""
-    return FileResponse(_GUIDE, media_type="text/html")
+    return _serve_doc("guide.html", "/guide")
 
 
 def _feedback_button(record_id: str) -> str:

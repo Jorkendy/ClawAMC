@@ -41,12 +41,12 @@ def test_guide_has_required_content():
     assert not missing, f"Thiếu trong /guide: {missing}"
 
 
-import os
-
-DOCS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "docs")
+DOC_ROUTES = ("/guide", "/flowchart", "/rules", "/email-guide")
 
 
-def test_cross_links_to_guide():
-    for name in ("flowchart.html", "proposal-rules.html", "email-guide.html"):
-        with open(os.path.join(DOCS, name), encoding="utf-8") as f:
-            assert 'href="/guide"' in f.read(), f"{name} thiếu link → /guide"
+def test_shared_nav_on_all_doc_pages():
+    """Moi trang doc (sau khi serve) deu co thanh nav chung tro toi ca 4 trang."""
+    for path in DOC_ROUTES:
+        html = client.get(path).text
+        for link in DOC_ROUTES:
+            assert f'href="{link}"' in html, f"{path} thiếu nav → {link}"
