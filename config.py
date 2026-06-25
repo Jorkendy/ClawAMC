@@ -48,11 +48,12 @@ BRIEF_FILE_FIELD_ID = os.environ.get("BRIEF_FILE_FIELD_ID", "fldfqeqkVAegySzZ5")
 FILLOUT_FORM_URL = os.environ.get("FILLOUT_FORM_URL", "")
 
 # Proposal duyet (Buoc 2 — D1: requester duyet tren Airtable)
-PROPOSAL_APPROVAL_DAYS = 3   # han requester duyet proposal (ngay)
-MAX_PROPOSAL_ROUNDS = 3      # so round sua toi da -> escalate Merch PIC
-MAX_CLARIFY_ROUNDS = 3       # so vong lam ro yeu cau dac biet toi da -> escalate Merch PIC
-MAX_SUPPLEMENT_ROUNDS = 3    # so lan re-analyze (bo sung thong tin) toi da -> escalate PIC (chong spam mail)
-MAX_BRIEF_ROUNDS = int(os.environ.get("MAX_BRIEF_ROUNDS", "3"))  # so vong sua brief toi da -> escalate Merch PIC
+# Cac nguong duoi chinh duoc qua env (Coolify) -> restart; KHONG set env -> dung default hien tai.
+PROPOSAL_APPROVAL_DAYS = int(os.environ.get("PROPOSAL_APPROVAL_DAYS", "3"))  # han requester duyet proposal (ngay)
+MAX_PROPOSAL_ROUNDS = int(os.environ.get("MAX_PROPOSAL_ROUNDS", "3"))    # so round sua proposal toi da -> escalate Merch PIC
+MAX_CLARIFY_ROUNDS = int(os.environ.get("MAX_CLARIFY_ROUNDS", "3"))      # so vong lam ro/dieu chinh toi da -> escalate Merch PIC
+MAX_SUPPLEMENT_ROUNDS = int(os.environ.get("MAX_SUPPLEMENT_ROUNDS", "3"))  # so lan re-analyze (bo sung) toi da -> escalate PIC
+MAX_BRIEF_ROUNDS = int(os.environ.get("MAX_BRIEF_ROUNDS", "3"))          # so vong sua brief toi da -> escalate Merch PIC
 
 # Don gia uoc tinh chi phi AI (VND) — [GIA DINH] cap nhat theo bang gia thuc te de "chung minh"
 # chi phi van hanh. Anh + grounding la phan dat; chat self-host re.

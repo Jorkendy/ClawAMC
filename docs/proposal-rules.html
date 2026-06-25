@@ -126,6 +126,26 @@ Ngày cần (lịch) = ( <b>27</b> + max(Thời gian lên mẫu) + max(Thời gi
     </div>
   </section>
 
+  <!-- ENV CONFIG -->
+  <section>
+    <div class="shead"><h2>⑥ Cấu hình ngưỡng (env vars)</h2>
+      <div class="sub">Chỉnh số vòng / hạn duyệt qua biến môi trường Coolify — KHÔNG sửa code. Đổi xong cần <b>restart/redeploy</b>. Không set → dùng mặc định.</div></div>
+    <div class="body">
+      <table>
+        <tr><th>Env var</th><th>Ý nghĩa</th><th>Mặc định</th></tr>
+        <tr><td><code>MAX_PROPOSAL_ROUNDS</code></td><td>Số vòng sửa proposal tối đa → quá thì chuyển Merch PIC</td><td>3</td></tr>
+        <tr><td><code>MAX_CLARIFY_ROUNDS</code></td><td>Số vòng làm rõ / điều chỉnh (yêu cầu đặc biệt + budget + deadline) tối đa → PIC</td><td>3</td></tr>
+        <tr><td><code>MAX_SUPPLEMENT_ROUNDS</code></td><td>Số lần requester bổ sung thông tin (re-analyze) tối đa → PIC</td><td>3</td></tr>
+        <tr><td><code>MAX_BRIEF_ROUNDS</code></td><td>Số vòng sửa brief tối đa → quá thì chuyển Merch PIC</td><td>3</td></tr>
+        <tr><td><code>PROPOSAL_APPROVAL_DAYS</code></td><td>Hạn requester duyệt proposal = ngày gửi + N (quá hạn → mail nhắc)</td><td>3</td></tr>
+      </table>
+      <ul>
+        <li><b>Cách đổi:</b> Coolify → service agent → Environment Variables → thêm/sửa biến (vd <code>MAX_BRIEF_ROUNDS=5</code>) → <b>Restart/Redeploy</b>.</li>
+        <li>Giá trị phải là <b>số nguyên</b>. Set sai/để trống → tự rơi về mặc định (3).</li>
+      </ul>
+    </div>
+  </section>
+
   <footer>Merch Agent — VNGGames · Quy tắc ra proposal · Xem thêm sơ đồ luồng tại <b>/flowchart</b></footer>
 </div>
 </body>
