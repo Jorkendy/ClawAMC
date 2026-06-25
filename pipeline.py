@@ -482,12 +482,12 @@ def _generate_brief(record_id: str, code: str) -> None:
         "logo_png": logo_png,
     }
     pptx = render_brief_pptx(brief_data, images, project)
-    update_project(record_id, {"File brief design": []})  # clear ban cu truoc upload
-    upload_brief(record_id, pptx, code)  # tu log_document(Brief, AI)
     e_subject, e_body = render_email("brief", fields)
-    update_project(record_id, {"Bắt đầu design": False, "Status": "Chờ duyệt brief",
-                               "Số round brief": 0, "Duyệt brief?": None, "Feedback brief": None,
+    update_project(record_id, {"File brief design": [],  # clear + set mail TRUOC upload
                                "Email subject": e_subject, "Email body": e_body})
+    upload_brief(record_id, pptx, code)  # file non-empty -> automation gui mail (subject da san) + log_document(Brief, AI)
+    update_project(record_id, {"Bắt đầu design": False, "Status": "Chờ duyệt brief",
+                               "Số round brief": 0, "Duyệt brief?": None, "Feedback brief": None})
     append_note(record_id, f"[AI] Đã sinh brief design ({len(brief_data.get('items', []))} item) — chờ requester duyệt.",
                 field=HISTORY_FIELD)
     log_event(record_id, code, "Sinh brief design")
@@ -604,12 +604,12 @@ def _revise_brief(record_id: str, code: str, feedback: str) -> None:
         "logo_png": logo_png,
     }
     pptx = render_brief_pptx(brief_data, images, project)
-    update_project(record_id, {"File brief design": []})  # clear ban cu truoc upload
-    upload_brief(record_id, pptx, code)  # tu log_document(Brief, AI) version++
     e_subject, e_body = render_email("brief", fields)
-    update_project(record_id, {"Status": "Chờ duyệt brief", "Số round brief": rounds,
-                               "Duyệt brief?": None, "Feedback brief": None, "Gửi phản hồi": False,
+    update_project(record_id, {"File brief design": [],  # clear + set mail TRUOC upload
                                "Email subject": e_subject, "Email body": e_body})
+    upload_brief(record_id, pptx, code)  # file non-empty -> automation gui mail (subject da san) + log_document(Brief, AI) version++
+    update_project(record_id, {"Status": "Chờ duyệt brief", "Số round brief": rounds,
+                               "Duyệt brief?": None, "Feedback brief": None, "Gửi phản hồi": False})
     append_note(record_id, f"[AI] Sửa brief round {rounds} theo feedback: {feedback}", field=HISTORY_FIELD)
     log_event(record_id, code, f"Sửa brief round {rounds}")
     log.info(f"[brief] {code} CẦN SỬA -> brief round {rounds} đã gửi lại")
