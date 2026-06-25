@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Merch Agent — Hướng dẫn sử dụng (Quy trình)</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a2e;background:#f4f5f7;line-height:1.55}
+  .wrap{max-width:1000px;margin:0 auto;padding:0 0 60px}
+  header{background:linear-gradient(135deg,#ff6a00,#ff3d57);color:#fff;padding:34px 40px 30px}
+  header .tag{display:inline-block;background:rgba(255,255,255,.22);padding:3px 12px;border-radius:20px;font-size:12px;font-weight:600;letter-spacing:.5px}
+  header h1{font-size:28px;margin:12px 0 6px}
+  header p{opacity:.93;font-size:14px;max-width:820px}
+  header .meta{margin-top:14px;font-size:12.5px;opacity:.9}
+  section{background:#fff;margin:22px 40px 0;border-radius:14px;box-shadow:0 3px 16px rgba(0,0,0,.06);overflow:hidden}
+  .shead{padding:16px 26px;border-bottom:1px solid #eef0f3;background:#fafbfc}
+  .shead h2{font-size:19px}
+  .shead .sub{font-size:13px;color:#6b7280;margin-top:3px}
+  .body{padding:18px 26px}
+  ul{margin:6px 0 6px 18px}
+  li{margin:6px 0;font-size:14px}
+  b{color:#1a1a2e}
+  code{background:#eef0f3;padding:1px 6px;border-radius:5px;font-family:'SF Mono',ui-monospace,Menlo,monospace;font-size:12.5px;color:#b91c1c}
+  .assum{display:inline-block;background:#fff4e0;color:#92400e;font-size:11px;font-weight:700;padding:1px 7px;border-radius:6px}
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13.5px}
+  th,td{border:1px solid #e6e8ec;padding:9px 12px;text-align:left;vertical-align:top}
+  th{background:#f1f5f9;font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:#475569}
+  .pill{display:inline-block;padding:2px 9px;border-radius:20px;font-size:12px;font-weight:700}
+  .ok{background:#e6f4ea;color:#1a7f37}.warn{background:#fff4e0;color:#b45309}.crit{background:#fdecec;color:#b91c1c}
+  .faq{border-left:4px solid #ff6a00;background:#fffaf6;padding:12px 16px;border-radius:0 10px 10px 0;margin:12px 0}
+  .faq q{display:block;font-weight:700;font-size:14.5px;margin-bottom:4px}
+  .faq q:before{content:"❓ "}
+  .faq p{font-size:13.5px;color:#3a3f4b}
+  footer{text-align:center;color:#8a8f99;font-size:12.5px;margin-top:30px}
+  /* chip vai */
+  .role{display:inline-block;padding:2px 9px;border-radius:6px;font-size:12px;font-weight:700;margin-right:6px}
+  .r-req{background:#e6f4ea;color:#1a7f37}
+  .r-pic{background:#e7eefc;color:#1d4ed8}
+  .r-bot{background:#eef0f3;color:#475569}
+  .r-warn{background:#fdecec;color:#b91c1c}
+  .r-mail{background:#f3e8ff;color:#7c3aed}
+  .toc{background:#fff;margin:22px 40px 0;border-radius:14px;box-shadow:0 3px 16px rgba(0,0,0,.06);padding:14px 26px;font-size:14px}
+  .toc b{display:block;margin-bottom:6px;font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:#475569}
+  .toc a{color:#1d4ed8;text-decoration:none;margin-right:16px;line-height:2}
+  .navtop a{display:inline-block;margin:10px 10px 0 0;background:rgba(255,255,255,.22);color:#fff;padding:7px 15px;border-radius:8px;text-decoration:none;font-size:13px;font-weight:600}
+  .box{border:1px solid #e6e8ec;border-radius:10px;padding:12px 16px;margin:10px 0;background:#fafbfc}
+  .box b{color:#1d4ed8}
+  .legend span{margin-right:4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="tag">VNGGames · Merch Automation</span>
+    <h1>Hướng dẫn sử dụng Merch Agent</h1>
+    <p>Trang này dành cho <b>Requester</b> (người đặt merch) và <b>PO / Merch PIC</b> (vận hành). Đi hết quy trình <b>Bước 1 → 5</b>: ai làm gì, bấm nút nào, email nào bắn ra, và khi nào việc được chuyển cho người xử lý thủ công.</p>
+    <p class="legend" style="margin-top:10px">
+      <span class="role r-bot">🤖 Agent tự động</span>
+      <span class="role r-req">🟢 Requester</span>
+      <span class="role r-pic">🔵 PO / PIC</span>
+      <span class="role r-mail">✉️ Email</span>
+      <span class="role r-warn">⚠️ Ngoại lệ</span>
+    </p>
+    <div class="navtop">
+      <a href="/flowchart">📊 Sơ đồ logic</a>
+      <a href="/rules">📐 Quy tắc &amp; ngưỡng</a>
+      <a href="/email-guide">✉️ Chỉnh nội dung email</a>
+    </div>
+    <div class="meta">Cập nhật 25/06/2026 · Quy trình hiện hỗ trợ tới Bước 5 (bàn giao thiết kế).</div>
+  </header>
+
+  <nav class="toc">
+    <b>Mục lục</b>
+    <a href="#buoc1">① Tiếp nhận &amp; phân tích</a>
+    <a href="#buoc2">② Đề xuất (proposal)</a>
+    <a href="#buoc3">③ Duyệt proposal</a>
+    <a href="#buoc4">④ Plan sản xuất</a>
+    <a href="#buoc5">⑤ Brief &amp; bàn giao</a>
+    <a href="#theo-doi">📊 Theo dõi tiến độ</a>
+    <a href="#faq">🛠 Sự cố thường gặp</a>
+  </nav>
+
+  <!-- BƯỚC 1 -->
+  <section id="buoc1">
+    <div class="shead"><h2>① Bước 1 — Tiếp nhận &amp; phân tích</h2>
+      <div class="sub">Tiếp nhận yêu cầu và thẩm định đã đủ thông tin để ra đề xuất chưa.</div></div>
+    <div class="body">
+      <p><span class="role r-bot">🤖 Agent</span> Đọc record dự án mới, kiểm tra <b>7 thông tin cốt lõi</b>: Mục đích sản xuất, Chủ đề, Định vị, Target audience, Số lượng items, Deadline cần hàng, Budget. Thiếu bất kỳ mục nào → hỏi lại requester.</p>
+      <div class="box">
+        <span class="role r-req">🟢 Requester</span> <b>Cần làm:</b> Điền yêu cầu trên Airtable (form đặt merch). Khi nhận email hỏi thêm → cập nhật đúng field còn thiếu, rồi tích ô <code>Gửi phản hồi</code> để agent chạy tiếp.
+      </div>
+      <p><span class="role r-mail">✉️ Email</span> <code>clarify</code> — "Cần trao đổi để hoàn thiện đề xuất".</p>
+      <p><span class="role r-warn">⚠️ Ngoại lệ:</span> Thiếu thông tin → Status <span class="pill warn">Chờ làm rõ yêu cầu</span>. Số vòng làm rõ tối đa = <code>MAX_CLARIFY_ROUNDS</code> (mặc định 3). Hết vòng vẫn chưa đủ → chuyển <span class="pill crit">Chờ Merch PIC</span> để người xử lý.</p>
+    </div>
+  </section>
+
+  <!-- BƯỚC 2 -->
+  <section id="buoc2">
+    <div class="shead"><h2>② Bước 2 — Đề xuất (proposal) khả thi</h2>
+      <div class="sub">Agent ra proposal "chạy được thực tế": thỏa đồng thời ngân sách + thời gian + yêu cầu đặc biệt.</div></div>
+    <div class="body">
+      <p><span class="role r-bot">🤖 Agent</span> Chọn item từ kho theo độ phù hợp game/đối tượng, tính tổng chi phí và deadline theo lead-time từng item. Nếu chưa khả thi → tự sửa phương án trước khi hỏi người.</p>
+      <p><span class="role r-warn">⚠️ Vòng điều chỉnh</span> (dùng chung 1 bộ đếm <code>MAX_PROPOSAL_ROUNDS</code>, mặc định 3):</p>
+      <ul>
+        <li><b>Vượt budget:</b> AI tự sửa 2 vòng; vẫn vượt → hỏi requester <b>tăng budget</b> hoặc <b>bỏ / rẻ hoá</b> yêu cầu. Status <span class="pill warn">Chờ điều chỉnh</span>.</li>
+        <li><b>Trễ deadline:</b> đề xuất phương án nhanh, hoặc hỏi requester dời <code>Deadline cần hàng</code>.</li>
+      </ul>
+      <div class="box">
+        <span class="role r-req">🟢 Requester</span> <b>Cần làm (nếu được hỏi):</b> cập nhật budget / deadline / yêu cầu trên Airtable rồi tích <code>Gửi phản hồi</code>.
+      </div>
+      <p><span class="role r-mail">✉️ Email</span> <code>bo_sung</code> ("Cần bổ sung thông tin") hoặc <code>clarify</code>.</p>
+    </div>
+  </section>
+
+  <!-- BƯỚC 3 -->
+  <section id="buoc3">
+    <div class="shead"><h2>③ Bước 3 — Duyệt proposal</h2>
+      <div class="sub">Requester chốt phương án đề xuất.</div></div>
+    <div class="body">
+      <p><span class="role r-bot">🤖 Agent</span> Render proposal ra trang web công khai cho requester (không cần tài khoản Airtable) và gửi email mời duyệt kèm hạn duyệt.</p>
+      <div class="box">
+        <span class="role r-req">🟢 Requester</span> <b>Cần làm:</b> Mở link <code>/proposal/{record_id}</code> trong email để xem đề xuất → bấm <b>Phản hồi / Duyệt</b> → trong form Fillout chọn <code>Duyệt proposal?</code> = <b>Duyệt</b> (chốt) hoặc <b>Cần sửa</b> và ghi <code>Feedback proposal</code>.
+      </div>
+      <p><span class="role r-mail">✉️ Email</span> <code>proposal</code> ("Mời duyệt proposal", kèm cảnh báo deadline + hạn duyệt). Quá hạn chưa phản hồi → email nhắc <code>qua_han</code>.</p>
+      <p><span class="role r-warn">⚠️ Ngoại lệ:</span> Quá <code>PROPOSAL_APPROVAL_DAYS</code> (mặc định 3 ngày) → gửi mail nhắc. Sửa quá <code>MAX_PROPOSAL_ROUNDS</code> vòng vẫn chưa chốt → <span class="pill crit">Chờ Merch PIC</span>.</p>
+      <p>Trong khi chờ, Status là <span class="pill warn">Chờ duyệt items</span>. Duyệt xong → <span class="pill ok">Đã duyệt items</span>.</p>
+    </div>
+  </section>
+
+  <!-- BƯỚC 4 -->
+  <section id="buoc4">
+    <div class="shead"><h2>④ Bước 4 — Plan sản xuất</h2>
+      <div class="sub">Lập kế hoạch sản xuất + timeline. Bước này gần như tự động.</div></div>
+    <div class="body">
+      <p><span class="role r-bot">🤖 Agent</span> Sau khi proposal được duyệt, tự sinh <b>file Excel plan sản xuất</b>: liệt kê item, nhà cung cấp dự kiến, các mốc thời gian. Lead-time tính theo từng item, các item sản xuất song song nên tổng thời gian lấy <b>max</b> (không cộng dồn).</p>
+      <div class="box">
+        <span class="role r-pic">🔵 PO / PIC</span> <b>Cần làm:</b> Nhận email plan, nắm tiến độ; can thiệp khi cần (chốt NCC, điều chỉnh lịch). Không phải thao tác bắt buộc trên agent ở bước này.
+      </div>
+      <p><span class="role r-mail">✉️ Email</span> <code>plan</code> ("Plan sản xuất đã sẵn sàng" → gửi team Merch).</p>
+      <p>Chi tiết công thức deadline/lead-time xem trang <a href="/rules">Quy tắc &amp; ngưỡng</a>.</p>
+    </div>
+  </section>
+
+  <!-- BƯỚC 5 -->
+  <section id="buoc5">
+    <div class="shead"><h2>⑤ Bước 5 — Brief design &amp; bàn giao</h2>
+      <div class="sub">Ra brief design, requester chốt, rồi bàn giao cho team thiết kế.</div></div>
+    <div class="body">
+      <div class="box">
+        <span class="role r-pic">🔵 PO / PIC</span> <b>Khởi động:</b> Bấm nút <code>Bắt đầu design</code> trên Airtable (nút chạy khi Status = <span class="pill ok">Đã duyệt items</span>).
+      </div>
+      <p><span class="role r-bot">🤖 Agent</span> Gom input (items đã duyệt + insight game + asset dự án: Logo/KV/Source) → sinh <b>brief PPTX</b> → đổi Status <span class="pill warn">Chờ duyệt brief</span> và lưu bản vào kho <b>Tài liệu dự án</b> (có đánh version).</p>
+      <div class="box">
+        <span class="role r-req">🟢 Requester</span> <b>Cần làm:</b> Mở link Fillout trong email brief → chọn 1 trong 3:
+        <ul>
+          <li><b>Duyệt</b> — <code>Duyệt brief?</code> = Duyệt → bàn giao.</li>
+          <li><b>Cần sửa</b> — ghi <code>Feedback brief</code> → agent sinh lại brief theo góp ý.</li>
+          <li><b>Tự upload</b> — đính kèm file của mình vào <code>Brief tự upload</code> (vẫn phải bấm Duyệt mới bàn giao).</li>
+        </ul>
+      </div>
+      <p><span class="role r-mail">✉️ Email</span> <code>brief</code> (mời duyệt) → khi duyệt: <code>handoff_design</code> (gửi <b>PIC + requester</b> để nắm thông tin).</p>
+      <p><span class="role r-warn">⚠️ Ngoại lệ:</span> Sửa quá <code>MAX_BRIEF_ROUNDS</code> (mặc định 3) vẫn chưa duyệt → <span class="pill crit">Chờ Merch PIC</span>.</p>
+      <p>Duyệt xong → Status <span class="pill ok">Chờ thiết kế</span> (bàn giao hoàn tất). <span class="assum">Sắp có</span> Bước 6 — vòng duyệt thiết kế (design review) hiện <b>ngoài phạm vi</b>, sẽ bổ sung sau.</p>
+    </div>
+  </section>
+
+  <!-- THEO DÕI -->
+  <section id="theo-doi">
+    <div class="shead"><h2>📊 Theo dõi tiến độ</h2>
+      <div class="sub">Xem dự án đang ở đâu trong quy trình.</div></div>
+    <div class="body">
+      <ul>
+        <li><b>Kanban</b> (theo Status): kéo dự án qua các cột để thấy trạng thái hiện tại.</li>
+        <li><b>Stepper / Timeline (Gantt)</b>: dựng từ bảng Step Log — mỗi sự kiện có thời điểm bắt đầu/kết thúc, tô màu theo Nhóm mốc (Đề xuất / Thiết kế…), để review lead-time khi kết thúc dự án.</li>
+        <li><b>Kho "Tài liệu dự án"</b>: lưu mọi bản proposal / plan / brief (kể cả file requester tự upload) kèm version, nguồn (AI / Requester) và thời gian — xem lại bất kỳ lúc nào.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section id="faq">
+    <div class="shead"><h2>🛠 Sự cố thường gặp</h2>
+      <div class="sub">Xử lý nhanh khi có gì đó không như mong đợi.</div></div>
+    <div class="body">
+      <div class="faq"><q>Requester không nhận được email?</q>
+        <p>Kiểm tra địa chỉ email requester trên record có đúng không, và automation gửi mail tương ứng (proposal / brief…) có đang bật. Nội dung mail chỉnh tại <a href="/email-guide">trang Email Templates</a>.</p></div>
+      <div class="faq"><q>Agent báo lỗi AI / không chạy tiếp?</q>
+        <p>Khi LLM lỗi, agent chuyển dự án sang <span class="pill crit">Cần PIC xử lý</span> / <span class="pill crit">Chờ Merch PIC</span> (email <code>pic</code>, xem field <code>Lý do cần PIC</code>) thay vì chạy sai. PIC xử lý thủ công rồi cho chạy lại.</p></div>
+      <div class="faq"><q>Link duyệt (Fillout) mở ra nhưng không đúng dự án?</q>
+        <p>Link phải có dạng <code>...?id=</code> + record id của dự án. Nếu thiếu <code>?id=</code> hoặc sai id, form sẽ không gắn đúng dự án — dùng đúng link trong email gửi đi.</p></div>
+      <div class="faq"><q>Các Status nghĩa là gì?</q>
+        <p>
+          <span class="pill warn">Chờ làm rõ yêu cầu</span> thiếu thông tin ·
+          <span class="pill warn">Chờ điều chỉnh</span> vượt budget/deadline, chờ requester ·
+          <span class="pill warn">Chờ duyệt items</span> chờ duyệt proposal ·
+          <span class="pill ok">Đã duyệt items</span> proposal đã chốt ·
+          <span class="pill warn">Chờ duyệt brief</span> chờ duyệt brief ·
+          <span class="pill ok">Chờ thiết kế</span> đã bàn giao design ·
+          <span class="pill ok">Đã duyệt</span> hoàn tất duyệt ·
+          <span class="pill crit">Chờ Merch PIC</span> / <span class="pill crit">Cần PIC xử lý</span> cần người xử lý.
+        </p></div>
+    </div>
+  </section>
+
+  <footer>VNGGames Merch Automation · cập nhật 25/06/2026 ·
+    <a href="/rules">Quy tắc &amp; ngưỡng</a> ·
+    <a href="/email-guide">Chỉnh email</a> ·
+    <a href="/flowchart">Sơ đồ logic</a>
+  </footer>
+</div>
+</body>
+</html>

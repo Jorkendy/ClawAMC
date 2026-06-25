@@ -116,6 +116,15 @@ def email_guide() -> FileResponse:
     return FileResponse(_EMAIL_GUIDE, media_type="text/html")
 
 
+_GUIDE = os.path.join(os.path.dirname(__file__), "docs", "guide.html")
+
+
+@app.get("/guide")
+def guide() -> FileResponse:
+    """Huong dan su dung agent theo quy trinh (Buoc 1->5) cho requester + PO/PIC."""
+    return FileResponse(_GUIDE, media_type="text/html")
+
+
 def _feedback_button(record_id: str) -> str:
     """Nut noi (link sang form Fillout phan hoi, kem ?id=) — chi hien neu da set FILLOUT_FORM_URL."""
     if not FILLOUT_FORM_URL:
