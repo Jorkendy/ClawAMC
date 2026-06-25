@@ -53,147 +53,135 @@
   <header>
     <span class="tag">VNGGames · Merch Automation</span>
     <h1>Hướng dẫn sử dụng Merch Agent</h1>
-    <p>Trang này dành cho <b>Requester</b> (người đặt merch) và <b>PO / Merch PIC</b> (vận hành). Đi hết quy trình <b>Bước 1 → 5</b>: ai làm gì, bấm nút nào, email nào bắn ra, và khi nào việc được chuyển cho người xử lý thủ công.</p>
+    <p>Hướng dẫn dành cho <b>người đặt merch</b>: đi hết quy trình từ lúc gửi yêu cầu đến khi bàn giao thiết kế (<b>Bước 1 → 5</b>) — ở mỗi bước bạn cần làm gì và sẽ nhận được gì. Mọi thao tác của bạn đều qua <b>form / link trong email</b>, không cần tài khoản hay vào hệ thống nội bộ.</p>
     <p class="legend" style="margin-top:10px">
-      <span class="role r-bot">🤖 Agent tự động</span>
-      <span class="role r-req">🟢 Requester</span>
-      <span class="role r-pic">🔵 PO / PIC</span>
-      <span class="role r-mail">✉️ Email</span>
-      <span class="role r-warn">⚠️ Ngoại lệ</span>
+      <span class="role r-req">🟢 Việc của bạn (người đặt)</span>
+      <span class="role r-bot">🤖 Hệ thống tự làm</span>
+      <span class="role r-pic">🔵 Đội Merch</span>
+      <span class="role r-mail">✉️ Email bạn nhận</span>
+      <span class="role r-warn">⚠️ Lưu ý</span>
     </p>
-    <div class="meta">Cập nhật 25/06/2026 · Quy trình hiện hỗ trợ tới Bước 5 (bàn giao thiết kế).</div>
+    <div class="meta">Cập nhật 25/06/2026 · Quy trình hiện hỗ trợ tới bước bàn giao thiết kế.</div>
   </header>
 
   <nav class="toc">
     <b>Mục lục</b>
-    <a href="#buoc1">① Tiếp nhận &amp; phân tích</a>
-    <a href="#buoc2">② Đề xuất (proposal)</a>
-    <a href="#buoc3">③ Duyệt proposal</a>
-    <a href="#buoc4">④ Plan sản xuất</a>
+    <a href="#buoc1">① Gửi yêu cầu</a>
+    <a href="#buoc2">② Hệ thống lên đề xuất</a>
+    <a href="#buoc3">③ Bạn duyệt đề xuất</a>
+    <a href="#buoc4">④ Lên kế hoạch sản xuất</a>
     <a href="#buoc5">⑤ Brief &amp; bàn giao</a>
     <a href="#theo-doi">📊 Theo dõi tiến độ</a>
-    <a href="#faq">🛠 Sự cố thường gặp</a>
+    <a href="#faq">🛠 Câu hỏi thường gặp</a>
   </nav>
 
   <!-- BƯỚC 1 -->
   <section id="buoc1">
-    <div class="shead"><h2>① Bước 1 — Tiếp nhận &amp; phân tích</h2>
-      <div class="sub">Tiếp nhận yêu cầu và thẩm định đã đủ thông tin để ra đề xuất chưa.</div></div>
+    <div class="shead"><h2>① Bước 1 — Gửi yêu cầu</h2>
+      <div class="sub">Bạn gửi yêu cầu làm merch; hệ thống kiểm tra đã đủ thông tin để lên đề xuất chưa.</div></div>
     <div class="body">
-      <p><span class="role r-bot">🤖 Agent</span> Đọc record dự án mới, kiểm tra <b>7 thông tin cốt lõi</b>: Mục đích sản xuất, Chủ đề, Định vị, Target audience, Số lượng items, Deadline cần hàng, Budget. Thiếu bất kỳ mục nào → hỏi lại requester.</p>
       <div class="box">
-        <span class="role r-req">🟢 Requester</span> <b>Cần làm:</b> Điền yêu cầu trên Airtable (form đặt merch). Khi nhận email hỏi thêm → cập nhật đúng field còn thiếu, rồi tích ô <code>Gửi phản hồi</code> để agent chạy tiếp.
+        <span class="role r-req">🟢 Người đặt</span> <b>Việc của bạn:</b> Điền và <b>gửi form đặt merch</b> với các thông tin: mục đích sản xuất, chủ đề, định vị, đối tượng khách hàng, số lượng, ngày cần hàng và ngân sách. Bạn chỉ thao tác trên form — không cần vào hệ thống nội bộ.
       </div>
-      <p><span class="role r-mail">✉️ Email</span> <code>clarify</code> — "Cần trao đổi để hoàn thiện đề xuất".</p>
-      <p><span class="role r-warn">⚠️ Ngoại lệ:</span> Thiếu thông tin → Status <span class="pill warn">Chờ làm rõ yêu cầu</span>. Số vòng làm rõ tối đa = <code>MAX_CLARIFY_ROUNDS</code> (mặc định 3). Hết vòng vẫn chưa đủ → chuyển <span class="pill crit">Chờ Merch PIC</span> để người xử lý.</p>
+      <p><span class="role r-bot">🤖 Hệ thống</span> Tự kiểm tra yêu cầu đã đủ thông tin để lên đề xuất chưa.</p>
+      <p><span class="role r-mail">✉️ Email</span> Nếu còn thiếu, bạn nhận email mời bổ sung — <b>bấm link trong email</b> để cập nhật và gửi lại.</p>
+      <p><span class="role r-warn">⚠️ Lưu ý:</span> Nếu trao đổi qua lại vài lần mà vẫn chưa đủ thông tin, yêu cầu sẽ được chuyển cho <b>đội Merch hỗ trợ trực tiếp</b> và bạn sẽ được liên hệ.</p>
     </div>
   </section>
 
   <!-- BƯỚC 2 -->
   <section id="buoc2">
-    <div class="shead"><h2>② Bước 2 — Đề xuất (proposal) khả thi</h2>
-      <div class="sub">Agent ra proposal "chạy được thực tế": thỏa đồng thời ngân sách + thời gian + yêu cầu đặc biệt.</div></div>
+    <div class="shead"><h2>② Bước 2 — Hệ thống lên đề xuất</h2>
+      <div class="sub">Hệ thống tự chọn sản phẩm phù hợp, cân đối ngân sách và thời gian.</div></div>
     <div class="body">
-      <p><span class="role r-bot">🤖 Agent</span> Chọn item từ kho theo độ phù hợp game/đối tượng, tính tổng chi phí và deadline theo lead-time từng item. Nếu chưa khả thi → tự sửa phương án trước khi hỏi người.</p>
-      <p><span class="role r-warn">⚠️ Vòng điều chỉnh</span> (dùng chung 1 bộ đếm <code>MAX_PROPOSAL_ROUNDS</code>, mặc định 3):</p>
-      <ul>
-        <li><b>Vượt budget:</b> AI tự sửa 2 vòng; vẫn vượt → hỏi requester <b>tăng budget</b> hoặc <b>bỏ / rẻ hoá</b> yêu cầu. Status <span class="pill warn">Chờ điều chỉnh</span>.</li>
-        <li><b>Trễ deadline:</b> đề xuất phương án nhanh, hoặc hỏi requester dời <code>Deadline cần hàng</code>.</li>
-      </ul>
+      <p><span class="role r-bot">🤖 Hệ thống</span> Chọn sản phẩm phù hợp với game và đối tượng, tính chi phí cùng thời gian giao hàng, rồi tự điều chỉnh để vừa ngân sách và kịp ngày cần hàng.</p>
       <div class="box">
-        <span class="role r-req">🟢 Requester</span> <b>Cần làm (nếu được hỏi):</b> cập nhật budget / deadline / yêu cầu trên Airtable rồi tích <code>Gửi phản hồi</code>.
+        <span class="role r-req">🟢 Người đặt</span> <b>Khi cần bạn quyết:</b> Nếu không thể vừa ngân sách hoặc không kịp deadline, bạn nhận email và <b>bấm link để chọn một hướng</b>: tăng ngân sách · dời ngày cần hàng · hoặc bớt / đổi sản phẩm.
       </div>
-      <p><span class="role r-mail">✉️ Email</span> <code>bo_sung</code> ("Cần bổ sung thông tin") hoặc <code>clarify</code>.</p>
+      <p><span class="role r-warn">⚠️ Lưu ý:</span> Bạn chỉ chọn trên form trong email; không cần chỉnh gì trong hệ thống nội bộ.</p>
     </div>
   </section>
 
   <!-- BƯỚC 3 -->
   <section id="buoc3">
-    <div class="shead"><h2>③ Bước 3 — Duyệt proposal</h2>
-      <div class="sub">Requester chốt phương án đề xuất.</div></div>
+    <div class="shead"><h2>③ Bước 3 — Bạn duyệt đề xuất</h2>
+      <div class="sub">Xem đề xuất và quyết định duyệt hay chỉnh.</div></div>
     <div class="body">
-      <p><span class="role r-bot">🤖 Agent</span> Render proposal ra trang web công khai cho requester (không cần tài khoản Airtable) và gửi email mời duyệt kèm hạn duyệt.</p>
+      <p><span class="role r-mail">✉️ Email</span> Bạn nhận email <b>“Mời duyệt proposal”</b> kèm link xem đề xuất và hạn duyệt.</p>
       <div class="box">
-        <span class="role r-req">🟢 Requester</span> <b>Cần làm:</b> Mở link <code>/proposal/{record_id}</code> trong email để xem đề xuất → bấm <b>Phản hồi / Duyệt</b> → trong form Fillout chọn <code>Duyệt proposal?</code> = <b>Duyệt</b> (chốt) hoặc <b>Cần sửa</b> và ghi <code>Feedback proposal</code>.
+        <span class="role r-req">🟢 Người đặt</span> <b>Việc của bạn:</b> Mở link trong email để xem đề xuất, rồi ngay trên trang đó chọn <b>Duyệt</b> (đồng ý) hoặc <b>Cần sửa</b> và nhập góp ý của bạn.
       </div>
-      <p><span class="role r-mail">✉️ Email</span> <code>proposal</code> ("Mời duyệt proposal", kèm cảnh báo deadline + hạn duyệt). Quá hạn chưa phản hồi → email nhắc <code>qua_han</code>.</p>
-      <p><span class="role r-warn">⚠️ Ngoại lệ:</span> Quá <code>PROPOSAL_APPROVAL_DAYS</code> (mặc định 3 ngày) → gửi mail nhắc. Sửa quá <code>MAX_PROPOSAL_ROUNDS</code> vòng vẫn chưa chốt → <span class="pill crit">Chờ Merch PIC</span>.</p>
-      <p>Trong khi chờ, Status là <span class="pill warn">Chờ duyệt items</span>. Duyệt xong → <span class="pill ok">Đã duyệt items</span>.</p>
+      <p><span class="role r-warn">⚠️ Lưu ý:</span> Nếu quá hạn mà bạn chưa phản hồi, hệ thống sẽ gửi email nhắc. Nếu chỉnh qua lại nhiều lần vẫn chưa chốt được, đội Merch sẽ hỗ trợ.</p>
     </div>
   </section>
 
   <!-- BƯỚC 4 -->
   <section id="buoc4">
-    <div class="shead"><h2>④ Bước 4 — Plan sản xuất</h2>
-      <div class="sub">Lập kế hoạch sản xuất + timeline. Bước này gần như tự động.</div></div>
+    <div class="shead"><h2>④ Bước 4 — Lên kế hoạch sản xuất</h2>
+      <div class="sub">Sau khi bạn duyệt, hệ thống tự lập kế hoạch sản xuất.</div></div>
     <div class="body">
-      <p><span class="role r-bot">🤖 Agent</span> Sau khi proposal được duyệt, tự sinh <b>file Excel plan sản xuất</b>: liệt kê item, nhà cung cấp dự kiến, các mốc thời gian. Lead-time tính theo từng item, các item sản xuất song song nên tổng thời gian lấy <b>max</b> (không cộng dồn).</p>
-      <div class="box">
-        <span class="role r-pic">🔵 PO / PIC</span> <b>Cần làm:</b> Nhận email plan, nắm tiến độ; can thiệp khi cần (chốt NCC, điều chỉnh lịch). Không phải thao tác bắt buộc trên agent ở bước này.
-      </div>
-      <p><span class="role r-mail">✉️ Email</span> <code>plan</code> ("Plan sản xuất đã sẵn sàng" → gửi team Merch).</p>
-      <p>Chi tiết công thức deadline/lead-time xem trang <a href="/rules">Quy tắc &amp; ngưỡng</a>.</p>
+      <p><span class="role r-bot">🤖 Hệ thống</span> Tự tạo <b>bản kế hoạch sản xuất</b>: danh sách sản phẩm, nhà cung cấp dự kiến và các mốc thời gian.</p>
+      <p><span class="role r-pic">🔵 Đội Merch</span> Nhận kế hoạch để theo dõi và chuẩn bị sản xuất.</p>
+      <p><span class="role r-req">🟢 Người đặt</span> Không cần làm gì ở bước này — bạn có thể theo dõi tiến độ (xem mục bên dưới).</p>
     </div>
   </section>
 
   <!-- BƯỚC 5 -->
   <section id="buoc5">
-    <div class="shead"><h2>⑤ Bước 5 — Brief design &amp; bàn giao</h2>
-      <div class="sub">Ra brief design, requester chốt, rồi bàn giao cho team thiết kế.</div></div>
+    <div class="shead"><h2>⑤ Bước 5 — Brief thiết kế &amp; bàn giao</h2>
+      <div class="sub">Tạo brief cho đội thiết kế, bạn duyệt, rồi bàn giao.</div></div>
     <div class="body">
+      <p><span class="role r-pic">🔵 Đội Merch</span> Khởi động bước thiết kế (bấm nút <b>“Bắt đầu design”</b>).</p>
+      <p><span class="role r-bot">🤖 Hệ thống</span> Tạo <b>brief thiết kế</b> và gửi cho bạn xem qua email.</p>
       <div class="box">
-        <span class="role r-pic">🔵 PO / PIC</span> <b>Khởi động:</b> Bấm nút <code>Bắt đầu design</code> trên Airtable (nút chạy khi Status = <span class="pill ok">Đã duyệt items</span>).
-      </div>
-      <p><span class="role r-bot">🤖 Agent</span> Gom input (items đã duyệt + insight game + asset dự án: Logo/KV/Source) → sinh <b>brief PPTX</b> → đổi Status <span class="pill warn">Chờ duyệt brief</span> và lưu bản vào kho <b>Tài liệu dự án</b> (có đánh version).</p>
-      <div class="box">
-        <span class="role r-req">🟢 Requester</span> <b>Cần làm:</b> Mở link Fillout trong email brief → chọn 1 trong 3:
+        <span class="role r-req">🟢 Người đặt</span> <b>Việc của bạn:</b> Mở link trong email brief để xem, rồi chọn 1 trong 3 ngay trên form:
         <ul>
-          <li><b>Duyệt</b> — <code>Duyệt brief?</code> = Duyệt → bàn giao.</li>
-          <li><b>Cần sửa</b> — ghi <code>Feedback brief</code> → agent sinh lại brief theo góp ý.</li>
-          <li><b>Tự upload</b> — đính kèm file của mình vào <code>Brief tự upload</code> (vẫn phải bấm Duyệt mới bàn giao).</li>
+          <li><b>Duyệt</b> — đồng ý với brief.</li>
+          <li><b>Cần sửa</b> — nhập góp ý, hệ thống sẽ tạo lại brief theo ý bạn.</li>
+          <li><b>Tự gửi brief của bạn</b> — tải lên file brief riêng (vẫn cần bấm Duyệt để bàn giao).</li>
         </ul>
       </div>
-      <p><span class="role r-mail">✉️ Email</span> <code>brief</code> (mời duyệt) → khi duyệt: <code>handoff_design</code> (gửi <b>PIC + requester</b> để nắm thông tin).</p>
-      <p><span class="role r-warn">⚠️ Ngoại lệ:</span> Sửa quá <code>MAX_BRIEF_ROUNDS</code> (mặc định 3) vẫn chưa duyệt → <span class="pill crit">Chờ Merch PIC</span>.</p>
-      <p>Duyệt xong → Status <span class="pill ok">Chờ thiết kế</span> (bàn giao hoàn tất). <span class="assum">Sắp có</span> Bước 6 — vòng duyệt thiết kế (design review) hiện <b>ngoài phạm vi</b>, sẽ bổ sung sau.</p>
+      <p><span class="role r-mail">✉️ Email</span> Sau khi bạn duyệt, brief được gửi cho <b>đội thiết kế và bạn</b> để cùng nắm thông tin.</p>
+      <p><span class="role r-warn">⚠️ Lưu ý:</span> Nếu chỉnh nhiều lần vẫn chưa duyệt được, đội Merch sẽ hỗ trợ. <span class="assum">Sắp có</span> bước duyệt bản thiết kế (sau khi đội thiết kế hoàn thiện) — hiện chưa áp dụng.</p>
     </div>
   </section>
 
   <!-- THEO DÕI -->
   <section id="theo-doi">
     <div class="shead"><h2>📊 Theo dõi tiến độ</h2>
-      <div class="sub">Xem dự án đang ở đâu trong quy trình.</div></div>
+      <div class="sub">Xem dự án đang ở bước nào.</div></div>
     <div class="body">
       <ul>
-        <li><b>Kanban</b> (theo Status): kéo dự án qua các cột để thấy trạng thái hiện tại.</li>
-        <li><b>Stepper / Timeline (Gantt)</b>: dựng từ bảng Step Log — mỗi sự kiện có thời điểm bắt đầu/kết thúc, tô màu theo Nhóm mốc (Đề xuất / Thiết kế…), để review lead-time khi kết thúc dự án.</li>
-        <li><b>Kho "Tài liệu dự án"</b>: lưu mọi bản proposal / plan / brief (kể cả file requester tự upload) kèm version, nguồn (AI / Requester) và thời gian — xem lại bất kỳ lúc nào.</li>
+        <li><b>Bảng tiến độ:</b> Bạn có thể xem dự án đang ở bước nào — dạng cột trạng thái hoặc dòng thời gian — để biết đã đi tới đâu.</li>
+        <li><b>Lưu trữ tài liệu:</b> Mọi bản đề xuất, kế hoạch và brief (kể cả file bạn tự gửi) đều được lưu lại theo từng phiên bản — xem lại bất cứ lúc nào.</li>
       </ul>
+      <p style="font-size:13px;color:#6b7280">Các bảng theo dõi này ở chế độ xem (read-only) — bạn xem tiến độ, không cần chỉnh gì.</p>
     </div>
   </section>
 
   <!-- FAQ -->
   <section id="faq">
-    <div class="shead"><h2>🛠 Sự cố thường gặp</h2>
-      <div class="sub">Xử lý nhanh khi có gì đó không như mong đợi.</div></div>
+    <div class="shead"><h2>🛠 Câu hỏi thường gặp</h2>
+      <div class="sub">Một số tình huống hay gặp.</div></div>
     <div class="body">
-      <div class="faq"><q>Requester không nhận được email?</q>
-        <p>Kiểm tra địa chỉ email requester trên record có đúng không, và automation gửi mail tương ứng (proposal / brief…) có đang bật. Nội dung mail chỉnh tại <a href="/email-guide">trang Email Templates</a>.</p></div>
-      <div class="faq"><q>Agent báo lỗi AI / không chạy tiếp?</q>
-        <p>Khi LLM lỗi, agent chuyển dự án sang <span class="pill crit">Cần PIC xử lý</span> / <span class="pill crit">Chờ Merch PIC</span> (email <code>pic</code>, xem field <code>Lý do cần PIC</code>) thay vì chạy sai. PIC xử lý thủ công rồi cho chạy lại.</p></div>
-      <div class="faq"><q>Link duyệt (Fillout) mở ra nhưng không đúng dự án?</q>
-        <p>Link phải có dạng <code>...?id=</code> + record id của dự án. Nếu thiếu <code>?id=</code> hoặc sai id, form sẽ không gắn đúng dự án — dùng đúng link trong email gửi đi.</p></div>
-      <div class="faq"><q>Các Status nghĩa là gì?</q>
-        <p>
-          <span class="pill warn">Chờ làm rõ yêu cầu</span> thiếu thông tin ·
-          <span class="pill warn">Chờ điều chỉnh</span> vượt budget/deadline, chờ requester ·
-          <span class="pill warn">Chờ duyệt items</span> chờ duyệt proposal ·
-          <span class="pill ok">Đã duyệt items</span> proposal đã chốt ·
-          <span class="pill warn">Chờ duyệt brief</span> chờ duyệt brief ·
-          <span class="pill ok">Chờ thiết kế</span> đã bàn giao design ·
-          <span class="pill ok">Đã duyệt</span> hoàn tất duyệt ·
-          <span class="pill crit">Chờ Merch PIC</span> / <span class="pill crit">Cần PIC xử lý</span> cần người xử lý.
-        </p></div>
+      <div class="faq"><q>Tôi không nhận được email?</q>
+        <p>Kiểm tra cả hộp thư rác (spam). Nếu vẫn không thấy email mời bổ sung / mời duyệt, hãy liên hệ đội Merch để được hỗ trợ.</p></div>
+      <div class="faq"><q>Tôi cần phản hồi ở đâu?</q>
+        <p>Mọi phản hồi (bổ sung thông tin, duyệt đề xuất, duyệt brief) đều làm <b>ngay trên link trong email</b> gửi cho bạn. Bạn không cần tài khoản hay vào hệ thống nội bộ.</p></div>
+      <div class="faq"><q>Mở link duyệt nhưng không thấy đúng dự án?</q>
+        <p>Hãy dùng đúng <b>link trong email mới nhất</b> của dự án đó. Nếu vẫn không đúng, báo đội Merch để gửi lại link.</p></div>
+      <div class="faq"><q>Hệ thống chưa phản hồi / có vẻ đứng?</q>
+        <p>Khi gặp trục trặc, dự án sẽ <b>tự được chuyển cho đội Merch xử lý</b> — bạn không phải làm gì, sẽ được liên hệ khi có cập nhật.</p></div>
+      <div class="faq"><q>Các trạng thái dự án nghĩa là gì?</q>
+        <p>Một số trạng thái bạn có thể thấy trên bảng tiến độ:</p>
+        <ul>
+          <li><b>Chờ làm rõ yêu cầu</b> — cần bạn bổ sung thông tin.</li>
+          <li><b>Chờ bạn duyệt đề xuất</b> — đề xuất đã sẵn sàng, đang chờ bạn duyệt.</li>
+          <li><b>Đã duyệt đề xuất</b> — đề xuất đã chốt, chuyển sang chuẩn bị sản xuất.</li>
+          <li><b>Chờ bạn duyệt brief</b> — brief thiết kế đã sẵn sàng, đang chờ bạn duyệt.</li>
+          <li><b>Đang thiết kế</b> — đã bàn giao cho đội thiết kế.</li>
+          <li><b>Đội Merch đang xử lý</b> — dự án đang được đội Merch hỗ trợ trực tiếp.</li>
+        </ul></div>
     </div>
   </section>
 

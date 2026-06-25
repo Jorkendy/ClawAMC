@@ -4,28 +4,23 @@ import main
 
 client = TestClient(main.app)
 
-# Mọi giá trị dưới đây phải xuất hiện trong trang /guide — chống bịa/sót.
+# Trang /guide là tài liệu cho người dùng cuối (non-tech) — KHÔNG chứa chi tiết kỹ thuật
+# (tên env var, mã email nội bộ, tên field Airtable). Test chốt khung + nội dung user-facing.
 REQUIRED = [
     # anchors mục lục (7 mục)
     'id="buoc1"', 'id="buoc2"', 'id="buoc3"', 'id="buoc4"', 'id="buoc5"',
     'id="theo-doi"', 'id="faq"',
-    # link chéo đầu trang
-    'href="/flowchart"', 'href="/rules"', 'href="/email-guide"',
-    # routes nhắc trong nội dung
-    '/proposal/',
-    # email kinds
-    'clarify', 'bo_sung', 'proposal', 'qua_han', 'plan', 'brief',
-    'handoff_design', 'pic',
-    # statuses
-    'Chờ làm rõ yêu cầu', 'Chờ điều chỉnh', 'Chờ duyệt items',
-    'Đã duyệt items', 'Chờ duyệt brief', 'Chờ thiết kế',
-    'Chờ Merch PIC', 'Cần PIC xử lý',
-    # field người bấm
-    'Gửi phản hồi', 'Duyệt proposal?', 'Feedback proposal',
-    'Bắt đầu design', 'Duyệt brief?', 'Feedback brief', 'Brief tự upload',
-    # ngưỡng
+    # tiêu đề 5 bước
+    'Bước 1', 'Bước 2', 'Bước 3', 'Bước 4', 'Bước 5',
+    # hành động user-facing chính
+    'gửi form', 'Duyệt', 'Cần sửa', 'đội Merch', 'brief',
+]
+
+# Chi tiết kỹ thuật KHÔNG được lọt vào trang hướng dẫn end-user.
+FORBIDDEN = [
     'MAX_CLARIFY_ROUNDS', 'MAX_PROPOSAL_ROUNDS', 'MAX_BRIEF_ROUNDS',
-    'PROPOSAL_APPROVAL_DAYS',
+    'PROPOSAL_APPROVAL_DAYS', 'bo_sung', 'handoff_design', 'qua_han',
+    'Gửi phản hồi', 'Duyệt proposal?', 'Brief tự upload', '?id=',
 ]
 
 
@@ -39,6 +34,12 @@ def test_guide_has_required_content():
     html = client.get("/guide").text
     missing = [s for s in REQUIRED if s not in html]
     assert not missing, f"Thiếu trong /guide: {missing}"
+
+
+def test_guide_no_technical_jargon():
+    html = client.get("/guide").text
+    leaked = [s for s in FORBIDDEN if s in html]
+    assert not leaked, f"Lọt chi tiết kỹ thuật vào /guide: {leaked}"
 
 
 DOC_ROUTES = ("/guide", "/flowchart", "/rules", "/email-guide")
