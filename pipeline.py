@@ -25,9 +25,9 @@ from datetime import date, timedelta
 log = logging.getLogger("merch")
 
 from airtable_client import (airtable, append_note, fetch_items_of,
-                             fetch_projects, log_event, update_items, update_project)
+                             fetch_projects, log_document, log_event, update_items, update_project)
 from analysis import analyze_one, days_to_deadline_of
-from config import (AI_COST_LOG_TABLE, MAX_CLARIFY_ROUNDS, MAX_PROPOSAL_ROUNDS,
+from config import (AI_COST_LOG_TABLE, MAX_BRIEF_ROUNDS, MAX_CLARIFY_ROUNDS, MAX_PROPOSAL_ROUNDS,
                     MAX_SUPPLEMENT_ROUNDS, PROJECTS_TABLE, PROPOSAL_APPROVAL_DAYS)
 from email_templates import render_email
 from llm_client import (cost_breakdown_vnd, estimate_cost_vnd,
@@ -482,16 +482,17 @@ def _generate_brief(record_id: str, code: str) -> None:
         "logo_png": logo_png,
     }
     pptx = render_brief_pptx(brief_data, images, project)
+    update_project(record_id, {"File brief design": []})  # clear ban cu truoc upload
+    upload_brief(record_id, pptx, code)  # tu log_document(Brief, AI)
     e_subject, e_body = render_email("brief", fields)
-    update_project(record_id, {"File brief design": [],  # clear ban cu -> re-trigger thay vi cong don
+    update_project(record_id, {"Bắt đầu design": False, "Status": "Chờ duyệt brief",
+                               "Số round brief": 0, "Duyệt brief?": None, "Feedback brief": None,
                                "Email subject": e_subject, "Email body": e_body})
-    upload_brief(record_id, pptx, code)
-    update_project(record_id, {"Bắt đầu design": False})
-    append_note(record_id, f"[AI] Đã sinh brief design ({len(brief_data.get('items', []))} item).",
+    append_note(record_id, f"[AI] Đã sinh brief design ({len(brief_data.get('items', []))} item) — chờ requester duyệt.",
                 field=HISTORY_FIELD)
-    log_event(record_id, code, "Tạo brief design")
+    log_event(record_id, code, "Sinh brief design")
     _log_cost(record_id, code, time.monotonic() - t0, step="Brief")
-    log.info(f"[brief] {code} -> brief design uploaded")
+    log.info(f"[brief] {code} -> brief design uploaded -> Chờ duyệt brief")
 
 
 def _scan_design_starts() -> None:
@@ -566,6 +567,94 @@ def _reevaluate_clarify(record_id: str, code: str, answer: str) -> None:
     _route_result(record_id, result, html, reset_round=True)
 
 
+def _brief_action(f: dict) -> str:
+    """Quyet dinh xu ly brief tu fields. Uu tien upload (thay file active) truoc."""
+    if f.get("Brief tự upload"):
+        return "upload"
+    decision = f.get("Duyệt brief?")
+    if decision == "Duyệt":
+        return "approve"
+    if decision == "Cần sửa" and (f.get("Feedback brief") or "").strip():
+        return "revise"
+    return "ignore"
+
+
+def _revise_brief(record_id: str, code: str, feedback: str) -> None:
+    """Requester yeu cau sua brief -> sinh lai theo feedback; qua MAX_BRIEF_ROUNDS -> PIC."""
+    rec = airtable("GET", f"{PROJECTS_TABLE}/{record_id}")
+    fields = rec.get("fields", {})
+    rounds = int(fields.get("Số round brief") or 0) + 1
+    if rounds > MAX_BRIEF_ROUNDS:
+        reason = f"Brief sửa {MAX_BRIEF_ROUNDS} vòng vẫn chưa duyệt. Feedback gần nhất: {feedback}"
+        e_subject, e_body = render_email("pic", fields, core=reason)
+        update_project(record_id, {"Status": PIC_STATUS, "Cần PIC xử lý": True, "Gửi phản hồi": False,
+                                   "Duyệt brief?": None, "Lý do cần PIC": reason,
+                                   "Email subject": e_subject, "Email body": e_body})
+        append_note(record_id, f"[AI] {reason} — chuyển Merch PIC.", field=HISTORY_FIELD)
+        log_event(record_id, code, f"Brief quá {MAX_BRIEF_ROUNDS} vòng → PIC")
+        log.info(f"[brief] {code} quá {MAX_BRIEF_ROUNDS} vòng -> PIC")
+        return
+    items, asset_status, insight, logo_png = _gather_brief_inputs(fields, record_id)
+    brief_data = build_brief_content(fields, items, asset_status, insight, feedback=feedback)
+    images = gather_brief_images(brief_data["items"], fields.get("Game") or "")
+    project = {
+        "code": fields.get("Mã project") or code, "name": fields.get("Tên project") or "",
+        "game": fields.get("Game") or "", "so_luong": fields.get("Số lượng (bộ/suất)") or "?",
+        "deadline": (str(fields.get("Deadline cần hàng"))[:10] if fields.get("Deadline cần hàng") else "?"),
+        "logo_png": logo_png,
+    }
+    pptx = render_brief_pptx(brief_data, images, project)
+    update_project(record_id, {"File brief design": []})  # clear ban cu truoc upload
+    upload_brief(record_id, pptx, code)  # tu log_document(Brief, AI) version++
+    e_subject, e_body = render_email("brief", fields)
+    update_project(record_id, {"Status": "Chờ duyệt brief", "Số round brief": rounds,
+                               "Duyệt brief?": None, "Feedback brief": None, "Gửi phản hồi": False,
+                               "Email subject": e_subject, "Email body": e_body})
+    append_note(record_id, f"[AI] Sửa brief round {rounds} theo feedback: {feedback}", field=HISTORY_FIELD)
+    log_event(record_id, code, f"Sửa brief round {rounds}")
+    log.info(f"[brief] {code} CẦN SỬA -> brief round {rounds} đã gửi lại")
+
+
+def _handoff_design(record_id: str, code: str) -> None:
+    """Requester duyet brief -> ban giao thiet ke: Status 'Cho thiet ke' + mail PIC+requester."""
+    rec = airtable("GET", f"{PROJECTS_TABLE}/{record_id}")
+    fields = rec.get("fields", {})
+    e_subject, e_body = render_email("handoff_design", fields)
+    update_project(record_id, {"Status": "Chờ thiết kế", "Gửi phản hồi": False, "Duyệt brief?": None,
+                               "Email subject": e_subject, "Email body": e_body})
+    append_note(record_id, "[AI] Requester DUYỆT brief — bàn giao sang thiết kế.", field=HISTORY_FIELD)
+    log_event(record_id, code, "Duyệt brief → bàn giao thiết kế")
+    log.info(f"[brief] {code} DUYỆT brief -> Chờ thiết kế")
+
+
+def _snapshot_requester_brief(record_id: str, code: str, fields: dict) -> None:
+    """Requester tu upload brief -> dat lam active 'File brief design' + ghi kho (Requester)."""
+    atts = fields.get("Brief tự upload") or []
+    files = [{"url": a["url"], "filename": a.get("filename", f"brief_requester_{code}")}
+             for a in atts if a.get("url")]
+    if not files:
+        return
+    update_project(record_id, {"File brief design": files, "Brief tự upload": []})
+    log_document(record_id, code, "Brief", "Requester", files, note="Requester tự upload")
+    append_note(record_id, "[AI] Requester tự upload brief — đặt làm bản active.", field=HISTORY_FIELD)
+    log_event(record_id, code, "Requester tự upload brief")
+
+
+def _handle_brief_decision(record_id: str, code: str, f: dict) -> None:
+    """Xu ly tick Gui phan hoi tai Status 'Cho duyet brief'."""
+    action = _brief_action(f)
+    if action == "upload":
+        _snapshot_requester_brief(record_id, code, f)
+        update_project(record_id, {"Gửi phản hồi": False})  # da thay file active, cho bam Duyet sau
+    elif action == "approve":
+        _handoff_design(record_id, code)
+    elif action == "revise":
+        _revise_brief(record_id, code, (f.get("Feedback brief") or "").strip())
+    else:
+        update_project(record_id, {"Gửi phản hồi": False})
+        log.info(f"[brief] {code} tick Gửi nhưng thiếu quyết định brief -> bỏ qua")
+
+
 def _scan_decisions() -> None:
     records = fetch_projects("{Gửi phản hồi} = TRUE()")
     for r in records:
@@ -593,6 +682,10 @@ def _scan_decisions() -> None:
             # record thieu thong tin -> requester bo sung roi tick Gui -> chay lai Buoc 1
             if f.get("Status") == "Thiếu thông tin":
                 _reanalyze(r["id"])
+                continue
+            # cho duyet brief -> Duyet/Can sua/tu upload
+            if f.get("Status") == "Chờ duyệt brief":
+                _handle_brief_decision(r["id"], code, f)
                 continue
             feedback = (f.get("Feedback proposal") or "").strip()
             decision = f.get("Duyệt proposal?")
