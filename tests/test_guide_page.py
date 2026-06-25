@@ -26,6 +26,7 @@ FORBIDDEN = [
     '{{',  # mọi placeholder phải được thay bằng số thật từ config
     'Lưu trữ tài liệu',  # tính năng nội bộ, không đưa vào guide
     'Người đặt',  # dùng "Requester", không dịch
+    'bạn', 'Bạn',  # guide cho cả Requester lẫn PIC -> giọng trung lập, không xưng "bạn"
 ]
 
 
