@@ -39,3 +39,14 @@ def test_guide_has_required_content():
     html = client.get("/guide").text
     missing = [s for s in REQUIRED if s not in html]
     assert not missing, f"Thiếu trong /guide: {missing}"
+
+
+import os
+
+DOCS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "docs")
+
+
+def test_cross_links_to_guide():
+    for name in ("flowchart.html", "proposal-rules.html", "email-guide.html"):
+        with open(os.path.join(DOCS, name), encoding="utf-8") as f:
+            assert 'href="/guide"' in f.read(), f"{name} thiếu link → /guide"
