@@ -71,8 +71,10 @@ def _asset_status_text(asset_status: dict) -> str:
     return " · ".join(parts)
 
 
-def build_brief_content(fields: dict, items: list, asset_status: dict, insight: str) -> dict:
-    """Goi 1 LLM call enrich noi dung brief. Tra dict theo schema (xem docstring module/spec)."""
+def build_brief_content(fields: dict, items: list, asset_status: dict, insight: str,
+                        feedback: str | None = None) -> dict:
+    """Goi 1 LLM call enrich noi dung brief. Tra dict theo schema (xem docstring module/spec).
+    feedback: gop y requester khi sua brief (vong Can sua)."""
     prompt = BRIEF_PROMPT.format(
         game=fields.get("Game") or "(chưa rõ)",
         muc_dich=fields.get("Mục đích") or "(chưa rõ)",
@@ -83,6 +85,8 @@ def build_brief_content(fields: dict, items: list, asset_status: dict, insight: 
         insight=insight or "(không có insight)",
         items_block=_items_block(items),
     )
+    if feedback:
+        prompt += f"\n\nGÓP Ý CỦA REQUESTER — sửa brief theo đúng các ý sau: {feedback}"
     data = ask_llm_json(prompt, max_tokens=3000)
     # chuan hoa toi thieu (chong thieu key lam vo render)
     data.setdefault("collection_name", fields.get("Chủ đề") or "Bộ quà merch")

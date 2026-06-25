@@ -52,6 +52,7 @@ PROPOSAL_APPROVAL_DAYS = 3   # han requester duyet proposal (ngay)
 MAX_PROPOSAL_ROUNDS = 3      # so round sua toi da -> escalate Merch PIC
 MAX_CLARIFY_ROUNDS = 3       # so vong lam ro yeu cau dac biet toi da -> escalate Merch PIC
 MAX_SUPPLEMENT_ROUNDS = 3    # so lan re-analyze (bo sung thong tin) toi da -> escalate PIC (chong spam mail)
+MAX_BRIEF_ROUNDS = int(os.environ.get("MAX_BRIEF_ROUNDS", "3"))  # so vong sua brief toi da -> escalate Merch PIC
 
 # Don gia uoc tinh chi phi AI (VND) — [GIA DINH] cap nhat theo bang gia thuc te de "chung minh"
 # chi phi van hanh. Anh + grounding la phan dat; chat self-host re.
