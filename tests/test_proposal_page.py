@@ -26,6 +26,10 @@ REQUIRED = [
     '300.000đ/bộ', '150.000.000đ', 'Figure', '1.000',
     # 3 ket cuc deadline
     'ĐỦ', 'GẤP', 'KHÔNG ĐỦ',
+    # deadline dung lead-time THAT sau khi AI chon item + vi du chay so
+    'Deadline tính SAU khi AI', 'Lấy MAX', '73',
+    # goc cua so 18 (Chuan bi)
+    'critical-path',
 ]
 
 # Trang huong toi non-tech + leader -> KHONG lo chi tiet ky thuat / placeholder chua thay.

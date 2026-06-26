@@ -184,7 +184,27 @@ Ngày cần (lịch) = ( <b>{{OVERHEAD}}</b> + thời gian lên mẫu + thời g
 &nbsp;&nbsp;↑ ×{{WD2CAL}} = quy đổi ngày làm việc → ngày lịch (tính cả cuối tuần)
       </div>
 
-      <p class="t"><b>Bóc tách con số "~{{DAYS_FULL}} ngày":</b></p>
+      <div class="card"><h4>⏱️ Deadline tính SAU khi AI đề xuất — dùng lead-time THẬT của món đã chọn</h4>
+        <p class="t">Con số "ngày cần" <b>không cố định</b>: nó phụ thuộc đúng các món AI chọn. Thứ tự:</p>
+        <p class="t"><b>① AI chọn bộ item</b> hợp game (trục Relevance) → <b>② lấy lead-time THẬT của từng món đã chọn</b> (hàng có sẵn = số trong kho; làm mới = ước tính) → <b>③ lấy MAX</b> qua các món, vì sản xuất <b>song song</b> nên <b>món chậm nhất quyết định</b>.</p>
+      </div>
+
+      <p class="t"><b>Chạy thật trên dự án mẫu Nikki</b> — lead-time từng món AI đã đề xuất (ngày làm việc):</p>
+      <table>
+        <tr><th>Món</th><th>Nguồn</th><th>Lên mẫu</th><th>Sản xuất</th></tr>
+        <tr><td>Áo thun</td><td>Có sẵn (kho)</td><td>5</td><td>12</td></tr>
+        <tr><td>Bình giữ nhiệt</td><td>Có sẵn (kho)</td><td>7</td><td>18</td></tr>
+        <tr><td>Sổ tay</td><td>Có sẵn (kho)</td><td>4</td><td>10</td></tr>
+        <tr><td>⭐ Figure nhân vật</td><td>Làm mới</td><td>{{CREATIVE_LM}}</td><td>{{CREATIVE_SX}} <span class="conf cE">🟡</span></td></tr>
+        <tr style="background:#f1f5f9;font-weight:700"><td>Lấy MAX (song song)</td><td>—</td><td>{{CREATIVE_LM}}</td><td>{{CREATIVE_SX}}</td></tr>
+      </table>
+      <div class="formula">
+Ngày cần = ( <b>{{OVERHEAD}}</b> + <b>{{CREATIVE_LM}}</b> + <b>{{CREATIVE_SX}}</b> ) × {{WD2CAL}} = <b>~{{DAYS_FULL}} ngày lịch</b><br/>
+&nbsp;&nbsp;↑ Figure (làm mới) là món chậm nhất → quyết định cả bộ
+      </div>
+      <div class="src"><b>Đổi bộ item → đổi deadline:</b> nếu bỏ Figure (chậm nhất), MAX sản xuất còn 18 → ( {{OVERHEAD}} + 7 + 18 ) × {{WD2CAL}} ≈ <b>73 ngày</b>. Đây chính là cơ chế <span class="pill warn">phương án nhanh</span> khi gấp: bỏ bớt món chậm để bộ còn lại kịp deadline. Lead-time món <b>có sẵn</b> là số thật từ kho (✅); món <b>làm mới</b> dùng ước tính {{CREATIVE_LM}}/{{CREATIVE_SX}} (🟡).</div>
+
+      <p class="t"><b>Bóc tách con số "~{{DAYS_FULL}} ngày" (2 mốc tham chiếu chung):</b></p>
       <table>
         <tr><th>Loại bộ quà</th><th>Cách tính</th><th>Ngày lịch</th></tr>
         <tr><td>Toàn <b>hàng có sẵn</b> (kho)</td><td>( {{OVERHEAD}} + {{GENERIC_LM}} + {{GENERIC_SX}} ) × {{WD2CAL}}</td><td><b>~{{DAYS_CAT}} ngày</b></td></tr>
@@ -192,6 +212,8 @@ Ngày cần (lịch) = ( <b>{{OVERHEAD}}</b> + thời gian lên mẫu + thời g
       </table>
 
       <div class="src">🟡 <b>Số nào là ước tính ở đây?</b> Overhead <b>{{OVERHEAD}}</b> ngày, hệ số <b>×{{WD2CAL}}</b>, và lead-time món làm mới (<b>{{CREATIVE_LM}}/{{CREATIVE_SX}}</b>) là <span class="conf cE">giả định</span> — cần kiểm chứng bằng dự án thật. Thời gian lên mẫu/sản xuất của <b>hàng có sẵn</b> lấy từ kho (✅ nếu kho đã điền; nếu chưa điền thì dùng mặc định <b>{{GENERIC_LM}}/{{GENERIC_SX}}</b> — 🟡).</div>
+
+      <div class="src"><b>Riêng "Chuẩn bị {{OVERHEAD_HEAD}}" dựa vào đâu?</b> = critical-path các bước đầu trước khi lên mẫu (nhận đề bài + proposal + design ≈ 16–18 ngày), <span class="conf cE">ước tính từ kế hoạch, CHƯA đo thực tế</span> — là con số <b>nên hiệu chỉnh đầu tiên</b> (chỉ cần đo "từ lúc nhận đề bài đến lúc bắt đầu lên mẫu" trên vài đơn cũ). Ngược lại <b>Duyệt mẫu {{OVERHEAD_REVIEW}}</b> & <b>Giao hàng {{OVERHEAD_DELIVERY}}</b> là mốc rõ ràng, chắc hơn.</div>
 
       <div class="card"><h4>Vì sao gần như luôn báo "cần nhiều thời gian"?</h4>
         <p class="t">Chỉ riêng overhead {{OVERHEAD}} ngày làm việc × {{WD2CAL}} đã ≈ <b>38 ngày lịch</b> trước khi tính bất kỳ món nào. Cộng lead-time lên mẫu + sản xuất → <b>~{{DAYS_CAT}}–{{DAYS_FULL}} ngày</b>. Phần lớn đề bài gửi tới với ít hơn {{DAYS_CAT}} ngày nên tự động bị báo "không kịp". Muốn rút ngắn: (a) điền lead-time thật (ngắn hơn) cho hàng có sẵn trong kho, hoặc (b) hiệu chỉnh overhead/hệ số — cần dữ liệu dự án thật.</p></div>
