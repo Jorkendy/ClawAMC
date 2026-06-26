@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Merch Agent — Cấu hình & vận hành</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a2e;background:#f4f5f7;line-height:1.55}
+  .wrap{max-width:1000px;margin:0 auto;padding:0 0 60px}
+  header{background:linear-gradient(135deg,#475569,#0f172a);color:#fff;padding:34px 40px 30px}
+  header .tag{display:inline-block;background:rgba(255,255,255,.22);padding:3px 12px;border-radius:20px;font-size:12px;font-weight:600;letter-spacing:.5px}
+  header h1{font-size:28px;margin:12px 0 6px}
+  header p{opacity:.93;font-size:14px;max-width:780px}
+  header .meta{margin-top:14px;font-size:12.5px;opacity:.9}
+  section{background:#fff;margin:22px 40px 0;border-radius:14px;box-shadow:0 3px 16px rgba(0,0,0,.06);overflow:hidden}
+  .shead{padding:16px 26px;border-bottom:1px solid #eef0f3;background:#fafbfc}
+  .shead h2{font-size:19px}
+  .shead .sub{font-size:13px;color:#6b7280;margin-top:3px}
+  .body{padding:18px 26px}
+  ul{margin:6px 0 6px 18px}
+  li{margin:6px 0;font-size:14px}
+  b{color:#1a1a2e}
+  code{background:#eef1f5;padding:1px 6px;border-radius:5px;font-family:'SF Mono',ui-monospace,Menlo,monospace;font-size:12.5px}
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13.5px}
+  th,td{border:1px solid #e6e8ec;padding:9px 12px;text-align:left;vertical-align:top}
+  th{background:#f1f5f9;font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:#475569}
+  .pill{display:inline-block;padding:2px 9px;border-radius:20px;font-size:12px;font-weight:700}
+  .crit{background:#fdecec;color:#b91c1c}
+  .note{background:#f6f8fb;border:1px dashed #c7d0db;border-radius:10px;padding:11px 15px;margin:12px 0;font-size:13px}
+  footer{text-align:center;color:#8a8f99;font-size:12.5px;margin-top:30px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="tag">VNGGames · Merch Automation · ADMIN</span>
+    <h1>Cấu hình & vận hành</h1>
+    <p>Trang dành cho <b>admin / dev</b>: chỉnh ngưỡng vòng lặp, hạn duyệt, và hiểu cơ chế chuyển Merch PIC. Phần giải thích cách tạo proposal cho người dùng nằm ở trang <b>Cách tạo proposal</b>.</p>
+    <div class="meta">Đổi ngưỡng qua biến môi trường Coolify — KHÔNG sửa code.</div>
+  </header>
+
+  <!-- HẠN DUYỆT -->
+  <section>
+    <div class="shead"><h2>① Hạn DUYỆT proposal</h2>
+      <div class="sub">Hạn requester phản hồi / duyệt đề xuất (khác thời gian sản xuất).</div></div>
+    <div class="body"><ul>
+      <li><b>Hạn duyệt = ngày GỬI proposal + {{PROPOSAL_APPROVAL_DAYS}} ngày</b> — <u>không</u> tính từ ngày tạo project.</li>
+      <li><b>Mỗi lần sửa &amp; gửi lại</b> proposal (feedback / làm rõ / điều chỉnh / khôi phục bộ đầy đủ) → hạn duyệt <b>reset = ngày gửi mới + {{PROPOSAL_APPROVAL_DAYS}}</b>. Requester luôn có {{PROPOSAL_APPROVAL_DAYS}} ngày cho bản mới nhất.</li>
+      <li><b>Quá {{PROPOSAL_APPROVAL_DAYS}} ngày chưa duyệt</b> → tự đánh dấu <span class="pill crit">Quá hạn duyệt</span> + gửi mail nhắc requester (quét tự động mỗi sáng).</li>
+      <li>Phản hồi "Cần sửa" còn trong hạn → <b>không bị tính quá hạn</b> (gửi lại làm mới hạn).</li>
+    </ul></div>
+  </section>
+
+  <!-- NGƯỠNG ENV -->
+  <section>
+    <div class="shead"><h2>② Cấu hình ngưỡng (biến môi trường)</h2>
+      <div class="sub">Chỉnh số vòng / hạn duyệt qua biến môi trường Coolify. Đổi xong cần <b>restart/redeploy</b>. Không set → dùng mặc định.</div></div>
+    <div class="body">
+      <table>
+        <tr><th>Biến môi trường</th><th>Ý nghĩa</th><th>Mặc định</th></tr>
+        <tr><td><code>MAX_PROPOSAL_ROUNDS</code></td><td>Số vòng sửa proposal tối đa → quá thì chuyển Merch PIC</td><td>{{MAX_PROPOSAL_ROUNDS}}</td></tr>
+        <tr><td><code>MAX_CLARIFY_ROUNDS</code></td><td>Số vòng làm rõ / điều chỉnh (yêu cầu đặc biệt + budget + deadline) → PIC</td><td>{{MAX_CLARIFY_ROUNDS}}</td></tr>
+        <tr><td><code>MAX_SUPPLEMENT_ROUNDS</code></td><td>Số lần requester bổ sung thông tin (re-analyze) tối đa → PIC</td><td>{{MAX_SUPPLEMENT_ROUNDS}}</td></tr>
+        <tr><td><code>MAX_BRIEF_ROUNDS</code></td><td>Số vòng sửa brief tối đa → quá thì chuyển Merch PIC</td><td>{{MAX_BRIEF_ROUNDS}}</td></tr>
+        <tr><td><code>PROPOSAL_APPROVAL_DAYS</code></td><td>Hạn requester duyệt proposal = ngày gửi + N (quá hạn → mail nhắc)</td><td>{{PROPOSAL_APPROVAL_DAYS}}</td></tr>
+      </table>
+      <ul>
+        <li><b>Cách đổi:</b> Coolify → service agent → Environment Variables → thêm/sửa biến (vd <code>MAX_BRIEF_ROUNDS=5</code>) → <b>Restart/Redeploy</b>.</li>
+        <li>Giá trị phải là <b>số nguyên</b>. Set sai / để trống → tự rơi về mặc định.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ESCALATE PIC -->
+  <section>
+    <div class="shead"><h2>③ Khi nào chuyển Merch PIC</h2>
+      <div class="sub">Agent tự dừng và chuyển người khi vượt giới hạn — không bịa cho "đẹp".</div></div>
+    <div class="body">
+      <p style="font-size:14px;margin-bottom:6px"><b>4 trường hợp escalate</b> (đánh dấu "Cần PIC xử lý" + ghi lý do):</p>
+      <ul>
+        <li>Quá <code>MAX_PROPOSAL_ROUNDS</code> vòng sửa proposal.</li>
+        <li>Quá <code>MAX_CLARIFY_ROUNDS</code> vòng làm rõ / điều chỉnh.</li>
+        <li>Vẫn vượt budget sau 2 vòng tự sửa.</li>
+        <li>Lỗi AI / dữ liệu không hợp lệ.</li>
+      </ul>
+      <div class="note"><b>Re-trigger:</b> sau khi PIC sửa gốc → untick "Cần PIC xử lý" + đặt Status = "Mới tiếp nhận" → agent chạy lại từ đầu (reset bộ đếm).</div>
+    </div>
+  </section>
+
+  <footer>Merch Agent — VNGGames · Cấu hình & vận hành · Xem cách tạo proposal tại <b>/proposal</b></footer>
+</div>
+</body>
+</html>

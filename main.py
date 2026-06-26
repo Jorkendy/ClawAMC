@@ -31,7 +31,8 @@ from airtable_client import airtable, fetch_projects
 from config import (CREATIVE_LEADTIME_LEN_MAU, CREATIVE_LEADTIME_SAN_XUAT,
                     DEADLINE_BUFFER, DEADLINE_OVERHEAD_WORKDAYS, FILLOUT_FORM_URL,
                     MAX_BRIEF_ROUNDS, MAX_CLARIFY_ROUNDS, MAX_PROPOSAL_ROUNDS,
-                    MIN_FAST_ITEMS, OVERHEAD_DELIVERY_WORKDAYS, OVERHEAD_HEAD_WORKDAYS,
+                    MAX_SUPPLEMENT_ROUNDS, MIN_FAST_ITEMS,
+                    OVERHEAD_DELIVERY_WORKDAYS, OVERHEAD_HEAD_WORKDAYS,
                     OVERHEAD_REVIEW_SAMPLE_WORKDAYS, PIPELINE_WORKDAYS, PROJECTS_TABLE,
                     PROPOSAL_APPROVAL_DAYS, WORKDAYS_TO_CALENDAR)
 from analysis import analyze_one
@@ -100,7 +101,7 @@ _DOC_NAV_ITEMS = [
     ("/guide", "📘 Hướng dẫn"),
     ("/flowchart", "📊 Sơ đồ logic"),
     ("/proposal", "🧾 Cách tạo proposal"),
-    ("/rules", "📐 Quy tắc & ngưỡng"),
+    ("/config", "⚙️ Cấu hình & vận hành"),
     ("/email-guide", "✉️ Chỉnh email"),
 ]
 
@@ -132,10 +133,17 @@ def flowchart() -> HTMLResponse:
     return _serve_doc("flowchart.html", "/flowchart")
 
 
-@app.get("/rules")
-def rules() -> HTMLResponse:
-    """Quy tac ra proposal (deadline + item/creative) — tham chieu giai trinh cho stakeholder."""
-    return _serve_doc("proposal-rules.html", "/rules")
+@app.get("/config")
+def config_page() -> HTMLResponse:
+    """Cau hinh & van hanh (admin): han duyet + nguong env + escalate PIC.
+    So nguong chen tu config -> luon khop he thong thuc te."""
+    return _serve_doc("config.html", "/config", subs={
+        "MAX_PROPOSAL_ROUNDS": MAX_PROPOSAL_ROUNDS,
+        "MAX_CLARIFY_ROUNDS": MAX_CLARIFY_ROUNDS,
+        "MAX_SUPPLEMENT_ROUNDS": MAX_SUPPLEMENT_ROUNDS,
+        "MAX_BRIEF_ROUNDS": MAX_BRIEF_ROUNDS,
+        "PROPOSAL_APPROVAL_DAYS": PROPOSAL_APPROVAL_DAYS,
+    })
 
 
 @app.get("/proposal")
