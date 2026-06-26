@@ -28,8 +28,12 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 
 from airtable_client import airtable, fetch_projects
-from config import (FILLOUT_FORM_URL, MAX_BRIEF_ROUNDS, MAX_CLARIFY_ROUNDS,
-                    MAX_PROPOSAL_ROUNDS, PROJECTS_TABLE, PROPOSAL_APPROVAL_DAYS)
+from config import (CREATIVE_LEADTIME_LEN_MAU, CREATIVE_LEADTIME_SAN_XUAT,
+                    DEADLINE_BUFFER, DEADLINE_OVERHEAD_WORKDAYS, FILLOUT_FORM_URL,
+                    MAX_BRIEF_ROUNDS, MAX_CLARIFY_ROUNDS, MAX_PROPOSAL_ROUNDS,
+                    MIN_FAST_ITEMS, OVERHEAD_DELIVERY_WORKDAYS, OVERHEAD_HEAD_WORKDAYS,
+                    OVERHEAD_REVIEW_SAMPLE_WORKDAYS, PIPELINE_WORKDAYS, PROJECTS_TABLE,
+                    PROPOSAL_APPROVAL_DAYS, WORKDAYS_TO_CALENDAR)
 from analysis import analyze_one
 from pipeline import first_send, handle_proposal_decisions, on_webhook
 from proposal import propose_items_for
@@ -95,6 +99,7 @@ _DOC_DIR = os.path.join(os.path.dirname(__file__), "docs")
 _DOC_NAV_ITEMS = [
     ("/guide", "📘 Hướng dẫn"),
     ("/flowchart", "📊 Sơ đồ logic"),
+    ("/proposal", "🧾 Cách tạo proposal"),
     ("/rules", "📐 Quy tắc & ngưỡng"),
     ("/email-guide", "✉️ Chỉnh email"),
 ]
@@ -131,6 +136,37 @@ def flowchart() -> HTMLResponse:
 def rules() -> HTMLResponse:
     """Quy tac ra proposal (deadline + item/creative) — tham chieu giai trinh cho stakeholder."""
     return _serve_doc("proposal-rules.html", "/rules")
+
+
+@app.get("/proposal")
+def proposal_page() -> HTMLResponse:
+    """Minh bach cach tao proposal (deadline + chon item + gia) cho requester + leader.
+    So nguong/gia dinh chen tu config -> trang luon khop he thong thuc te."""
+    # Lead-time mac dinh khi catalogue thieu du lieu (khop fallback trong proposal.item_leadtime).
+    generic_lm, generic_sx = 8, 18
+    days_full = round((DEADLINE_OVERHEAD_WORKDAYS + CREATIVE_LEADTIME_LEN_MAU
+                       + CREATIVE_LEADTIME_SAN_XUAT) * WORKDAYS_TO_CALENDAR)
+    days_cat = round((DEADLINE_OVERHEAD_WORKDAYS + generic_lm + generic_sx) * WORKDAYS_TO_CALENDAR)
+    return _serve_doc("proposal.html", "/proposal", subs={
+        "OVERHEAD": DEADLINE_OVERHEAD_WORKDAYS,
+        "OVERHEAD_HEAD": OVERHEAD_HEAD_WORKDAYS,
+        "OVERHEAD_REVIEW": OVERHEAD_REVIEW_SAMPLE_WORKDAYS,
+        "OVERHEAD_DELIVERY": OVERHEAD_DELIVERY_WORKDAYS,
+        "WD2CAL": WORKDAYS_TO_CALENDAR,
+        "CREATIVE_LM": CREATIVE_LEADTIME_LEN_MAU,
+        "CREATIVE_SX": CREATIVE_LEADTIME_SAN_XUAT,
+        "GENERIC_LM": generic_lm,
+        "GENERIC_SX": generic_sx,
+        "DAYS_FULL": days_full,
+        "DAYS_CAT": days_cat,
+        "TIER_LOW": "100.000",
+        "TIER_HIGH": "500.000",
+        "MIN_FAST": MIN_FAST_ITEMS,
+        "BUFFER": DEADLINE_BUFFER,
+        "PWD_MIN": PIPELINE_WORKDAYS["min"],
+        "PWD_AVG": PIPELINE_WORKDAYS["avg"],
+        "PWD_MAX": PIPELINE_WORKDAYS["max"],
+    })
 
 
 @app.get("/email-guide")

@@ -48,7 +48,7 @@ def test_guide_no_technical_jargon():
     assert not leaked, f"Lọt chi tiết kỹ thuật vào /guide: {leaked}"
 
 
-DOC_ROUTES = ("/guide", "/flowchart", "/rules", "/email-guide")
+DOC_ROUTES = ("/guide", "/flowchart", "/proposal", "/rules", "/email-guide")
 
 
 def test_shared_nav_on_all_doc_pages():

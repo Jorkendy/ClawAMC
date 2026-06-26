@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Merch Agent — Proposal được tạo ra như thế nào</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a2e;background:#f4f5f7;line-height:1.55}
+  .wrap{max-width:1040px;margin:0 auto;padding:0 0 60px}
+  header{background:linear-gradient(135deg,#ff6a00,#ff3d57);color:#fff;padding:34px 40px 30px}
+  header .tag{display:inline-block;background:rgba(255,255,255,.22);padding:3px 12px;border-radius:20px;font-size:12px;font-weight:600;letter-spacing:.5px}
+  header h1{font-size:28px;margin:12px 0 6px}
+  header p{opacity:.95;font-size:14px;max-width:820px}
+  header .legend{margin-top:14px;font-size:13px;opacity:.95}
+  header .legend b{background:rgba(255,255,255,.18);padding:2px 8px;border-radius:6px}
+  section{background:#fff;margin:22px 40px 0;border-radius:14px;box-shadow:0 3px 16px rgba(0,0,0,.06);overflow:hidden}
+  .shead{padding:16px 26px;border-bottom:1px solid #eef0f3;background:#fafbfc}
+  .shead h2{font-size:19px}
+  .shead .sub{font-size:13px;color:#6b7280;margin-top:3px}
+  .body{padding:18px 26px}
+  p.t{font-size:14px;margin:8px 0}
+  ul{margin:6px 0 6px 18px}
+  li{margin:6px 0;font-size:14px}
+  b{color:#1a1a2e}
+  code{background:#eef1f5;padding:1px 6px;border-radius:5px;font-family:'SF Mono',ui-monospace,Menlo,monospace;font-size:12.5px}
+  .assum{display:inline-block;background:#fff4e0;color:#92400e;font-size:11px;font-weight:700;padding:1px 7px;border-radius:6px}
+  .formula{background:#0f172a;color:#e2e8f0;font-family:'SF Mono',ui-monospace,Menlo,monospace;font-size:13px;padding:14px 18px;border-radius:10px;margin:12px 0;line-height:1.8;overflow-x:auto}
+  .formula b{color:#fbbf24}
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13.5px}
+  th,td{border:1px solid #e6e8ec;padding:9px 12px;text-align:left;vertical-align:top}
+  th{background:#f1f5f9;font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:#475569}
+  .pill{display:inline-block;padding:2px 9px;border-radius:20px;font-size:12px;font-weight:700;white-space:nowrap}
+  .ok{background:#e6f4ea;color:#1a7f37}.warn{background:#fff4e0;color:#b45309}.crit{background:#fdecec;color:#b91c1c}
+  .axis{display:flex;gap:18px;flex-wrap:wrap;margin:14px 0 6px}
+  .axis>div{flex:1;min-width:240px;border:1px solid #e6e8ec;border-radius:12px;padding:14px 16px}
+  .axis h4{font-size:15px;margin-bottom:6px}
+  .axis .rel{border-top:3px solid #7c3aed}.axis .fea{border-top:3px solid #0ea5e9}
+  .card{background:#fbfcfe;border:1px solid #e6e8ec;border-left:4px solid #ff6a00;border-radius:0 10px 10px 0;padding:14px 18px;margin:12px 0}
+  .card h4{font-size:15px;margin-bottom:6px}
+  .src{background:#f6f8fb;border:1px dashed #c7d0db;border-radius:10px;padding:11px 15px;margin:12px 0;font-size:13px}
+  .src b{color:#334155}
+  .conf{font-weight:700}.cT{color:#1a7f37}.cE{color:#b45309}
+  .gantt{overflow-x:auto;margin:10px 0}
+  .note{font-size:12.5px;color:#6b7280;margin-top:8px}
+  .faq q{display:block;font-weight:700;font-size:14.5px;margin:14px 0 4px}
+  .faq q:before{content:"❓ "}
+  footer{text-align:center;color:#8a8f99;font-size:12.5px;margin-top:30px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="tag">VNGGames · Merch Automation</span>
+    <h1>Proposal được tạo ra như thế nào</h1>
+    <p>Trang này giải thích minh bạch <b>mọi con số trong một proposal đến từ đâu</b> và <b>chính xác tới mức nào</b> — tập trung vào 2 câu hỏi hay gặp nhất: <i>"Tại sao cần tới ~{{DAYS_FULL}} ngày?"</i> và <i>"Các item được đề xuất từ đâu?"</i></p>
+    <div class="legend">Quy ước độ tin cậy: <b>✅ Số thật</b> — lấy từ kho hàng hoặc đề bài Requester. <b>🟡 Ước tính</b> — giả định nội bộ, cần kiểm chứng bằng dự án thật.</div>
+  </header>
+
+  <!-- 1. PROPOSAL LÀ GÌ -->
+  <section>
+    <div class="shead"><h2>① Proposal là gì — 2 trục quyết định</h2>
+      <div class="sub">Một proposal được dựng trên hai trục độc lập, tách bạch để dễ đánh giá.</div></div>
+    <div class="body">
+      <div class="axis">
+        <div class="rel"><h4>🎯 Relevance — chọn món gì</h4>
+          <p class="t">Agent (AI) chọn item <b>hợp game / đối tượng / mục đích</b>. Đây là <b>phán đoán ngữ nghĩa</b> — xem mục ④.</p></div>
+        <div class="fea"><h4>⚙️ Feasibility — có làm được không</h4>
+          <p class="t">Phần mềm tính <b>ngân sách</b> và <b>thời gian</b> một cách xác định (không do AI quyết) — xem mục ③ và ⑤.</p></div>
+      </div>
+      <p class="t">Tách 2 trục giúp trả lời rạch ròi: "món này hợp vì sao" (relevance) và "bộ này khả thi/đúng hạn không" (feasibility).</p>
+    </div>
+  </section>
+
+  <!-- 2. DỰ ÁN MẪU -->
+  <section>
+    <div class="shead"><h2>② Dự án mẫu dùng xuyên suốt</h2>
+      <div class="sub">Mọi ví dụ bên dưới dùng chung dự án này, chỉ đổi một tham số mỗi mục để minh hoạ.</div></div>
+    <div class="body">
+      <table>
+        <tr><th>Thông tin</th><th>Giá trị</th><th>Độ tin cậy</th></tr>
+        <tr><td>Game</td><td><b>Infinity Nikki</b> (game thời trang nữ)</td><td><span class="conf cT">✅ từ đề bài</span></td></tr>
+        <tr><td>Số lượng</td><td>500 bộ quà</td><td><span class="conf cT">✅ từ đề bài</span></td></tr>
+        <tr><td>Ngân sách</td><td>150.000.000đ</td><td><span class="conf cT">✅ từ đề bài</span></td></tr>
+        <tr><td>Ngân sách mỗi bộ</td><td>150.000.000 ÷ 500 = <b>300.000đ/bộ</b> → phân khúc <b>Tầm trung</b></td><td><span class="conf cT">✅ máy tính</span></td></tr>
+      </table>
+    </div>
+  </section>
+
+  <!-- 3. TẠI SAO CẦN X NGÀY -->
+  <section>
+    <div class="shead"><h2>③ "Tại sao cần tới ~{{DAYS_FULL}} ngày?" — thời gian đi đâu</h2>
+      <div class="sub">Quy trình thực tế gồm 17 bước. Agent gom lại thành một công thức để ước tính nhanh.</div></div>
+    <div class="body">
+      <p class="t"><b>Quy trình đầy đủ từ lúc nhận đề bài tới khi hàng về kho</b> (đơn vị: ngày làm việc; các bước có thể chạy song song):</p>
+
+      <div class="gantt">
+      <svg viewBox="0 0 1200 580" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,'Segoe UI',Roboto,Arial" width="100%">
+        <defs>
+          <pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <rect width="7" height="7" fill="#fff"/><line x1="0" y1="0" x2="0" y2="7" stroke="#b8c0cc" stroke-width="3"/>
+          </pattern>
+        </defs>
+        <!-- gridlines + day labels (0..65, scale 13px/day, x0=250) -->
+        <g stroke="#eef1f5" stroke-width="1">
+          <line x1="250" y1="44" x2="250" y2="486"/><line x1="315" y1="44" x2="315" y2="486"/>
+          <line x1="380" y1="44" x2="380" y2="486"/><line x1="445" y1="44" x2="445" y2="486"/>
+          <line x1="510" y1="44" x2="510" y2="486"/><line x1="575" y1="44" x2="575" y2="486"/>
+          <line x1="640" y1="44" x2="640" y2="486"/><line x1="705" y1="44" x2="705" y2="486"/>
+          <line x1="770" y1="44" x2="770" y2="486"/><line x1="835" y1="44" x2="835" y2="486"/>
+          <line x1="900" y1="44" x2="900" y2="486"/><line x1="965" y1="44" x2="965" y2="486"/>
+          <line x1="1030" y1="44" x2="1030" y2="486"/><line x1="1095" y1="44" x2="1095" y2="486"/>
+        </g>
+        <g fill="#94a3b8" font-size="11" text-anchor="middle">
+          <text x="250" y="502">0</text><text x="315" y="502">5</text><text x="380" y="502">10</text>
+          <text x="445" y="502">15</text><text x="510" y="502">20</text><text x="575" y="502">25</text>
+          <text x="640" y="502">30</text><text x="705" y="502">35</text><text x="770" y="502">40</text>
+          <text x="835" y="502">45</text><text x="900" y="502">50</text><text x="965" y="502">55</text>
+          <text x="1030" y="502">60</text><text x="1095" y="502">65</text>
+        </g>
+        <text x="675" y="520" fill="#64748b" font-size="12" text-anchor="middle">NGÀY LÀM VIỆC (kể từ ngày nhận đề bài)</text>
+
+        <!-- avg marker day 53 -> x=939 -->
+        <line x1="939" y1="40" x2="939" y2="490" stroke="#ff3d57" stroke-width="1.5" stroke-dasharray="5 4"/>
+        <text x="939" y="38" fill="#ff3d57" font-size="11" font-weight="700" text-anchor="middle">Hàng về kho ~53 ngày (≈10,5 tuần)</text>
+
+        <!-- bars -->
+        <g font-size="12.5" fill="#334155" text-anchor="end">
+          <text x="238" y="63">1. Intake — Nhận request</text>
+          <text x="238" y="89">2. Proposal items</text>
+          <text x="238" y="115">3. Báo giá dự kiến</text>
+          <text x="238" y="141">4. Planning budget</text>
+          <text x="238" y="167">5. Design + Mockup</text>
+          <text x="238" y="193">6. Phân tích vật liệu</text>
+          <text x="238" y="219">7. Plan final + Eform</text>
+          <text x="238" y="245">8. PR mua hàng</text>
+          <text x="238" y="271">9. Vendor báo giá final</text>
+          <text x="238" y="297">10. Lên mẫu</text>
+          <text x="238" y="323">11. Duyệt mẫu</text>
+          <text x="238" y="349">12. Chọn vendor + PO + Legal</text>
+          <text x="238" y="375">13. Sản xuất hàng loạt</text>
+          <text x="238" y="401">14. Giao hàng nhập kho</text>
+          <text x="238" y="427">15. Thanh toán vendor</text>
+          <text x="238" y="453">16. Branding plan bộ merch</text>
+          <text x="238" y="479">17. Report định kỳ</text>
+        </g>
+        <!-- C=#e0532f critical, P=#f0913c song song, R=#f0c33c nhánh riêng -->
+        <g>
+          <rect x="250" y="50"  width="13"  height="17" rx="3" fill="#e0532f"/>
+          <rect x="263" y="76"  width="91"  height="17" rx="3" fill="#e0532f"/><text x="308" y="89" fill="#fff" font-size="11.5" font-weight="700" text-anchor="middle">7 ngày</text>
+          <rect x="354" y="102" width="39"  height="17" rx="3" fill="#f0913c"/><text x="399" y="115" fill="#64748b" font-size="11">3 · song song 5</text>
+          <rect x="393" y="128" width="26"  height="17" rx="3" fill="#f0913c"/><text x="425" y="141" fill="#64748b" font-size="11">2 · gối lên 3</text>
+          <rect x="354" y="154" width="104" height="17" rx="3" fill="#e0532f"/><text x="406" y="167" fill="#fff" font-size="11.5" font-weight="700" text-anchor="middle">8 ngày</text>
+          <rect x="458" y="180" width="26"  height="17" rx="3" fill="#f0913c"/><text x="490" y="193" fill="#64748b" font-size="11">2 · gối lên 5</text>
+          <rect x="458" y="206" width="39"  height="17" rx="3" fill="#f0913c"/><text x="503" y="219" fill="#64748b" font-size="11">3 · song song 9–10</text>
+          <rect x="497" y="232" width="65"  height="17" rx="3" fill="#f0913c"/><text x="567" y="245" fill="#64748b" font-size="11">5 · song song 10–11</text>
+          <rect x="458" y="258" width="39"  height="17" rx="3" fill="#f0913c"/><text x="503" y="271" fill="#64748b" font-size="11">3 · song song 7</text>
+          <rect x="458" y="284" width="104" height="17" rx="3" fill="#e0532f"/><text x="510" y="297" fill="#fff" font-size="11.5" font-weight="700" text-anchor="middle">8 ngày</text>
+          <rect x="562" y="310" width="91"  height="17" rx="3" fill="#e0532f"/><text x="607" y="323" fill="#fff" font-size="11.5" font-weight="700" text-anchor="middle">7 ngày</text>
+          <rect x="653" y="336" width="52"  height="17" rx="3" fill="#f0913c"/><text x="710" y="349" fill="#64748b" font-size="11">4 · song song 13</text>
+          <rect x="679" y="362" width="234" height="17" rx="3" fill="#e0532f"/><text x="796" y="375" fill="#fff" font-size="11.5" font-weight="700" text-anchor="middle">18 ngày</text>
+          <rect x="913" y="388" width="26"  height="17" rx="3" fill="#e0532f"/><text x="945" y="401" fill="#64748b" font-size="11">2</text>
+          <rect x="939" y="414" width="26"  height="17" rx="3" fill="#f0913c"/><text x="971" y="427" fill="#64748b" font-size="11">2 · ngoài critical</text>
+          <rect x="679" y="440" width="91"  height="17" rx="3" fill="#f0c33c"/><text x="724" y="453" fill="#7a5b00" font-size="11.5" font-weight="700" text-anchor="middle">7 ngày</text>
+          <rect x="250" y="466" width="780" height="17" rx="3" fill="url(#hatch)" stroke="#c7d0db"/><text x="640" y="479" fill="#64748b" font-size="11" text-anchor="middle">Report định kỳ — ngoài pipeline đơn hàng</text>
+        </g>
+        <!-- legend -->
+        <g font-size="11.5" fill="#475569">
+          <rect x="820" y="52" width="14" height="11" rx="2" fill="#e0532f"/><text x="840" y="62">Critical path (quyết định tổng thời gian)</text>
+          <rect x="820" y="70" width="14" height="11" rx="2" fill="#f0913c"/><text x="840" y="80">Song song / ngoài critical path</text>
+          <rect x="820" y="88" width="14" height="11" rx="2" fill="#f0c33c"/><text x="840" y="98">Nhánh riêng (sau giao hàng)</text>
+          <rect x="820" y="106" width="14" height="11" rx="2" fill="url(#hatch)" stroke="#c7d0db"/><text x="840" y="116">Định kỳ — ngoài pipeline</text>
+        </g>
+        <!-- scenarios -->
+        <text x="250" y="552" fill="#334155" font-size="12.5" font-weight="700">Tổng timeline giao hàng theo 3 kịch bản:</text>
+        <text x="250" y="570" fill="#64748b" font-size="12">Nhanh nhất {{PWD_MIN}} ngày làm việc (~6 tuần) · Trung bình {{PWD_AVG}} ngày (~10,5 tuần) · Chậm nhất {{PWD_MAX}} ngày (~13,5 tuần)</text>
+      </svg>
+      </div>
+
+      <p class="t"><b>Agent gom 17 bước trên thành một công thức ước tính</b> (sản xuất song song → lấy thời gian dài nhất):</p>
+      <div class="formula">
+Ngày cần (lịch) = ( <b>{{OVERHEAD}}</b> + thời gian lên mẫu + thời gian sản xuất ) × <b>{{WD2CAL}}</b><br/>
+&nbsp;&nbsp;↑ overhead <b>{{OVERHEAD}}</b> ngày làm việc = Chuẩn bị {{OVERHEAD_HEAD}} + Duyệt mẫu {{OVERHEAD_REVIEW}} + Giao hàng {{OVERHEAD_DELIVERY}}<br/>
+&nbsp;&nbsp;↑ ×{{WD2CAL}} = quy đổi ngày làm việc → ngày lịch (tính cả cuối tuần)
+      </div>
+
+      <p class="t"><b>Bóc tách con số "~{{DAYS_FULL}} ngày":</b></p>
+      <table>
+        <tr><th>Loại bộ quà</th><th>Cách tính</th><th>Ngày lịch</th></tr>
+        <tr><td>Toàn <b>hàng có sẵn</b> (kho)</td><td>( {{OVERHEAD}} + {{GENERIC_LM}} + {{GENERIC_SX}} ) × {{WD2CAL}}</td><td><b>~{{DAYS_CAT}} ngày</b></td></tr>
+        <tr><td>Có <b>item làm mới</b> (creative)</td><td>( {{OVERHEAD}} + {{CREATIVE_LM}} + {{CREATIVE_SX}} ) × {{WD2CAL}}</td><td><b>~{{DAYS_FULL}} ngày</b></td></tr>
+      </table>
+
+      <div class="src">🟡 <b>Số nào là ước tính ở đây?</b> Overhead <b>{{OVERHEAD}}</b> ngày, hệ số <b>×{{WD2CAL}}</b>, và lead-time món làm mới (<b>{{CREATIVE_LM}}/{{CREATIVE_SX}}</b>) là <span class="conf cE">giả định</span> — cần kiểm chứng bằng dự án thật. Thời gian lên mẫu/sản xuất của <b>hàng có sẵn</b> lấy từ kho (✅ nếu kho đã điền; nếu chưa điền thì dùng mặc định <b>{{GENERIC_LM}}/{{GENERIC_SX}}</b> — 🟡).</div>
+
+      <div class="card"><h4>Vì sao gần như luôn báo "cần nhiều thời gian"?</h4>
+        <p class="t">Chỉ riêng overhead {{OVERHEAD}} ngày làm việc × {{WD2CAL}} đã ≈ <b>38 ngày lịch</b> trước khi tính bất kỳ món nào. Cộng lead-time lên mẫu + sản xuất → <b>~{{DAYS_CAT}}–{{DAYS_FULL}} ngày</b>. Phần lớn đề bài gửi tới với ít hơn {{DAYS_CAT}} ngày nên tự động bị báo "không kịp". Muốn rút ngắn: (a) điền lead-time thật (ngắn hơn) cho hàng có sẵn trong kho, hoặc (b) hiệu chỉnh overhead/hệ số — cần dữ liệu dự án thật.</p></div>
+
+      <p class="t"><b>3 kết cục deadline</b> (so <code>còn lại</code> = số ngày lịch từ hôm nay tới deadline) — minh hoạ trên dự án mẫu (bộ có item làm mới → cần ~{{DAYS_FULL}} ngày):</p>
+      <table>
+        <tr><th>Kết cục</th><th>Điều kiện</th><th>Trên dự án mẫu Nikki</th></tr>
+        <tr><td><span class="pill ok">ĐỦ</span></td><td>còn lại ≥ ngày cần</td><td>Còn 110 ngày ≥ {{DAYS_FULL}} → ra bộ đầy đủ. (Nếu sát: còn lại &lt; ngày cần ×{{BUFFER}} → kèm cảnh báo, vẫn chạy.)</td></tr>
+        <tr><td><span class="pill warn">GẤP</span></td><td>bộ đầy đủ không kịp, nhưng bỏ bớt món chậm vẫn còn ≥{{MIN_FAST}} món kịp</td><td>Còn 78 ngày → bỏ item làm mới (chậm nhất), còn 3 món có sẵn (~{{DAYS_CAT}} ngày) kịp → <b>phương án nhanh</b> + mời dời deadline để lấy lại bộ đầy đủ.</td></tr>
+        <tr><td><span class="pill crit">KHÔNG ĐỦ</span></td><td>bỏ bớt vẫn &lt;{{MIN_FAST}} món kịp</td><td>Còn 48 ngày → cả món nhanh nhất kho cũng trễ → hỏi dời deadline, báo rõ "cần tối thiểu ~{{DAYS_CAT}} ngày".</td></tr>
+      </table>
+      <p class="note">Khi báo không kịp, mốc trung thực luôn so với <b>món nhanh nhất trong toàn kho</b> (không phải món đã chọn), và luôn nói rõ "cần ~X ngày, còn Y ngày".</p>
+    </div>
+  </section>
+
+  <!-- 4. ITEMS TỪ ĐÂU -->
+  <section>
+    <div class="shead"><h2>④ "Các item được đề xuất từ đâu?"</h2>
+      <div class="sub">Trục Relevance — đây là phán đoán ngữ nghĩa của AI, không phải thuật toán cố định.</div></div>
+    <div class="body">
+      <p class="t">Agent chọn item dựa trên <b>4 nguồn</b>:</p>
+      <ul>
+        <li><b>Đề bài Requester</b> — Game, Mục đích, Chủ đề, Định vị, Target, Số lượng, Deadline, Budget, Yêu cầu đặc biệt. <span class="conf cT">✅</span></li>
+        <li><b>Mô tả kho hàng</b> — danh mục item có sẵn (dạng chữ). <span class="conf cT">✅</span></li>
+        <li><b>Insight game (tra Google)</b> — Agent tìm hiểu game để định hướng đối tượng/phong cách. <span class="conf cE">🟡 nguồn web</span></li>
+        <li><b>Phân khúc giá</b> = Ngân sách ÷ Số lượng → quyết "đẳng cấp" món. <span class="conf cT">✅ máy tính</span></li>
+      </ul>
+      <div class="src">🟡 <b>Nói thẳng:</b> việc chọn món là <b>phán đoán ngữ nghĩa của AI, CHƯA dựa trên dữ liệu doanh số / lịch sử bán</b>. Đó là lý do cần Requester và leader góp ý để cải thiện chất lượng.</div>
+
+      <div class="card"><h4>Trên dự án mẫu Nikki (game thời trang nữ)</h4>
+        <p class="t">Insight web → ưu tiên phụ kiện thẩm mỹ; phân khúc Tầm trung. Bộ đề xuất: Áo thun · Bình giữ nhiệt · Sổ tay (hàng có sẵn) + ⭐ Figure nhân vật (làm mới).</p></div>
+
+      <p class="t"><b>Quy tắc cơ cấu bộ item:</b></p>
+      <ul>
+        <li><b>Ưu tiên hàng có sẵn</b> (giá thật, nhanh). Item <b>làm mới chỉ thêm để lấp</b> chỗ kho thiếu → có thể 0 item làm mới (vẫn hợp lệ).</li>
+        <li><b>Số item làm mới ≤ số hàng có sẵn</b> — giữ đa số món có giá để chốt được.</li>
+        <li><b>≥ 1 item key ⭐</b> (điểm nhấn mang dấu ấn game).</li>
+        <li>Số item linh hoạt <b>3–6</b> món — chất hơn lượng.</li>
+        <li><b>Số lượng tối thiểu (MOQ):</b> nếu số lượng đề bài thấp hơn mức tối thiểu của món → tự nâng lên + ghi chú. <i>Ví dụ: cần 500 nhưng món yêu cầu tối thiểu 1.000 → nâng lên 1.000 + báo ảnh hưởng tổng chi phí.</i></li>
+      </ul>
+
+      <p class="t"><b>Phân khúc giá trị</b> (= Ngân sách ÷ Số lượng mỗi bộ):</p>
+      <table>
+        <tr><th>Ngân sách/bộ</th><th>Phân khúc</th><th>Hướng chọn</th></tr>
+        <tr><td>&lt; {{TIER_LOW}}đ</td><td>Phổ thông</td><td>Món thực dụng, có thể nhiều món</td></tr>
+        <tr><td>{{TIER_LOW}} – {{TIER_HIGH}}đ</td><td>Tầm trung <span class="note">(dự án mẫu = 300.000đ/bộ)</span></td><td>Cân bằng giá trị / thẩm mỹ</td></tr>
+        <tr><td>&gt; {{TIER_HIGH}}đ</td><td>Cao cấp</td><td>Item giá trị/thẩm mỹ cao, xứng tầm VIP</td></tr>
+      </table>
+      <p class="note">🟡 Ngưỡng phân khúc đang là ước tính, cần kiểm chứng bằng dự án thật.</p>
+    </div>
+  </section>
+
+  <!-- 5. NGÂN SÁCH & GIÁ -->
+  <section>
+    <div class="shead"><h2>⑤ Ngân sách & giá — "khi nào con số được chốt?"</h2></div>
+    <div class="body">
+      <ul>
+        <li><b>Tổng</b> = đơn giá × số lượng (bỏ qua món chưa có giá) phải <b>≤ Budget</b>. Máy tự cộng, không nhờ AI cộng.</li>
+        <li>Vượt budget → AI tự điều chỉnh (đổi món rẻ hơn) <b>tối đa 2 vòng</b>; vẫn vượt → chuyển sang vòng điều chỉnh (xin tăng budget / nới yêu cầu).</li>
+      </ul>
+      <table>
+        <tr><th>Loại item</th><th>Giá</th><th>Độ tin cậy</th></tr>
+        <tr><td><b>Hàng có sẵn</b> (kho)</td><td>Giá kho <b>cố định</b> (phần mềm ép theo bảng, chống AI bịa giá)</td><td><span class="conf cT">✅ chốt được ngay</span></td></tr>
+        <tr><td><b>Item làm mới</b> (creative)</td><td><b>Để trống có chủ đích</b> — chờ báo giá vendor sau khi có design</td><td><span class="conf cE">🟡 chốt sau</span></td></tr>
+      </table>
+      <div class="card"><h4>Trên dự án mẫu Nikki</h4>
+        <p class="t">Áo thun 120.000 × 500 = 60tr · Bình giữ nhiệt 90.000 × 500 = 45tr · Sổ tay 50.000 × 500 = 25tr → tổng có giá <b>130tr ≤ 150tr</b> ✅ (dư ~20tr cho Figure). Figure (làm mới) để trống chờ vendor.</p></div>
+    </div>
+  </section>
+
+  <!-- 6. YÊU CẦU ĐẶC BIỆT -->
+  <section>
+    <div class="shead"><h2>⑥ Yêu cầu đặc biệt</h2></div>
+    <div class="body"><ul>
+      <li>Yêu cầu đặc biệt Requester ghi = <b>ràng buộc bắt buộc</b>. Agent chấm từng yêu cầu <b>đáp ứng / chưa đáp ứng</b>.</li>
+      <li><b>Design có sẵn</b> (Requester đưa link) → <b>luôn đáp ứng</b> (dùng đúng design đó, giá hỏi vendor sau).</li>
+      <li>Có yêu cầu <b>chưa đáp ứng</b> → Agent hỏi lại để làm rõ, <b>không tự nhận bừa</b>.</li>
+    </ul></div>
+  </section>
+
+  <!-- 7. ĐỘ CHÍNH XÁC -->
+  <section>
+    <div class="shead"><h2>⑦ Độ chính xác — cái gì chắc, cái gì còn ước tính</h2>
+      <div class="sub">Tổng hợp để team & Requester biết nên tin con số nào, và góp ý hiệu chỉnh chỗ nào.</div></div>
+    <div class="body">
+      <table>
+        <tr><th>Con số</th><th>Nguồn</th><th>Độ tin cậy</th></tr>
+        <tr><td>Giá hàng có sẵn</td><td>Bảng kho</td><td><span class="conf cT">✅ Số thật</span></td></tr>
+        <tr><td>Số lượng · Budget · Deadline</td><td>Đề bài Requester</td><td><span class="conf cT">✅ Số thật</span></td></tr>
+        <tr><td>Tổng chi phí · ngân sách/bộ · phân khúc</td><td>Máy tính từ số thật</td><td><span class="conf cT">✅ Số thật</span></td></tr>
+        <tr><td>Overhead {{OVERHEAD}} ngày làm việc</td><td>Giả định quy trình</td><td><span class="conf cE">🟡 Ước tính</span></td></tr>
+        <tr><td>Hệ số quy đổi ×{{WD2CAL}} (làm việc → lịch)</td><td>Giả định</td><td><span class="conf cE">🟡 Ước tính</span></td></tr>
+        <tr><td>Lead-time item làm mới {{CREATIVE_LM}}/{{CREATIVE_SX}} ngày</td><td>Giả định</td><td><span class="conf cE">🟡 Ước tính</span></td></tr>
+        <tr><td>Lead-time mặc định khi kho thiếu dữ liệu {{GENERIC_LM}}/{{GENERIC_SX}}</td><td>Giả định</td><td><span class="conf cE">🟡 Ước tính</span></td></tr>
+        <tr><td>Ngưỡng phân khúc {{TIER_LOW}} / {{TIER_HIGH}}</td><td>Giả định</td><td><span class="conf cE">🟡 Ước tính</span></td></tr>
+        <tr><td>3 kịch bản tổng {{PWD_MIN}} / {{PWD_AVG}} / {{PWD_MAX}} ngày</td><td>Giả định quy trình</td><td><span class="conf cE">🟡 Ước tính</span></td></tr>
+        <tr><td>Chọn item hợp game</td><td>Phán đoán AI (chưa có dữ liệu bán)</td><td><span class="conf cE">🟡 Cần góp ý</span></td></tr>
+      </table>
+      <div class="faq">
+        <q>Tóm lại</q>
+        <p class="t">Các con số <b>tiền và đầu vào</b> là chính xác (✅). Các con số <b>thời gian</b> và <b>chọn món</b> hiện là ước tính bảo thủ (🟡) — sẽ chính xác hơn sau khi hiệu chỉnh bằng dữ liệu dự án thật. Agent luôn nói rõ <b>"cần ~X ngày, còn Y ngày"</b> để mọi người cùng quyết.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>Merch Agent — VNGGames · Cách tạo proposal · Xem thêm sơ đồ luồng tại <b>/flowchart</b></footer>
+</div>
+</body>
+</html>
