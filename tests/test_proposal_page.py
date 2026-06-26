@@ -30,6 +30,8 @@ REQUIRED = [
     'Deadline tính SAU khi AI', 'Lấy MAX', '73',
     # goc cua so 18 (Chuan bi)
     'critical-path',
+    # edge cases (linh hoat + gioi han)
+    'Agent xử lý tình huống khó', 'Deadline gấp', 'Budget thấp', 'Giới hạn',
 ]
 
 # Trang huong toi non-tech + leader -> KHONG lo chi tiet ky thuat / placeholder chua thay.

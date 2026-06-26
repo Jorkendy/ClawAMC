@@ -294,9 +294,33 @@ Ngày cần = ( <b>{{OVERHEAD}}</b> + <b>{{CREATIVE_LM}}</b> + <b>{{CREATIVE_SX}
     </ul></div>
   </section>
 
-  <!-- 7. ĐỘ CHÍNH XÁC -->
+  <!-- 7. EDGE CASES -->
   <section>
-    <div class="shead"><h2>⑦ Độ chính xác — cái gì chắc, cái gì còn ước tính</h2>
+    <div class="shead"><h2>⑦ Agent xử lý tình huống khó thế nào</h2>
+      <div class="sub">Cho thấy độ linh hoạt — kèm cả giới hạn, để biết khi nào agent tự xử được, khi nào cần người.</div></div>
+    <div class="body">
+      <table>
+        <tr><th>Tình huống</th><th>Agent làm gì (đúng cơ chế)</th><th>Ví dụ trên Nikki</th><th>Giới hạn (nói thẳng)</th></tr>
+        <tr>
+          <td><b>Deadline gấp</b><br/>bộ đầy đủ không kịp</td>
+          <td><b>Bỏ dần món chậm nhất</b> khỏi bộ đã chọn tới khi kịp, giữ ≥{{MIN_FAST}} món + ≥1 item key = <span class="pill warn">phương án nhanh</span>. KHÔNG chọn lại bộ mới từ đầu.</td>
+          <td>Còn 78 ngày → bỏ Figure (chậm nhất) → 3 món có sẵn (~73 ngày) kịp + mời dời deadline để lấy lại Figure.</td>
+          <td>Không làm nhanh hơn vật lý. Nếu cả món nhanh nhất kho cũng trễ → bắt buộc <b>hỏi dời deadline</b>, không tự ép cho "kịp".</td>
+        </tr>
+        <tr>
+          <td><b>Budget thấp</b><br/>tiền mỗi bộ eo hẹp</td>
+          <td>Phân khúc giá (Budget÷Số lượng) tự hạ → ưu tiên món <b>đúng tầm giá</b>. Nếu tổng vượt → <b>đề xuất lại bộ rẻ hơn</b> (đổi/giảm món) tối đa 2 vòng.</td>
+          <td>Budget 30tr → 60.000đ/bộ (&lt; {{TIER_LOW}}đ → Phổ thông) → móc khóa / sticker / túi vải thay cho Figure cao cấp.</td>
+          <td>Chỉ 2 vòng tự sửa. Vẫn không vừa → xin tăng budget / chuyển người. KHÔNG bịa giá rẻ hay hạ chất lượng âm thầm.</td>
+        </tr>
+      </table>
+      <p class="note">Điểm chung: khi không tự giải được trong giới hạn, agent <b>dừng lại và chuyển người / hỏi lại</b> — không bịa cho "đẹp".</p>
+    </div>
+  </section>
+
+  <!-- 8. ĐỘ CHÍNH XÁC -->
+  <section>
+    <div class="shead"><h2>⑧ Độ chính xác — cái gì chắc, cái gì còn ước tính</h2>
       <div class="sub">Tổng hợp để team & Requester biết nên tin con số nào, và góp ý hiệu chỉnh chỗ nào.</div></div>
     <div class="body">
       <table>
