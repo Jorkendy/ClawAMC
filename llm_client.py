@@ -20,7 +20,7 @@ from config import (AI_IMAGES_ENABLED, CF_ACCESS_CLIENT_ID,
                     LLM_GROUNDING_MODEL, LLM_IMAGE_MODEL, LLM_KEY_ANALYSIS,
                     LLM_KEY_BRIEF, LLM_KEY_GROUNDING, LLM_KEY_IMAGE,
                     LLM_KEY_PROPOSAL, LLM_MODEL, LLM_MODEL_FALLBACK,
-                    LLM_REASONING_EFFORT)
+                    LLM_REASONING_EFFORT, USD_TO_VND)
 
 # --- Theo doi chi phi AI moi proposal ---
 # Thread-local: moi luong xu ly 1 project rieng -> tranh lan chi phi khi analyze & decide
@@ -31,7 +31,18 @@ _cost = threading.local()
 def reset_cost() -> None:
     _cost.d = {"chat_calls": 0, "chat_tok_in": 0, "chat_tok_out": 0,
                "grounded_calls": 0, "grounded_tok_in": 0, "grounded_tok_out": 0, "images": 0,
-               "models": set()}
+               "models": set(),
+               # cost THAT (USD) doc tu LiteLLM header `x-litellm-response-cost`, tich theo loai.
+               # >0 -> dung lam chi phi thuc; =0 (header thieu) -> fallback uoc tinh token/anh.
+               "usd_chat": 0.0, "usd_grounded": 0.0, "usd_image": 0.0}
+
+
+def _resp_cost(raw) -> float:
+    """Doc chi phi THAT (USD) tu header LiteLLM. Thieu/khong parse duoc -> 0.0 (se fallback uoc tinh)."""
+    try:
+        return float(raw.headers.get("x-litellm-response-cost") or 0)
+    except (TypeError, ValueError):
+        return 0.0
 
 
 def _cost_d() -> dict:
@@ -60,13 +71,16 @@ def get_cost_summary() -> dict:
 
 
 def cost_breakdown_vnd(s: dict) -> dict:
-    """Tach chi phi VND theo loai (chat/image/grounded) — cho dashboard report. Don gia [GIA DINH] o config."""
-    return {
-        "chat": round(s.get("chat_tok_in", 0) / 1000 * COST_CHAT_PER_1K_IN_VND
-                      + s.get("chat_tok_out", 0) / 1000 * COST_CHAT_PER_1K_OUT_VND),
-        "image": round(s.get("images", 0) * COST_PER_IMAGE_VND),
-        "grounded": round(s.get("grounded_calls", 0) * COST_GROUNDED_PER_CALL_VND),
-    }
+    """Tach chi phi VND theo loai (chat/image/grounded).
+    UU TIEN cost THAT tu LiteLLM (usd_* > 0) x USD_TO_VND; thieu header -> uoc tinh token/anh [GIA DINH]."""
+    chat = (round(s["usd_chat"] * USD_TO_VND) if s.get("usd_chat")
+            else round(s.get("chat_tok_in", 0) / 1000 * COST_CHAT_PER_1K_IN_VND
+                       + s.get("chat_tok_out", 0) / 1000 * COST_CHAT_PER_1K_OUT_VND))
+    image = (round(s["usd_image"] * USD_TO_VND) if s.get("usd_image")
+             else round(s.get("images", 0) * COST_PER_IMAGE_VND))
+    grounded = (round(s["usd_grounded"] * USD_TO_VND) if s.get("usd_grounded")
+                else round(s.get("grounded_calls", 0) * COST_GROUNDED_PER_CALL_VND))
+    return {"chat": chat, "image": image, "grounded": grounded}
 
 
 def estimate_cost_vnd(s: dict) -> int:
@@ -125,9 +139,10 @@ def _ask_json_once(model: str, prompt: str, max_tokens: int, func: str | None = 
     last_err = None
     for attempt in range(4):
         try:
-            resp = client.chat.completions.create(**kwargs)
+            raw = client.chat.completions.with_raw_response.create(**kwargs)
+            resp = raw.parse()
             tin, tout = _usage(resp)
-            _add_cost(chat_calls=1, chat_tok_in=tin, chat_tok_out=tout)
+            _add_cost(chat_calls=1, chat_tok_in=tin, chat_tok_out=tout, usd_chat=_resp_cost(raw))
             _cost_d().setdefault("models", set()).add(getattr(resp, "model", "") or model)
             raw = (resp.choices[0].message.content or "").strip()
             if not raw:
@@ -167,15 +182,16 @@ def ask_llm_grounded(prompt: str, max_tokens: int = 3000) -> str:
     LUU Y: grounding ngon nhieu token -> max_tokens phai rong (700/2000 bi cat cut voi prompt insight, dung >=3000)."""
     for attempt in range(3):
         try:
-            resp = _client_for("grounding").chat.completions.create(
+            raw = _client_for("grounding").chat.completions.with_raw_response.create(
                 model=LLM_GROUNDING_MODEL,
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=max_tokens,
                 temperature=0.3,
                 extra_body={"tools": [{"googleSearch": {}}]},
             )
+            resp = raw.parse()
             tin, tout = _usage(resp)
-            _add_cost(grounded_calls=1, grounded_tok_in=tin, grounded_tok_out=tout)
+            _add_cost(grounded_calls=1, grounded_tok_in=tin, grounded_tok_out=tout, usd_grounded=_resp_cost(raw))
             _cost_d().setdefault("models", set()).add(getattr(resp, "model", "") or LLM_GROUNDING_MODEL)
             return (resp.choices[0].message.content or "").strip()
         except _TRANSIENT_ERRORS as e:
@@ -200,8 +216,9 @@ def generate_image(prompt: str, timeout: float | None = None) -> str | None:
     client = base.with_options(max_retries=0, timeout=timeout) if timeout else base
     for attempt in range(3):
         try:
-            resp = client.images.generate(model=LLM_IMAGE_MODEL, prompt=prompt)
-            _add_cost(images=1)
+            raw = client.images.with_raw_response.generate(model=LLM_IMAGE_MODEL, prompt=prompt)
+            resp = raw.parse()
+            _add_cost(images=1, usd_image=_resp_cost(raw))
             _cost_d().setdefault("models", set()).add(getattr(resp, "model", "") or LLM_IMAGE_MODEL)
             return resp.data[0].b64_json
         except APITimeoutError:

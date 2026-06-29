@@ -64,6 +64,10 @@ MAX_BRIEF_ROUNDS = int(os.environ.get("MAX_BRIEF_ROUNDS", "3"))          # so vo
 
 # Don gia uoc tinh chi phi AI (VND) — [GIA DINH] cap nhat theo bang gia thuc te de "chung minh"
 # chi phi van hanh. Anh + grounding la phan dat; chat self-host re.
+# Ti gia quy doi cost THAT (USD) tu LiteLLM header `x-litellm-response-cost` sang VND.
+# [GIA DINH] chinh theo ti gia thuc te; doi qua env USD_TO_VND.
+USD_TO_VND = float(os.environ.get("USD_TO_VND", "25000"))
+# --- FALLBACK: chi dung khi LiteLLM KHONG tra header cost (uoc tinh tho theo token/anh) ---
 COST_PER_IMAGE_VND = 520           # imagen-4-fast ~ $0.02 (truoc gemini-flash-image ~$0.039=1000)
 COST_GROUNDED_PER_CALL_VND = 900   # grounding Google Search ~ $0.035/call (gop ca token)
 COST_CHAT_PER_1K_IN_VND = 2        # chat input (gemini-flash) ~
