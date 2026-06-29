@@ -76,6 +76,7 @@ def _build_vars(fields: dict, core: str | None) -> dict:
         "ly_do": fields.get("Lý do cần PIC", "") or "",
         "canh_bao_deadline": fields.get("Cảnh báo deadline", "") or "",
         "link": fields.get("Link form duyệt", "") or "",
+        "link_proposal": fields.get("Link proposal", "") or "",
     }
 
 
