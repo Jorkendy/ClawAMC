@@ -386,7 +386,7 @@ def _revise_until_budget(base_prompt: str, proposal: dict, budget: int, by_name:
             "Vẫn tuân thủ mọi quy tắc về giá (giá catalogue cố định, creative giá null). "
             "Trả về JSON cùng schema."
         )
-        proposal = ask_llm_json(fix_prompt, max_tokens=2500)
+        proposal = ask_llm_json(fix_prompt, max_tokens=2500, func="proposal")
         _enforce_catalogue_price(proposal, by_name)
     return proposal, revisions
 
@@ -484,7 +484,7 @@ def propose_items_for(record: dict, feedback: str | None = None,
     base_prompt, insight, tier, per_unit = _build_proposal_prompt(
         fields, special, catalogue_txt, budget, feedback, clarify,
         prev_items, current_items, deadline_status)
-    proposal = ask_llm_json(base_prompt, max_tokens=2500)
+    proposal = ask_llm_json(base_prompt, max_tokens=2500, func="proposal")
     if feedback and prev_items:
         _restore_kept_items(proposal, prev_items)  # [B] copy nguyên vẹn item giu_nguyen từ proposal cũ
     _enforce_catalogue_price(proposal, by_name)

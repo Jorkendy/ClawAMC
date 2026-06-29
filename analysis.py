@@ -120,7 +120,7 @@ def analyze_one(record: dict, notify_missing: bool = True) -> dict:
         deadline_status=deadline_status,
         missing_fields=missing or "(không thiếu gì)",
     )
-    analysis = ask_llm_json(prompt, max_tokens=1500)
+    analysis = ask_llm_json(prompt, max_tokens=1500, func="analysis")
 
     # Buoc 1 CHI canh bao deadline — status chi phu thuoc thieu thong tin
     new_status = "Chờ duyệt items" if not missing else "Thiếu thông tin"

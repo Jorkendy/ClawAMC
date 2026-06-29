@@ -87,7 +87,7 @@ def build_brief_content(fields: dict, items: list, asset_status: dict, insight: 
     )
     if feedback:
         prompt += f"\n\nGÓP Ý CỦA REQUESTER — sửa brief theo đúng các ý sau: {feedback}"
-    data = ask_llm_json(prompt, max_tokens=3000)
+    data = ask_llm_json(prompt, max_tokens=3000, func="brief")
     # chuan hoa toi thieu (chong thieu key lam vo render)
     data.setdefault("collection_name", fields.get("Chủ đề") or "Bộ quà merch")
     data.setdefault("overview", "")

@@ -16,16 +16,23 @@ PROJECTS_TABLE = os.environ.get("AIRTABLE_PROJECTS_TABLE", "Projects")
 AI_COST_LOG_TABLE = os.environ.get("AI_COST_LOG_TABLE", "tblssSLXoyXZiEjwG")
 AIRTABLE_TOKEN = os.environ.get("AIRTABLE_TOKEN", "")
 LLM_BASE_URL = os.environ.get("LLM_BASE_URL", "https://llm.vinhpham.com.vn/v1")
-LLM_MODEL = os.environ.get("LLM_MODEL", "")
+LLM_MODEL = os.environ.get("LLM_MODEL", "gemini-2.5-flash")
 # Model du phong khi LLM_MODEL fail (vd LiteLLM fallback hong -> 503). Vd "claude-sonnet". "" = tat.
 LLM_MODEL_FALLBACK = os.environ.get("LLM_MODEL_FALLBACK", "")
 LLM_API_KEY = os.environ.get("LLM_API_KEY", "")
-LLM_IMAGE_MODEL = os.environ.get("LLM_IMAGE_MODEL", "gemini/imagen-4.0-fast-generate-001")
+# Virtual key theo function (LiteLLM): moi chuc nang 1 key -> budget/scope/kill-switch rieng.
+# De trong -> fallback ve LLM_API_KEY (tuong thich nguoc, khong vo khi chua cau hinh xong).
+LLM_KEY_ANALYSIS = os.environ.get("LLM_KEY_ANALYSIS", "")
+LLM_KEY_PROPOSAL = os.environ.get("LLM_KEY_PROPOSAL", "")
+LLM_KEY_BRIEF = os.environ.get("LLM_KEY_BRIEF", "")
+LLM_KEY_GROUNDING = os.environ.get("LLM_KEY_GROUNDING", "")
+LLM_KEY_IMAGE = os.environ.get("LLM_KEY_IMAGE", "")
+LLM_IMAGE_MODEL = os.environ.get("LLM_IMAGE_MODEL", "imagen-4.0-fast-generate-001")
 # Cong tac gen anh AI (proposal + brief). Tat (false) khi test nhieu de khoi ton chi phi anh.
 # Default true (prod co anh); dat AI_IMAGES_ENABLED=false tren sandbox de test re.
 AI_IMAGES_ENABLED = os.environ.get("AI_IMAGES_ENABLED", "true").strip().lower() not in ("false", "0", "no", "off")
 # Model cho insight game (grounding Google Search) — can Gemini 2.x, tach khoi LLM_MODEL chinh.
-LLM_GROUNDING_MODEL = os.environ.get("LLM_GROUNDING_MODEL", "gemini-flash")
+LLM_GROUNDING_MODEL = os.environ.get("LLM_GROUNDING_MODEL", "gemini-2.5-flash")
 
 # Cloudflare Access service token — neu LLM endpoint dat sau Cloudflare Access (OTP).
 # Tao tai Zero Trust > Access > Service Auth > Service Tokens; gan policy cho phep token nay.
